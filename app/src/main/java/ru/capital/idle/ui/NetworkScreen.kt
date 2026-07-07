@@ -1,0 +1,101 @@
+package ru.capital.idle.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ru.capital.idle.core.game.Currency
+import ru.capital.idle.core.game.GameMath
+import ru.capital.idle.core.game.Network
+import ru.capital.idle.ui.theme.*
+
+@Composable
+fun NetworkScreen(vm: GameViewModel) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val cur = Currency.fromCode(state.currencyCode)
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 14.dp)
+    ) {
+        Spacer(Modifier.height(10.dp))
+        HintCard(state = state, hintId = "net", onDismiss = { vm.markHintSeen(it) })
+
+        // репутация
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(GlassFill)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("РЕПУТАЦИЯ", color = TextMain, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.width(10.dp))
+            Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
+                Box(
+                    Modifier.fillMaxWidth((state.reputation / 100.0).toFloat().coerceIn(0f, 1f))
+                        .fillMaxHeight().clip(RoundedCornerShape(99.dp)).background(Color(0xFFA98BD8))
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Text("${state.reputation.toInt()}/100", color = Mute,
+                fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text("Репутация снижает давление элит на доход (после \$1 млрд) до -70%.",
+            color = Mute, fontSize = 11.sp)
+        Spacer(Modifier.height(14.dp))
+
+        Network.all.forEach { item ->
+            val owned = item.id in state.netOwned
+            val can = !owned && state.money >= item.cost
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (owned) GlassAccent else GlassFill)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(item.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(item.info, color = Mute, fontSize = 10.sp)
+                }
+                if (owned) {
+                    Text("активно", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                } else {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (can) Gold else GlassBtnOff)
+                            .clickable(enabled = can) { vm.buyNetItem(item.id) }
+                            .padding(horizontal = 14.dp, vertical = 9.dp)
+                    ) {
+                        Text(GameMath.formatMoney(item.cost, cur),
+                            color = if (can) CoinText else GlassBtnOffText,
+                            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}

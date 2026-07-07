@@ -1,0 +1,7 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Capital" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#15161A</item>
+        <item name="android:navigationBarColor">#15161A</item>
+        <item name="android:windowBackground">#15161A</item>
+    </style>
+</resources>

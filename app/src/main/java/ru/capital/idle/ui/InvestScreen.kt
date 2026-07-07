@@ -1,0 +1,397 @@
+package ru.capital.idle.ui
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ru.capital.idle.core.game.*
+import ru.capital.idle.ui.theme.*
+
+// палитра стекла (тёмная имитация: лёгкие полупрозрачные слои)
+private val GlassFill = Color(0x10FFFFFF)         // тёмное стекло, едва светлее фона
+private val GlassInner = Color(0x0AFFFFFF)
+private val GlassTop = Color(0x0CFFFFFF)
+private val BtnFill = Color(0x14FFFFFF)
+private val BtnOff = Color(0x06FFFFFF)
+private val BtnOffText = Color(0xFF54565E)
+private val SellFill = Color(0x2ED9694F)
+private val SellText = Color(0xFFECA08C)
+private val DivBlue = Color(0xFF6A9BD8)
+
+@Composable
+fun InvestScreen(vm: GameViewModel) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val history by vm.stockHistory.collectAsStateWithLifecycle()
+    val cur = Currency.fromCode(state.currencyCode)
+
+    // отображаемые свободные наличные обновляются раз в реальную секунду (чтобы цифра не мельтешила)
+    var displayedMoney by remember { mutableStateOf(state.money) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            displayedMoney = vm.state.value.money
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val passiveDay = GameMath.invPerDay(state)
+    val tierBonus = CardTier.entries.getOrElse(state.activatedCardTier) { CardTier.CLASSIC }.passiveBonus
+
+    Box(Modifier.fillMaxSize().background(Color(0xFF14151A))) {
+        // мягкие цветные пятна — едва заметные, для лёгкой глубины (тёмный фон)
+        Box(Modifier.fillMaxSize().background(
+            Brush.radialGradient(
+                colors = listOf(Color(0x0DE8B54A), Color(0x00E8B54A)),
+                center = androidx.compose.ui.geometry.Offset(140f, 200f), radius = 700f
+            )
+        ))
+        Box(Modifier.fillMaxSize().background(
+            Brush.radialGradient(
+                colors = listOf(Color(0x0F6A9BD8), Color(0x006A9BD8)),
+                center = androidx.compose.ui.geometry.Offset(950f, 700f), radius = 800f
+            )
+        ))
+        Box(Modifier.fillMaxSize().background(
+            Brush.radialGradient(
+                colors = listOf(Color(0x0A5FBF7A), Color(0x005FBF7A)),
+                center = androidx.compose.ui.geometry.Offset(300f, 1700f), radius = 850f
+            )
+        ))
+
+        Column(
+            Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp)
+        ) {
+        Spacer(Modifier.height(8.dp))
+        Text("ИНВЕСТИЦИИ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(12.dp))
+        HintCard(state = state, hintId = "inv", onDismiss = { vm.markHintSeen(it) })
+
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text("СВОБОДНЫЕ НАЛИЧНЫЕ", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
+                Text(GameMath.formatMoney(displayedMoney, cur), color = TextMain,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("ПАССИВНЫЙ ДОХОД", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
+                Text("+${GameMath.formatAmount(passiveDay, cur)} ${cur.symbol}/день", color = GreenAccent,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (tierBonus > 0.0) {
+                    Text("карта ${CardTier.entries[state.activatedCardTier].title}: +${(tierBonus * 100).toInt()}%",
+                        color = Gold, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text("НАКОПЛЕНИЯ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(8.dp))
+        Asset.entries.forEach { a ->
+            PassiveCard(state, a, cur,
+                onInvest = { frac -> vm.invest(a, frac) },
+                onSell = { vm.sellAsset(a) },
+                onToggleCap = { vm.toggleCapitalize(a) })
+            Spacer(Modifier.height(10.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Text("ФОНДЫ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(8.dp))
+
+        val event = vm.activeStockEvent(state)
+        if (event != null) {
+            val (title, sub) = Exchange.newsTitle(event)
+            val left = (event.hoursLeft).coerceAtLeast(0)
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                    .background(if (event.good) Color(0x2615251C) else Color(0x262A1A18))
+                    .padding(13.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(if (event.good) "\uD83D\uDCC8" else "\uD83D\uDCC9", fontSize = 18.sp)
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(title, color = if (event.good) GreenAccent else RedAccent,
+                        fontWeight = FontWeight.ExtraBold, fontSize = 12.5.sp)
+                    Text(sub, color = Mute, fontSize = 11.sp, lineHeight = 15.sp)
+                    Text("${Exchange.stocks[event.stockIndex].ticker} · влияние ещё $left ч",
+                        color = Mute, fontFamily = FontFamily.Monospace, fontSize = 9.5.sp)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+
+        Exchange.stocks.forEachIndexed { i, stock ->
+            StockCard(
+                state = state, index = i, stock = stock, cur = cur,
+                history = history.getOrElse(i) { emptyList() },
+                eventDir = when {
+                    event?.stockIndex == i && event.good -> 1
+                    event?.stockIndex == i && !event.good -> -1
+                    else -> 0
+                },
+                onBuy = { frac -> vm.buyStock(i, frac) },
+                onSell = { vm.sellStock(i) }
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+// ===================== накопления =====================
+
+@Composable
+private fun PassiveCard(
+    state: GameState, a: Asset, cur: Currency,
+    onInvest: (Double) -> Unit, onSell: () -> Unit, onToggleCap: () -> Unit
+) {
+    val unlocked = a.reqCourse in state.eduDone
+    val i = a.ordinal
+    val value = state.investValues.getOrElse(i) { 0.0 }
+    val baseRate = Investments.rate(a, state.eduDone)
+    val tierBonus = CardTier.entries.getOrElse(state.activatedCardTier) { CardTier.CLASSIC }.passiveBonus
+    val rate = baseRate * (1.0 + tierBonus)
+    val capOn = state.capitalizeMask and (1 shl i) != 0
+    val hasMoney = state.money >= 1.0
+    val hasValue = value > 0.0
+
+    if (!unlocked) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(a.title, color = Mute, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(String.format("%.1f%%/день", rate * 100), color = Mute,
+                    fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+            }
+            Spacer(Modifier.height(3.dp))
+            Text("требуется: ${Education.byId(a.reqCourse)?.title}", color = RedAccent,
+                fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        }
+        return
+    }
+
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Text(a.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Tag(a.riskText(), riskColor(a.riskText()))
+            }
+            Text(String.format("%.1f%%/день", rate * 100), color = GreenAccent,
+                fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(4.dp))
+        // строка вложения без риска (риск ушёл в плашку)
+        Text("вложено ${GameMath.formatMoney(value, cur)} · +${GameMath.formatAmount(value * rate, cur)} ${cur.symbol}/день",
+            color = if (hasValue) GreenAccent else Mute, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+
+        Spacer(Modifier.height(11.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionBtn("50%", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onInvest(0.5) }
+            ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onInvest(-1.0) }
+            ActionBtn("Вывести", BtnState.SELL, hasValue, Modifier.weight(1f)) { onSell() }
+        }
+
+        Spacer(Modifier.height(11.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassInner)
+                .clickable { onToggleCap() }.padding(horizontal = 11.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CapToggle(capOn)
+            Spacer(Modifier.width(9.dp))
+            Text(
+                if (capOn) "Капитализация вкл · доход остаётся во вкладе"
+                else "Капитализация выкл · доход идёт на карту",
+                color = Mute, fontSize = 11.sp, lineHeight = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun CapToggle(on: Boolean) {
+    val track = if (on) GreenAccent.copy(alpha = 0.55f) else Color(0x24FFFFFF)
+    Box(
+        Modifier.width(36.dp).height(20.dp).clip(RoundedCornerShape(10.dp)).background(track),
+        contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart
+    ) {
+        Box(Modifier.padding(2.dp).size(16.dp).clip(RoundedCornerShape(8.dp)).background(TextMain))
+    }
+}
+
+// ===================== биржа =====================
+
+@Composable
+private fun StockCard(
+    state: GameState, index: Int, stock: Stock, cur: Currency,
+    history: List<Double>, eventDir: Int,
+    onBuy: (Double) -> Unit, onSell: () -> Unit
+) {
+    val unlocked = stock.reqCourse in state.eduDone
+    val price = state.stockPrices.getOrElse(index) { stock.basePrice }
+    val qty = state.stockQty.getOrElse(index) { 0.0 }
+    val avg = state.stockAvg.getOrElse(index) { 0.0 }
+    val hasMoney = state.money >= price
+    val divPct = stock.divPerDay * 100.0
+
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stock.title, color = if (unlocked) TextMain else Mute,
+                        fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                    if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(divPct)}", DivBlue)
+                    if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
+                    if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
+                }
+                Text("${stock.ticker} · ${stock.info}", color = Mute, fontSize = 9.5.sp)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(GameMath.formatMoney(price, cur), color = if (unlocked) TextMain else Mute,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                val ref = history.getOrNull((history.size - 25).coerceAtLeast(0))
+                if (unlocked && ref != null && ref > 0) {
+                    val ch = (price - ref) / ref * 100
+                    Text(
+                        (if (ch >= 0) "\u25B2 +" else "\u25BC ") + String.format("%.1f%% за день", ch),
+                        color = if (ch >= 0) GreenAccent else RedAccent,
+                        fontFamily = FontFamily.Monospace, fontSize = 9.5.sp
+                    )
+                }
+            }
+        }
+
+        if (!unlocked) {
+            Spacer(Modifier.height(3.dp))
+            Text("требуется: ${Education.byId(stock.reqCourse)?.title}", color = RedAccent,
+                fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+            return@Column
+        }
+
+        if (history.size >= 2) {
+            Spacer(Modifier.height(9.dp))
+            val up = history.last() >= history.first()
+            Canvas(Modifier.fillMaxWidth().height(36.dp)) {
+                val mn = history.min()
+                val mx = history.max()
+                val rg = (mx - mn).takeIf { it > 0 } ?: 1.0
+                val path = Path()
+                history.forEachIndexed { idx, v ->
+                    val x = idx.toFloat() / (history.size - 1) * size.width
+                    val y = size.height - 4f - ((v - mn) / rg * (size.height - 8f)).toFloat()
+                    if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                drawPath(path, if (up) GreenAccent else RedAccent,
+                    style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round))
+            }
+        }
+
+        Spacer(Modifier.height(9.dp))
+        if (qty > 0) {
+            val pl = (price - avg) * qty
+            val divDay = qty * price * stock.divPerDay
+            Text(
+                "у вас ${GameMath.format(qty)} шт · вход ${GameMath.formatMoney(avg, cur)} · " +
+                    (if (pl >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(pl), cur),
+                color = if (pl >= 0) GreenAccent else RedAccent,
+                fontFamily = FontFamily.Monospace, fontSize = 10.5.sp
+            )
+            if (stock.divPerDay > 0.0) {
+                Text("дивиденды +${GameMath.formatAmount(divDay, cur)} ${cur.symbol}/день",
+                    color = GreenAccent, fontFamily = FontFamily.Monospace, fontSize = 10.5.sp)
+            }
+        } else {
+            Text("позиции нет", color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.5.sp)
+            if (stock.divPerDay > 0.0) {
+                Text("платит дивиденды держателям", color = Mute,
+                    fontFamily = FontFamily.Monospace, fontSize = 10.5.sp)
+            }
+        }
+
+        Spacer(Modifier.height(11.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionBtn("50%", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(0.5) }
+            ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(-1.0) }
+            ActionBtn("Продать", BtnState.SELL, qty > 0, Modifier.weight(1f)) { onSell() }
+        }
+    }
+}
+
+// ===================== общие кнопки =====================
+
+private enum class BtnState { NEUTRAL, SELL }
+
+@Composable
+private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val bg = when {
+        !enabled -> BtnOff
+        kind == BtnState.SELL -> SellFill
+        else -> BtnFill
+    }
+    val fg = when {
+        !enabled -> BtnOffText
+        kind == BtnState.SELL -> SellText
+        else -> TextMain
+    }
+    Box(
+        modifier
+            .clip(RoundedCornerShape(13.dp))
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun Tag(text: String, color: Color) {
+    Box(
+        Modifier.padding(start = 6.dp).clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 3.7.dp)
+    ) {
+        Text(text, color = color, fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = 8.5.sp,
+            style = androidx.compose.ui.text.TextStyle(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+            )
+        )
+    }
+}
+
+private fun fmtPct(p: Double): String {
+    val s = if (p < 1.0) String.format("%.2f", p) else String.format("%.1f", p)
+    return s.replace('.', ',') + "%"
+}
+
+/** Цвет плашки риска: стабильно — серый, низкий — зелёный, средний — золотистый. */
+private fun riskColor(risk: String): Color = when (risk) {
+    "низкий риск" -> GreenAccent
+    "средний риск" -> Gold
+    else -> Mute   // стабильно
+}
