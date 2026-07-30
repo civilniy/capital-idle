@@ -79,20 +79,41 @@ object Lifestyle {
     fun techStudyMult(state: GameState): Double =
         1.0 + techStudy.getOrElse(state.ownedTech) { techStudy.last() }
 
+    /** Лучший (максимальный) купленный предмет категории. */
     fun ownedIndex(state: GameState, catId: String): Int = when (catId) {
         "home" -> state.ownedHome
         "car" -> state.ownedCar
         else -> state.ownedTech
     }
 
-    /** Содержание всего имущества в день. */
-    fun dailyUpkeep(state: GameState): Double {
-        var u = 0.0
-        u += home.items.take(state.ownedHome + 1).sumOf { it.upkeep }
-        u += car.items.take(state.ownedCar + 1).sumOf { it.upkeep }
-        u += tech.items.take(state.ownedTech + 1).sumOf { it.upkeep }
-        return u
+    /** Все купленные предметы категории. */
+    fun ownedSet(state: GameState, catId: String): Set<Int> = when (catId) {
+        "home" -> state.ownedHomes
+        "car" -> state.ownedCars
+        else -> state.ownedTechs
     }
+
+    /**
+     * Лестница {0..maxIdx} — как имущество хранилось раньше, одним индексом уровня.
+     * Используется при чтении старых сейвов: ownedHome=N означает «куплены ступени 0..N».
+     */
+    fun ladderSet(maxIdx: Int): Set<Int> = (0..maxIdx.coerceAtLeast(0)).toSet()
+
+    /** Сумма поля по всем купленным предметам категории. */
+    private fun Category.sumOwned(owned: Set<Int>, field: (Item) -> Double): Double =
+        owned.sumOf { i -> items.getOrNull(i)?.let(field) ?: 0.0 }
+
+    /** Содержание всего имущества в день. */
+    fun dailyUpkeep(state: GameState): Double =
+        home.sumOwned(state.ownedHomes) { it.upkeep } +
+        car.sumOwned(state.ownedCars) { it.upkeep } +
+        tech.sumOwned(state.ownedTechs) { it.upkeep }
+
+    /** Полная цена всех купленных предметов (для расчёта капитала). */
+    fun ownedCost(state: GameState): Double =
+        home.sumOwned(state.ownedHomes) { it.cost } +
+        car.sumOwned(state.ownedCars) { it.cost } +
+        tech.sumOwned(state.ownedTechs) { it.cost }
 
     /** Социальный статус: имущество + светская жизнь. */
     fun socialStatus(state: GameState): Int {

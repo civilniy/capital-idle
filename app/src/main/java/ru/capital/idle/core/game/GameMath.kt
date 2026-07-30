@@ -142,10 +142,8 @@ object GameMath {
             }
         }
 
-        // имущество: полная цена всех купленных ступеней (вариант А)
-        w += Lifestyle.home.items.take(state.ownedHome + 1).sumOf { it.cost }
-        w += Lifestyle.car.items.take(state.ownedCar + 1).sumOf { it.cost }
-        w += Lifestyle.tech.items.take(state.ownedTech + 1).sumOf { it.cost }
+        // имущество: полная цена всех купленных предметов (вариант А)
+        w += Lifestyle.ownedCost(state)
 
         // светская жизнь: разовые траты тоже часть «прожитого» капитала
         w += state.experiencesDone.sumOf { id -> Lifestyle.experienceById(id)?.cost ?: 0.0 }

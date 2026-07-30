@@ -9,6 +9,7 @@ import ru.capital.idle.core.game.BusinessConfig
 import ru.capital.idle.core.game.Enterprise
 import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameState
+import ru.capital.idle.core.game.Lifestyle
 import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Investments
 import ru.capital.idle.core.game.Manager
@@ -208,13 +209,13 @@ class GameMathIncomeTest {
         assertEquals(expected, GameMath.incomePerDay(s), EPS)
 
         // хрущёвка стоит 120 $/день содержания
-        val withHome = s.copy(ownedHome = 1)
+        val withHome = s.copy(ownedHomes = Lifestyle.ladderSet(1))
         assertEquals(expected - 120.0, GameMath.netIncomePerDay(withHome), EPS)
     }
 
     @Test
     fun `рекламный буст удваивает чистый поток, включая убыток`() {
-        val s = GameState(jobId = "courier", ownedHome = 1)   // доход 8, содержание 120
+        val s = GameState(jobId = "courier", ownedHomes = Lifestyle.ladderSet(1))   // доход 8, содержание 120
         assertEquals(1.0, GameMath.boostMult(s), EPS)
         assertEquals(-112.0, GameMath.netIncomePerDay(s), EPS)
 

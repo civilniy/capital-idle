@@ -48,6 +48,10 @@ object SaveFile {
         o.put("nextNewsDay", e.nextNewsDay)
         o.put("netOwnedCsv", e.netOwnedCsv)
         o.put("reputation", e.reputation)
+        o.put("ownedHomesCsv", e.ownedHomesCsv)
+        o.put("ownedCarsCsv", e.ownedCarsCsv)
+        o.put("ownedTechsCsv", e.ownedTechsCsv)
+        // legacy-индексы пишем и дальше: старая версия игры прочитает такой файл
         o.put("ownedHome", e.ownedHome)
         o.put("ownedCar", e.ownedCar)
         o.put("ownedTech", e.ownedTech)
@@ -120,6 +124,12 @@ object SaveFile {
         nextNewsDay = o.optInt("nextNewsDay", d.nextNewsDay),
         netOwnedCsv = o.optString("netOwnedCsv", d.netOwnedCsv),
         reputation = o.optDouble("reputation", d.reputation),
+        // ВАЖНО: дефолт здесь — пустая строка, а НЕ значение из DEFAULT.
+        // Отсутствие ключа означает сейв старого формата, и множество должно
+        // достроиться из legacy-индекса ниже (toOwnedSet), а не стать стартовым {0}.
+        ownedHomesCsv = o.optString("ownedHomesCsv", ""),
+        ownedCarsCsv = o.optString("ownedCarsCsv", ""),
+        ownedTechsCsv = o.optString("ownedTechsCsv", ""),
         ownedHome = o.optInt("ownedHome", d.ownedHome),
         ownedCar = o.optInt("ownedCar", d.ownedCar),
         ownedTech = o.optInt("ownedTech", d.ownedTech),

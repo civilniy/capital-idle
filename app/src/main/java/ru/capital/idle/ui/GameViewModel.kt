@@ -636,7 +636,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 startDateMillis = System.currentTimeMillis(),
                 phaseIndex = 0, phaseEndGameH = 0.0,
                 tutorialStep = Onboarding.DONE,
-                ownedHome = 0, ownedCar = 0, ownedTech = 0,
+                ownedHomes = setOf(0), ownedCars = setOf(0), ownedTechs = setOf(0),
                 lastTitleIdx = 0,
                 museum = (listOf(memorial) + st.museum).take(20),
                 chronicle = listOf(Chronicle.entry(1, "start")),
@@ -680,9 +680,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             val next = cat.items.getOrNull(curIdx + 1) ?: return@update st
             if (st.money < next.cost) return@update st
             val s2 = when (catId) {
-                "home" -> st.copy(money = st.money - next.cost, ownedHome = curIdx + 1)
-                "car" -> st.copy(money = st.money - next.cost, ownedCar = curIdx + 1)
-                else -> st.copy(money = st.money - next.cost, ownedTech = curIdx + 1)
+                "home" -> st.copy(money = st.money - next.cost, ownedHomes = st.ownedHomes + (curIdx + 1))
+                "car" -> st.copy(money = st.money - next.cost, ownedCars = st.ownedCars + (curIdx + 1))
+                else -> st.copy(money = st.money - next.cost, ownedTechs = st.ownedTechs + (curIdx + 1))
             }.let { it.copy(statLifeItems = it.statLifeItems + 1) }
             s2.withChronicle("own", "$catId:${curIdx + 1}")
         }
@@ -698,9 +698,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             val item = cat.items[curIdx]
             val refund = item.cost * 0.6
             val s2 = when (catId) {
-                "home" -> st.copy(ownedHome = curIdx - 1)
-                "car" -> st.copy(ownedCar = curIdx - 1)
-                else -> st.copy(ownedTech = curIdx - 1)
+                "home" -> st.copy(ownedHomes = st.ownedHomes - curIdx)
+                "car" -> st.copy(ownedCars = st.ownedCars - curIdx)
+                else -> st.copy(ownedTechs = st.ownedTechs - curIdx)
             }
             // выручка сначала гасит долг
             var money = s2.money + refund

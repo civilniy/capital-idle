@@ -25,7 +25,7 @@ If `./gradlew` fails with "permission denied", run `chmod +x ./gradlew`.
 Locally, `local.properties` (git-ignored) must point `sdk.dir` at the Android SDK. On GitHub Actions runners the Android SDK is preinstalled and `local.properties` is not needed.
 
 > ℹ️ **JVM unit tests live in `app/src/test/java/ru/capital/idle/`** and cover the pure logic in `core/game/` only (no Android, no Compose, no Room). They are **characterization tests**: they pin the current balance numbers as they are. If you deliberately retune a constant in `GameConfig`/`Economy`/`GameMath`, the matching test will go red — update the expected number in the same commit, and never the other way round.
-> Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа). Общие помощники — в `GameTestFixtures`.
+> Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа), `LifestyleOwnershipTest` (имущество: множества купленных предметов, миграция со старого индекса уровня). Общие помощники — в `GameTestFixtures`.
 
 ## Architecture
 
@@ -47,6 +47,8 @@ When adding a feature or economy tuning, prefer extending these modules and `Gam
 **Dual-store, JSON-first.** The source of truth on load is `save.json` in internal storage (`GameRepository`), *not* Room. Room is a secondary cache. This is deliberate: `AppDatabase` uses `fallbackToDestructiveMigration()`, so schema bumps wipe the DB — the JSON file survives them. `SaveFile.kt` serializes each field explicitly and fills missing fields from a default `GameEntity`, so old save files load in new versions.
 
 Consequence: **any new `GameState` field must be threaded through all four**: `GameState` → `GameEntity` (+ `toEntity`/`toState` mappers) → `SaveFile.toJson`/`fromJson` → and bump `AppDatabase` version. Skipping `SaveFile` means the field silently won't persist. Collections are stored as CSV/raw strings on the entity.
+
+Когда поле **заменяет** старое, а не добавляется: в `fromJson` дефолтом для нового ключа должна быть «пустышка» (например, `""`), а не значение из `DEFAULT`. Иначе отсутствие ключа в старом файле неотличимо от осознанно записанного дефолта, и мигрировать со старого поля будет уже нечем. Так сделано для имущества: `ownedHomesCsv`/`ownedCarsCsv`/`ownedTechsCsv` читаются с дефолтом `""`, и пустое значение достраивается из legacy-индекса через `Lifestyle.ladderSet(N)` → `{0..N}`. Legacy-ключи `ownedHome`/`ownedCar`/`ownedTech` продолжают писаться, чтобы файл читала и предыдущая версия игры.
 
 ### `ui/` — Compose + ViewModel
 **`GameViewModel`** (`AndroidViewModel`) is the single owner of runtime state, exposed as `StateFlow<GameState>`. It runs:
