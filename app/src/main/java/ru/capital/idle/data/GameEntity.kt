@@ -7,6 +7,7 @@ import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Enterprise
 import ru.capital.idle.core.game.Exchange
 import ru.capital.idle.core.game.Investments
+import ru.capital.idle.core.game.Lifestyle
 
 @Entity(tableName = "game_state")
 data class GameEntity(
@@ -44,6 +45,12 @@ data class GameEntity(
     val nextNewsDay: Int,
     val netOwnedCsv: String,
     val reputation: Double,
+    // множества купленных предметов — источник истины
+    val ownedHomesCsv: String,
+    val ownedCarsCsv: String,
+    val ownedTechsCsv: String,
+    // legacy-индексы «текущего уровня»: пишутся как максимум из множества и читаются
+    // только старыми сейвами, где множеств ещё нет
     val ownedHome: Int,
     val ownedCar: Int,
     val ownedTech: Int,
@@ -119,6 +126,21 @@ private fun String.toRecList(): List<String> =
 private fun String.toSet(): Set<String> =
     if (isBlank()) emptySet() else split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
+private fun Set<Int>.iSetCsv() = sorted().joinToString(",")
+
+/**
+ * Множество купленных предметов. Пустая строка = сейв старого формата, где
+ * хранился только индекс уровня: восстанавливаем лестницу {0..legacyMaxIdx}.
+ * Результат чистится по каталогу категории, чтобы мусорный индекс из
+ * повреждённого файла не дошёл до состояния игры.
+ */
+private fun String.toOwnedSet(legacyMaxIdx: Int, cat: Lifestyle.Category): Set<Int> {
+    val parsed = if (isBlank()) emptySet()
+        else split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+    val raw = if (parsed.isEmpty()) Lifestyle.ladderSet(legacyMaxIdx) else parsed
+    return Lifestyle.sanitizeOwned(cat, raw)
+}
+
 fun GameState.toEntity() = GameEntity(
     id = 0,
     money = money, totalEarned = totalEarned, bullion = bullion,
@@ -139,6 +161,9 @@ fun GameState.toEntity() = GameEntity(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwnedCsv = netOwned.sCsv(),
     reputation = reputation,
+    ownedHomesCsv = ownedHomes.iSetCsv(),
+    ownedCarsCsv = ownedCars.iSetCsv(),
+    ownedTechsCsv = ownedTechs.iSetCsv(),
     ownedHome = ownedHome, ownedCar = ownedCar, ownedTech = ownedTech,
     lastTitleIdx = lastTitleIdx,
     experiencesDoneCsv = experiencesDone.sCsv(), debt = debt, activatedCardTier = activatedCardTier,
@@ -180,7 +205,9 @@ fun GameEntity.toState() = GameState(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwned = netOwnedCsv.toSet(),
     reputation = reputation,
-    ownedHome = ownedHome, ownedCar = ownedCar, ownedTech = ownedTech,
+    ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
+    ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
+    ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
     lastTitleIdx = lastTitleIdx,
     experiencesDone = experiencesDoneCsv.toSet(), debt = debt, activatedCardTier = activatedCardTier,
     chronicle = chronicleRaw.toRecList(), museum = museumRaw.toRecList(),

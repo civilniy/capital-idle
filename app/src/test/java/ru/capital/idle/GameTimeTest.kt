@@ -2,6 +2,7 @@ package ru.capital.idle
 
 import org.junit.Assert.assertEquals
 import ru.capital.idle.core.game.GameState
+import ru.capital.idle.core.game.Lifestyle
 import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameTime
 import ru.capital.idle.core.game.Sleep
@@ -42,10 +43,10 @@ class GameTimeTest {
         assertEquals(1.0, GameMath.awakeEff(s), GameTestFixtures.EPS)
 
         // недосып 5ч (0.75) + хрущёвка (+0.02)
-        assertEquals(0.77, GameMath.awakeEff(s.copy(sleepH = 5, ownedHome = 1)), GameTestFixtures.EPS)
+        assertEquals(0.77, GameMath.awakeEff(s.copy(sleepH = 5, ownedHomes = Lifestyle.ladderSet(1))), GameTestFixtures.EPS)
 
         // нормальный сон + особняк: сумма 1.10 зажимается до 1.0
-        assertEquals(1.0, GameMath.awakeEff(s.copy(sleepH = 8, ownedHome = 4)), GameTestFixtures.EPS)
+        assertEquals(1.0, GameMath.awakeEff(s.copy(sleepH = 8, ownedHomes = Lifestyle.ladderSet(4))), GameTestFixtures.EPS)
     }
 
     @Test
@@ -56,7 +57,7 @@ class GameTimeTest {
         assertEquals(6, s.studyHCalc)   // 16 - 10 работы - 0 бизнеса
 
         // BMW M5 (индекс 3) добавляет час
-        val withCar = s.copy(ownedCar = 3)
+        val withCar = s.copy(ownedCars = Lifestyle.ladderSet(3))
         assertEquals(17, withCar.dayBudget)
         assertEquals(7, withCar.studyHCalc)
 
@@ -74,7 +75,7 @@ class GameTimeTest {
         // престиж «быстрая учёба» ×(1 + 0.25·lvl)
         assertEquals(9.0, GameMath.studyHoursPerDay(s.copy(pStudy = 2)), GameTestFixtures.EPS)
         // Rolex (индекс 2) ускоряет учёбу на 8%
-        assertEquals(6.48, GameMath.studyHoursPerDay(s.copy(ownedTech = 2)), GameTestFixtures.EPS)
+        assertEquals(6.48, GameMath.studyHoursPerDay(s.copy(ownedTechs = Lifestyle.ladderSet(2))), GameTestFixtures.EPS)
         // недосып бьёт по учёбе через бодрость: 19ч бюджета − 13ч работы = 6 учебных часов × 0.75
         val sleepy = s.copy(sleepH = 5, workH = 13)
         assertEquals(6, sleepy.studyHCalc)

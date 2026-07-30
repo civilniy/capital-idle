@@ -12,6 +12,7 @@ import ru.capital.idle.core.game.Education
 import ru.capital.idle.core.game.Enterprise
 import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameState
+import ru.capital.idle.core.game.Lifestyle
 import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Jobs
 import ru.capital.idle.core.game.MarketPhase
@@ -125,7 +126,7 @@ class EconomyLaddersTest {
         assertEquals(8, servGate.needStatus)
         assertEquals(0, servGate.haveStatus)
         // часы Tissot дают ровно 8 статуса — порог берётся впритык
-        val styled = educated.copy(ownedTech = 1)
+        val styled = educated.copy(ownedTechs = Lifestyle.ladderSet(1))
         assertTrue(GameMath.openGate(styled, servIdx).ok)
         assertEquals(8, GameMath.openGate(styled, servIdx).haveStatus)
     }

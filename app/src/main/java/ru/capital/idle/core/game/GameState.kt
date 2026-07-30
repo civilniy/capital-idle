@@ -44,9 +44,11 @@ data class GameState(
     val netOwned: Set<String> = emptySet(),
     val reputation: Double = 0.0,
     // стиль жизни
-    val ownedHome: Int = 0,
-    val ownedCar: Int = 0,
-    val ownedTech: Int = 0,
+    // имущество: множества индексов КУПЛЕННЫХ предметов — источник истины.
+    // Стартовый набор (комната в общежитии, пешком, обычные часы) — индекс 0 в каждой категории.
+    val ownedHomes: Set<Int> = setOf(0),
+    val ownedCars: Set<Int> = setOf(0),
+    val ownedTechs: Set<Int> = setOf(0),
     val lastTitleIdx: Int = 0,
     val experiencesDone: Set<String> = emptySet(),   // светская жизнь
     val debt: Double = 0.0,                          // долг при жизни не по средствам
@@ -80,6 +82,13 @@ data class GameState(
     val onboarded: Boolean = false,
     val lastSeenMillis: Long = 0L
 ) {
+    /** Лучшее купленное жильё. Раньше это было хранимое поле — теперь максимум из множества. */
+    val ownedHome: Int get() = ownedHomes.maxOrNull() ?: 0
+    /** Лучший купленный транспорт. */
+    val ownedCar: Int get() = ownedCars.maxOrNull() ?: 0
+    /** Лучший купленный аксессуар. */
+    val ownedTech: Int get() = ownedTechs.maxOrNull() ?: 0
+
     /** Бюджет дня: транспорт добавляет часы. */
     val dayBudget: Int get() = 24 - sleepH + Lifestyle.carExtraHours(this)
     val studyHCalc: Int get() = (dayBudget - workH - bizH).coerceAtLeast(0)
