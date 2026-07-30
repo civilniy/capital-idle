@@ -145,15 +145,31 @@ fun ProfileScreen(vm: GameViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        // переключатель
-        Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
-        ) {
-            GlassTab("Имущество", inner == 0, false, Modifier.weight(1f)) { inner = 0 }
-            GlassTab("Отдых", inner == 1, false, Modifier.weight(1f)) { inner = 1 }
-            GlassTab("Коллекция", inner == 4, false, Modifier.weight(1f)) { inner = 4 }
-            GlassTab("Хроника", inner == 2, false, Modifier.weight(1f)) { inner = 2 }
-            GlassTab("Цифры", inner == 3, false, Modifier.weight(1f)) { inner = 3 }
+        // переключатель: пять вкладок в один ряд. Кегль подгоняется под ширину сегмента
+        // по самой длинной подписи — тем же приёмом, что и плитки сводки выше,
+        // иначе «Имущество» уезжает на вторую строку.
+        val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val density = LocalDensity.current
+            // ширина одного сегмента ≈ (полная ширина − отступы ряда) / число вкладок − отступы вкладки
+            val cellWidthSp = with(density) {
+                ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
+            }
+            val longest = tabs.maxOf { it.first.length }
+            val tabFont = remember(cellWidthSp, longest) {
+                (cellWidthSp / (longest * 0.62f)).coerceIn(8.5f, 11.5f).sp
+            }
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
+            ) {
+                tabs.forEach { (label, idx) ->
+                    GlassTab(
+                        label = label, on = inner == idx, locked = false,
+                        modifier = Modifier.weight(1f),
+                        fontSize = tabFont, maxLines = 1, horizontalPadding = 2.dp
+                    ) { inner = idx }
+                }
+            }
         }
 
         Spacer(Modifier.height(10.dp))

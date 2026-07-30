@@ -106,11 +106,18 @@ private fun CollectibleCard(
                 fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Text("${item.rarity.title} · +${item.status} статуса", color = Mute, fontSize = 10.sp)
             if (owned) {
+                // две отдельные строки: на дорогих предметах числа длинные,
+                // и одной строкой «куплено за X · +Y» рвётся посередине
                 Text(
-                    "куплено за ${GameMath.formatMoney(paid, cur)} · " +
-                        (if (profit >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(profit), cur),
+                    "куплено за ${GameMath.formatMoney(paid, cur)}",
+                    color = Mute, fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp, maxLines = 1
+                )
+                Text(
+                    (if (profit >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(profit), cur),
                     color = if (profit >= 0) GreenAccent else RedAccent,
-                    fontFamily = FontFamily.Monospace, fontSize = 10.sp
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp, maxLines = 1
                 )
             } else {
                 Text(item.info, color = Mute.copy(alpha = 0.75f), fontSize = 9.5.sp, lineHeight = 12.sp, maxLines = 2)
@@ -119,7 +126,8 @@ private fun CollectibleCard(
         if (owned) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(GameMath.formatMoney(price, cur), color = TextMain,
-                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp, maxLines = 1)
                 Spacer(Modifier.height(4.dp))
                 Box(
                     Modifier.clip(RoundedCornerShape(9.dp)).background(GlassSell)
