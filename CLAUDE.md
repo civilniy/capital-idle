@@ -7,22 +7,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Капитал** (`ru.capital.idle`) — a native Android money-clicker / idle-tycoon game. Kotlin + Jetpack Compose (Material 3) + Room. Single-module Gradle project (`:app`). UI strings, comments, and game content are in Russian.
 
 - AGP 8.6.1, Kotlin 2.0.20, Compose BOM 2024.09.02, Room 2.6.1 (KSP), coroutines 1.8.1
-- compileSdk/targetSdk 35, minSdk 26, JDK 17
+- compileSdk/targetSdk 35, minSdk 26, JDK 17, Gradle 8.9
 
 ## Build & test
 
-**The Gradle wrapper jar is intentionally absent.** `./gradlew` is a stub script that only prints instructions — it does *not* build. To build from the terminal you must first generate the wrapper (requires a system Gradle 8.9):
+The Gradle wrapper is committed and works. From the repo root:
 
 ```sh
-gradle wrapper           # one-time: creates gradle/wrapper/gradle-wrapper.jar
-./gradlew assembleDebug  # build debug APK -> app/build/outputs/apk/debug/app-debug.apk
-./gradlew test           # run JVM unit tests
+./gradlew :app:compileDebugKotlin   # fast compile check, no packaging — use this first
+./gradlew test                      # run JVM unit tests
+./gradlew assembleDebug             # debug APK -> app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:testDebugUnitTest --tests "ru.capital.idle.SomeTest.someCase"  # single test
 ```
 
-The normal workflow is Android Studio (Hedgehog+): open the folder, let it sync (it fetches the wrapper and deps), Run or Build > Build APK. `local.properties` (git-ignored) must point `sdk.dir` at the Android SDK. Install/run on a device over adb, e.g. `adb install -r app/build/outputs/apk/debug/app-debug.apk`.
+If `./gradlew` fails with "permission denied", run `chmod +x ./gradlew`.
 
-> ℹ️ **There are currently no tests.** `app/src/test/` is empty — the former `GameMathTest.kt` described an obsolete economy model (`GameConfig.generators`, `GameMath.costFor/bulkCost/maxBuyable`) and was removed. Write any new tests against the current `GameMath`/`Economy` API.
+Locally, `local.properties` (git-ignored) must point `sdk.dir` at the Android SDK. On GitHub Actions runners the Android SDK is preinstalled and `local.properties` is not needed.
+
+> ℹ️ **There are currently no tests.** `app/src/test/` does not exist yet. The former `GameMathTest.kt` described an obsolete economy model (`GameConfig.generators`, `GameMath.costFor/bulkCost/maxBuyable`) and was removed. Write any new tests against the current `GameMath`/`Economy` API, under `app/src/test/java/ru/capital/idle/`.
 
 ## Architecture
 
@@ -56,9 +58,15 @@ Consequence: **any new `GameState` field must be threaded through all four**: `G
 
 ## Правила работы
 
-- **Всегда выдавай файлы целиком, не диффы.** При изменении файла возвращай его полное содержимое от первой до последней строки, а не фрагмент/патч.
+- **Формат вывода зависит от среды.** В чате (claude.ai) при изменении файла возвращай его полное содержимое от первой до последней строки, а не патч. В Claude Code и в GitHub Actions работай обычными точечными правками — переписывать целиком файлы вроде `GameScreen.kt` (1400+ строк) не нужно и вредно.
 - **UI — строго в glass-стиле.** Новые экраны и компоненты держат общий glassmorphism-вид; используй `ui/theme/Glass.kt` и существующую тему, не вводи чужеродных стилей.
-- **Тестовое устройство — OnePlus CPH2653, подключается по adb.** Установка/запуск на реальном девайсе идёт через `adb` (например `adb install -r app/build/outputs/apk/debug/app-debug.apk`); при нескольких устройствах адресуй его через `adb -s`.
+- **Держись границ задачи.** Не рефактори файлы, не относящиеся к задаче. Не меняй балансовые константы в `GameConfig`, `Economy` и `GameMath`, если задача явно не про баланс — эти числа выверены, и молчаливая правка ломает прогрессию.
+- **Проверяй себя сборкой.** Прежде чем считать работу законченной, прогони `./gradlew :app:compileDebugKotlin` и `./gradlew test`. Если не сходится — не выдавай результат за готовый, опиши, что осталось.
+
+### Только локально (Mac)
+
+- **Тестовое устройство — OnePlus CPH2653, подключается по adb.** Установка/запуск идёт через `adb` (например `adb install -r app/build/outputs/apk/debug/app-debug.apk`); при нескольких устройствах адресуй его через `adb -s`.
+- В GitHub Actions это неприменимо: на раннере нет ни устройства, ни эмулятора. Там доступны только компиляция и JVM-тесты.
 
 ## Conventions
 
