@@ -24,7 +24,8 @@ If `./gradlew` fails with "permission denied", run `chmod +x ./gradlew`.
 
 Locally, `local.properties` (git-ignored) must point `sdk.dir` at the Android SDK. On GitHub Actions runners the Android SDK is preinstalled and `local.properties` is not needed.
 
-> ℹ️ **There are currently no tests.** `app/src/test/` does not exist yet. The former `GameMathTest.kt` described an obsolete economy model (`GameConfig.generators`, `GameMath.costFor/bulkCost/maxBuyable`) and was removed. Write any new tests against the current `GameMath`/`Economy` API, under `app/src/test/java/ru/capital/idle/`.
+> ℹ️ **JVM unit tests live in `app/src/test/java/ru/capital/idle/`** and cover the pure logic in `core/game/` only (no Android, no Compose, no Room). They are **characterization tests**: they pin the current balance numbers as they are. If you deliberately retune a constant in `GameConfig`/`Economy`/`GameMath`, the matching test will go red — update the expected number in the same commit, and never the other way round.
+> Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа). Общие помощники — в `GameTestFixtures`.
 
 ## Architecture
 
