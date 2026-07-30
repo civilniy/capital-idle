@@ -1,0 +1,62 @@
+name: Record screenshots
+
+# Перезапись эталонных скриншотов. Запускается вручную: Actions → Record screenshots → Run workflow,
+# выбрав нужную ветку. Эталоны пишутся на ubuntu и коммитятся в эту же ветку, поэтому
+# сверка в CI всегда сравнивает картинки, снятые на той же платформе.
+#
+# Когда запускать: после осознанного изменения дизайна, когда шаг «Screenshot tests» в CI
+# упал не из-за дефекта, а потому что вёрстка изменилась намеренно.
+
+on:
+  workflow_dispatch:
+  # ВРЕМЕННО на время подготовки этой ветки: workflow_dispatch становится доступен
+  # только после того, как workflow попадёт в main. Убрать перед ревью.
+  push:
+    branches: ['claude/**']
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Record screenshots
+        run: ./gradlew :app:recordRoborazziDebug --stacktrace
+
+      - name: Commit updated baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/test/screenshots
+          if git diff --staged --quiet; then
+            echo "Эталоны не изменились — коммитить нечего."
+          else
+            git commit -m "chore: перезаписать эталонные скриншоты вёрстки [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorded-screenshots
+          path: app/src/test/screenshots/
+          if-no-files-found: warn
+          retention-days: 7

@@ -91,29 +91,13 @@ fun ProfileScreen(vm: GameViewModel) {
 
             // три числа
             Spacer(Modifier.height(12.dp))
-            val moneyStr = if (inDebt) "-${GameMath.formatMoney(state.debt, cur)}"
-                else GameMath.formatMoney(state.money, cur)
-            val upkeepStr = GameMath.formatMoney(upkeep, cur)
-            val netStr = (if (net >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(net), cur)
-            // общий размер по самой длинной строке, чтобы плитки были одинаковыми
-            val maxLen = maxOf(moneyStr.length, upkeepStr.length, netStr.length)
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val density = LocalDensity.current
-                // ширина одной плитки ≈ (полная ширина − 2 промежутка) / 3
-                val cellWidthSp = with(density) {
-                    ((maxWidth.toPx() - 20.dp.toPx()) / 3f - 20.dp.toPx()) / fontScale / density.density
-                }
-                val sharedSize = remember(maxLen, cellWidthSp) {
-                    (cellWidthSp / (maxLen * 0.62f)).coerceIn(7f, 15f).sp
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MoneyCell(moneyStr, if (inDebt) "ДОЛГ" else "НА СЧЕТУ",
-                        if (inDebt) RedAccent else TextMain, sharedSize, Modifier.weight(1f))
-                    MoneyCell(upkeepStr, "СОДЕРЖАНИЕ /ДЕНЬ", RedAccent, sharedSize, Modifier.weight(1f))
-                    MoneyCell(netStr, "ЧИСТЫЙ ДОХОД /ДЕНЬ",
-                        if (net >= 0) GreenAccent else RedAccent, sharedSize, Modifier.weight(1f))
-                }
-            }
+            MoneyCellsRow(
+                moneyStr = if (inDebt) "-${GameMath.formatMoney(state.debt, cur)}"
+                    else GameMath.formatMoney(state.money, cur),
+                upkeepStr = GameMath.formatMoney(upkeep, cur),
+                netStr = (if (net >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(net), cur),
+                inDebt = inDebt, netPositive = net >= 0
+            )
 
             // витрина
             Spacer(Modifier.height(12.dp))
@@ -145,32 +129,7 @@ fun ProfileScreen(vm: GameViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        // переключатель: пять вкладок в один ряд. Кегль подгоняется под ширину сегмента
-        // по самой длинной подписи — тем же приёмом, что и плитки сводки выше,
-        // иначе «Имущество» уезжает на вторую строку.
-        val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val density = LocalDensity.current
-            // ширина одного сегмента ≈ (полная ширина − отступы ряда) / число вкладок − отступы вкладки
-            val cellWidthSp = with(density) {
-                ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
-            }
-            val longest = tabs.maxOf { it.first.length }
-            val tabFont = remember(cellWidthSp, longest) {
-                (cellWidthSp / (longest * 0.62f)).coerceIn(8.5f, 11.5f).sp
-            }
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
-            ) {
-                tabs.forEach { (label, idx) ->
-                    GlassTab(
-                        label = label, on = inner == idx, locked = false,
-                        modifier = Modifier.weight(1f),
-                        fontSize = tabFont, maxLines = 1, horizontalPadding = 2.dp
-                    ) { inner = idx }
-                }
-            }
-        }
+        ProfileTabsRow(selected = inner, onSelect = { inner = it })
 
         Spacer(Modifier.height(10.dp))
 
@@ -292,8 +251,72 @@ private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
     }
 }
 
+/**
+ * Ряд вкладок профиля. Вынесен из ProfileScreen отдельной функцией, чтобы его можно было
+ * снимать скриншот-тестом: пять подписей в один ряд — самое хрупкое место этого экрана.
+ *
+ * Кегль подгоняется под ширину сегмента по самой длинной подписи — тем же приёмом,
+ * что и плитки сводки, иначе «Имущество» уезжает на вторую строку.
+ */
 @Composable
-private fun LifeItemCard(
+internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
+    val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        // ширина одного сегмента ≈ (полная ширина − отступы ряда) / число вкладок − отступы вкладки
+        val cellWidthSp = with(density) {
+            ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
+        }
+        val longest = tabs.maxOf { it.first.length }
+        val tabFont = remember(cellWidthSp, longest) {
+            (cellWidthSp / (longest * 0.62f)).coerceIn(8.5f, 11.5f).sp
+        }
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
+        ) {
+            tabs.forEach { (label, idx) ->
+                GlassTab(
+                    label = label, on = selected == idx, locked = false,
+                    modifier = Modifier.weight(1f),
+                    fontSize = tabFont, maxLines = 1, horizontalPadding = 2.dp
+                ) { onSelect(idx) }
+            }
+        }
+    }
+}
+
+/**
+ * Три числа шапки профиля: на счету / содержание / чистый доход.
+ * Кегль общий для всех трёх плиток и считается по самой длинной строке — на триллионах
+ * и на отрицательных значениях это единственное, что удерживает числа в одну строку.
+ */
+@Composable
+internal fun MoneyCellsRow(
+    moneyStr: String, upkeepStr: String, netStr: String,
+    inDebt: Boolean, netPositive: Boolean
+) {
+    val maxLen = maxOf(moneyStr.length, upkeepStr.length, netStr.length)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        // ширина одной плитки ≈ (полная ширина − 2 промежутка) / 3
+        val cellWidthSp = with(density) {
+            ((maxWidth.toPx() - 20.dp.toPx()) / 3f - 20.dp.toPx()) / fontScale / density.density
+        }
+        val sharedSize = remember(maxLen, cellWidthSp) {
+            (cellWidthSp / (maxLen * 0.62f)).coerceIn(7f, 15f).sp
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MoneyCell(moneyStr, if (inDebt) "ДОЛГ" else "НА СЧЕТУ",
+                if (inDebt) RedAccent else TextMain, sharedSize, Modifier.weight(1f))
+            MoneyCell(upkeepStr, "СОДЕРЖАНИЕ /ДЕНЬ", RedAccent, sharedSize, Modifier.weight(1f))
+            MoneyCell(netStr, "ЧИСТЫЙ ДОХОД /ДЕНЬ",
+                if (netPositive) GreenAccent else RedAccent, sharedSize, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+internal fun LifeItemCard(
     item: Lifestyle.Item, owned: Boolean, isBase: Boolean, canBuy: Boolean, cur: Currency,
     onBuy: () -> Unit, onSell: () -> Unit
 ) {
