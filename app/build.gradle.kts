@@ -87,6 +87,7 @@ dependencies {
     // скриншот-тесты вёрстки: Compose рендерится на обычной JVM, без устройства и эмулятора
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("androidx.test:core-ktx:1.6.1")
     testImplementation(composeBom)
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("io.github.takahirom.roborazzi:roborazzi:1.32.2")
