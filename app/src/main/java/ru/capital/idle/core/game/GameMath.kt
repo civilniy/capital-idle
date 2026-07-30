@@ -319,14 +319,15 @@ object GameMath {
         else -> n.toString()
     }
 
-    private val MONTHS = listOf("янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек")
-
-    /** Дата и время игрового календаря: "11 июн 2026 · 14:00". */
+    /** Дата и время игрового календаря: "01.01.27 · 08:00". */
     fun gameDateTime(state: GameState): String {
         val cal = java.util.Calendar.getInstance()
         cal.timeInMillis = if (state.startDateMillis > 0) state.startDateMillis else System.currentTimeMillis()
         cal.add(java.util.Calendar.DAY_OF_YEAR, floor(state.gameHours / 24.0).toInt())
         val h = floor(state.gameHours % 24.0).toInt()
-        return "${cal.get(java.util.Calendar.DAY_OF_MONTH)} ${MONTHS[cal.get(java.util.Calendar.MONTH)]} ${cal.get(java.util.Calendar.YEAR)} · ${if (h < 10) "0" else ""}$h:00"
+        val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
+        val mo = cal.get(java.util.Calendar.MONTH) + 1
+        val yy = cal.get(java.util.Calendar.YEAR) % 100
+        return String.format("%02d.%02d.%02d · %02d:00", d, mo, yy, h)
     }
 }

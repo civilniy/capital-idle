@@ -30,6 +30,7 @@ fun ProfileScreen(vm: GameViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val cur = Currency.fromCode(state.currencyCode)
     var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 светская жизнь · 2 хроника · 3 цифры
+    var showRename by remember { mutableStateOf(false) }   // диалог смены имени
 
     val inDebt = state.debt > 0.0
     val upkeep = Lifestyle.dailyUpkeep(state)
@@ -58,7 +59,14 @@ fun ProfileScreen(vm: GameViewModel) {
                 .background(if (inDebt) Color(0x26D9694F) else GlassAccent)
                 .padding(15.dp)
         ) {
-            Text(state.playerName.uppercase(), color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showRename = true }
+            ) {
+                Text(state.playerName.uppercase(), color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1)
+                Spacer(Modifier.width(6.dp))
+                Text("✎", color = Mute, fontSize = 12.sp)   // карандаш: имя можно изменить
+            }
             Text(
                 Lifestyle.titles[state.lastTitleIdx.coerceIn(Lifestyle.titles.indices)].name.uppercase(),
                 color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
@@ -184,6 +192,60 @@ fun ProfileScreen(vm: GameViewModel) {
         }
         Spacer(Modifier.height(16.dp))
     }
+    }
+
+    if (showRename) {
+        PlayerNameDialog(
+            initial = state.playerName,
+            onConfirm = { vm.renamePlayer(it); showRename = false },
+            onDismiss = { showRename = false }
+        )
+    }
+}
+
+/** Диалог смены имени игрока в стеклянном стиле (как EnterpriseNameDialog). */
+@Composable
+private fun PlayerNameDialog(
+    initial: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf(initial) }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFF1D1F25))
+                .padding(18.dp)
+        ) {
+            Text("КАК ВАС ЗОВУТ", color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text("имя видно в профиле и рейтинге", color = Gold, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+            Spacer(Modifier.height(14.dp))
+            androidx.compose.foundation.text.BasicTextField(
+                value = text,
+                onValueChange = { if (it.length <= 18) text = it },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Gold),
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(Panel2)
+                    .padding(12.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Panel2)
+                        .clickable(onClick = onDismiss).padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("Отмена", color = Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                val canSave = text.isNotBlank()
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
+                        .background(if (canSave) Gold else Panel2)
+                        .clickable(enabled = canSave) { onConfirm(text) }.padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Сохранить", color = if (canSave) Color(0xFF2A2410) else Mute,
+                        fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                }
+            }
+        }
     }
 }
 

@@ -82,16 +82,18 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
             .verticalScroll(rememberScrollState())
             .padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 16.dp)
     ) {
-        // шапка
+        // шапка: логотип · дата по центру · валюта и слитки
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = 3.sp,
+            Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
                 modifier = Modifier.pointerInput(Unit) {
                     detectTapGestures(onLongPress = { vm.hardReset() })   // DEV-сброс (убрать перед релизом)
                 })
+            Text(GameMath.gameDateTime(state), color = Mute,
+                fontFamily = FontFamily.Monospace, fontSize = 12.sp,
+                modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CurrencyChip(code = cur.code, onClick = { vm.cycleCurrency() }, onLongPress = { vm.devAddMoney() })
                 Spacer(Modifier.width(8.dp))
@@ -109,13 +111,6 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
                 }
             }
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        // календарь
-        Text(GameMath.gameDateTime(state), color = Mute,
-            fontFamily = FontFamily.Monospace, fontSize = 12.sp,
-            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
 
         Spacer(Modifier.height(8.dp))
 

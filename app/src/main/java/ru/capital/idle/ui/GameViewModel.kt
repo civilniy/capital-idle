@@ -742,6 +742,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         persist()
     }
 
+    fun renamePlayer(name: String) {
+        if (name.isBlank()) return
+        _state.update { it.copy(playerName = name.trim().take(18)) }
+        persist()
+    }
+
     fun clearOfflineGain() { _offlineGain.value = Triple(0.0, 0.0, 0.0) }
 
     /** DEV-чит: умножает баланс ×100 (минимум +$10K). Убрать перед релизом. */
