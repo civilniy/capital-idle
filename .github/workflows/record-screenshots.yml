@@ -9,10 +9,6 @@ name: Record screenshots
 
 on:
   workflow_dispatch:
-  # ВРЕМЕННО на время подготовки этой ветки: workflow_dispatch становится доступен
-  # только после того, как workflow попадёт в main. Убрать перед ревью.
-  push:
-    branches: ['claude/**']
 
 permissions:
   contents: write

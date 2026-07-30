@@ -27,6 +27,46 @@ Locally, `local.properties` (git-ignored) must point `sdk.dir` at the Android SD
 > ℹ️ **JVM unit tests live in `app/src/test/java/ru/capital/idle/`** and cover the pure logic in `core/game/` only (no Android, no Compose, no Room). They are **characterization tests**: they pin the current balance numbers as they are. If you deliberately retune a constant in `GameConfig`/`Economy`/`GameMath`, the matching test will go red — update the expected number in the same commit, and never the other way round.
 > Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа), `LifestyleOwnershipTest` (имущество: множества купленных предметов, миграция со старого индекса уровня), `CollectiblesTest` (коллекция: цена от игрового дня, покупка, продажа, прибыль), `CollectiblesPersistenceTest` (коллекция через мапперы `toEntity`/`toState`). Общие помощники — в `GameTestFixtures`.
 
+### Скриншот-тесты вёрстки (Roborazzi)
+
+Ловят механические дефекты разметки — перенос подписи на вторую строку, обрезанное число,
+наезжающие элементы — без телефона и эмулятора: Compose рендерится на JVM через Robolectric.
+
+```sh
+./gradlew :app:verifyRoborazziDebug   # сверить вёрстку с эталонами (то же делает CI)
+./gradlew :app:compareRoborazziDebug  # то же, но с картинками расхождений вместо падения
+./gradlew :app:recordRoborazziDebug   # перезаписать эталоны локально
+```
+
+Обычный `./gradlew test` скриншот-тесты **пропускает** — они подключаются только задачами
+Roborazzi. Иначе прогон без флагов молча перезаписал бы эталоны.
+
+- Тесты живут в `app/src/test/java/ru/capital/idle/screenshot/`, эталоны — в
+  `app/src/test/screenshots/` и коммитятся в репозиторий.
+- Конфигурация экрана и масштаба шрифта — в `ScreenshotBase.kt` (`Screenshots.DEVICE`,
+  `Screenshots.LARGE_FONT`). Устройство: 393×873dp, как OnePlus CPH2653.
+- Снимать нужно **чистые** `@Composable` — принимающие данные параметрами, без `GameViewModel`.
+  Если нужный кусок экрана завязан на ViewModel, вынеси его отдельной `internal @Composable`
+  функцией (так сделано с `ProfileTabsRow`, `MoneyCellsRow`, `CollectionSummary`) — без рефакторинга
+  самого экрана.
+- Крайние значения важнее типичных: самые большие суммы (в рублях они длиннее всего),
+  самые длинные названия, отрицательные значения, масштаб шрифта 1.5.
+
+**Эталоны записываются только на ubuntu.** Рендер текста на macOS и Linux различается,
+поэтому единственный источник эталонов — workflow `Record screenshots`
+(Actions → Record screenshots → Run workflow, выбрать ветку): он пишет картинки на ubuntu
+и коммитит их в ту же ветку. Локальный `recordRoborazziDebug` на Mac даст картинки,
+которые CI не примет. Допуск сравнения — 0.1% пикселей: гасит шум сглаживания,
+но перенос строки задевает сотни пикселей и всё равно ловится.
+
+**Когда дизайн меняется намеренно** и шаг «Screenshot tests» краснеет: посмотреть артефакт
+`screenshot-diff` из упавшего запуска (в нём картинки «ожидалось / получилось»), убедиться,
+что расхождение — то самое задуманное изменение, и запустить `Record screenshots` на своей ветке.
+
+**Чего в этих картинках нет:** `Modifier.blur` (единственное место — размытие фона в `GameScreen`)
+на JVM не рендерится, размытые слои выходят чёткими. Остальной glass-стиль — полупрозрачные
+заливки и радиальные градиенты — снимается как есть.
+
 ## Architecture
 
 Three layers under `app/src/main/java/ru/capital/idle/`:
