@@ -28,7 +28,32 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
     val value = Collectibles.portfolioValue(state)
     val profit = Collectibles.totalProfit(state)
 
-    // сводка по коллекции
+    CollectionSummary(day = day, owned = owned, value = value, profit = profit, cur = cur)
+
+    Spacer(Modifier.height(12.dp))
+    Text("КАТАЛОГ · цена растёт со временем", color = Mute, fontSize = 11.sp,
+        letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(6.dp))
+
+    Collectibles.all.forEach { c ->
+        CollectibleCard(
+            item = c,
+            price = Collectibles.priceIn(c, state),
+            owned = Collectibles.owns(state, c.id),
+            paid = Collectibles.paidFor(state, c.id),
+            profit = Collectibles.profit(state, c),
+            canBuy = Collectibles.canBuy(state, c.id),
+            cur = cur,
+            onBuy = { vm.buyCollectible(c.id) },
+            onSell = { vm.sellCollectible(c.id) }
+        )
+        Spacer(Modifier.height(6.dp))
+    }
+}
+
+/** Шапка раздела: сколько собрано, оценка коллекции и суммарная прибыль. */
+@Composable
+internal fun CollectionSummary(day: Int, owned: Int, value: Double, profit: Double, cur: Currency) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassAccent).padding(13.dp)
     ) {
@@ -55,26 +80,6 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
             color = Mute, fontSize = 10.5.sp, lineHeight = 15.sp
         )
     }
-
-    Spacer(Modifier.height(12.dp))
-    Text("КАТАЛОГ · цена растёт со временем", color = Mute, fontSize = 11.sp,
-        letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-    Spacer(Modifier.height(6.dp))
-
-    Collectibles.all.forEach { c ->
-        CollectibleCard(
-            item = c,
-            price = Collectibles.priceIn(c, state),
-            owned = Collectibles.owns(state, c.id),
-            paid = Collectibles.paidFor(state, c.id),
-            profit = Collectibles.profit(state, c),
-            canBuy = Collectibles.canBuy(state, c.id),
-            cur = cur,
-            onBuy = { vm.buyCollectible(c.id) },
-            onSell = { vm.sellCollectible(c.id) }
-        )
-        Spacer(Modifier.height(6.dp))
-    }
 }
 
 @Composable
@@ -90,7 +95,7 @@ private fun CollectStat(label: String, value: String, color: androidx.compose.ui
 }
 
 @Composable
-private fun CollectibleCard(
+internal fun CollectibleCard(
     item: Collectible, price: Double, owned: Boolean, paid: Double, profit: Double,
     canBuy: Boolean, cur: Currency, onBuy: () -> Unit, onSell: () -> Unit
 ) {

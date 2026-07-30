@@ -13,7 +13,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +33,22 @@ jobs:
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      # Сверка вёрстки с эталонными скриншотами. Эталоны записаны на ubuntu
+      # (workflow «Record screenshots»), поэтому сравнение здесь идёт на той же платформе.
+      - name: Screenshot tests
+        run: ./gradlew :app:verifyRoborazziDebug --stacktrace
+
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diff
+          path: |
+            app/build/outputs/roborazzi/
+            app/src/test/screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload test report
         if: always()
