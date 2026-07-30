@@ -125,6 +125,26 @@ class LifestyleOwnershipTest {
     }
 
     @Test
+    fun `чистка режет индексы вне каталога и не оставляет пустое множество`() {
+        val home = Lifestyle.home
+        // мусор из повреждённого сейва выбрасывается, годное остаётся
+        assertEquals(setOf(0, 2), Lifestyle.sanitizeOwned(home, setOf(0, 2, 99)))
+        assertEquals(setOf(0, 2), Lifestyle.sanitizeOwned(home, setOf(0, 2, -1)))
+        // полностью мусорное множество откатывается к стартовому предмету
+        assertEquals(setOf(0), Lifestyle.sanitizeOwned(home, setOf(99, 100)))
+        assertEquals(setOf(0), Lifestyle.sanitizeOwned(home, emptySet()))
+        // корректное множество не трогается
+        assertEquals(Lifestyle.ladderSet(3), Lifestyle.sanitizeOwned(home, Lifestyle.ladderSet(3)))
+
+        // после чистки ownedHome всегда указывает на существующий предмет —
+        // экраны, индексирующие items[ownedHome] напрямую, не падают
+        val cleaned = GameState(ownedHomes = Lifestyle.sanitizeOwned(home, setOf(0, 99)))
+        assertEquals(0, cleaned.ownedHome)
+        assertEquals(home.items.lastIndex,
+            GameState(ownedHomes = Lifestyle.sanitizeOwned(home, setOf(0, home.items.lastIndex))).ownedHome)
+    }
+
+    @Test
     fun `ownedSet и ownedIndex отдают множество и лучший предмет по id категории`() {
         val s = GameState(
             ownedHomes = setOf(0, 2),

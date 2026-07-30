@@ -131,11 +131,14 @@ private fun Set<Int>.iSetCsv() = sorted().joinToString(",")
 /**
  * Множество купленных предметов. Пустая строка = сейв старого формата, где
  * хранился только индекс уровня: восстанавливаем лестницу {0..legacyMaxIdx}.
+ * Результат чистится по каталогу категории, чтобы мусорный индекс из
+ * повреждённого файла не дошёл до состояния игры.
  */
-private fun String.toOwnedSet(legacyMaxIdx: Int): Set<Int> {
+private fun String.toOwnedSet(legacyMaxIdx: Int, cat: Lifestyle.Category): Set<Int> {
     val parsed = if (isBlank()) emptySet()
-        else split(",").mapNotNull { it.trim().toIntOrNull() }.filter { it >= 0 }.toSet()
-    return if (parsed.isEmpty()) Lifestyle.ladderSet(legacyMaxIdx) else parsed
+        else split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+    val raw = if (parsed.isEmpty()) Lifestyle.ladderSet(legacyMaxIdx) else parsed
+    return Lifestyle.sanitizeOwned(cat, raw)
 }
 
 fun GameState.toEntity() = GameEntity(
@@ -202,9 +205,9 @@ fun GameEntity.toState() = GameState(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwned = netOwnedCsv.toSet(),
     reputation = reputation,
-    ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome),
-    ownedCars = ownedCarsCsv.toOwnedSet(ownedCar),
-    ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech),
+    ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
+    ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
+    ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
     lastTitleIdx = lastTitleIdx,
     experiencesDone = experiencesDoneCsv.toSet(), debt = debt, activatedCardTier = activatedCardTier,
     chronicle = chronicleRaw.toRecList(), museum = museumRaw.toRecList(),

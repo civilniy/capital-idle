@@ -99,6 +99,16 @@ object Lifestyle {
      */
     fun ladderSet(maxIdx: Int): Set<Int> = (0..maxIdx.coerceAtLeast(0)).toSet()
 
+    /**
+     * Чистка множества купленного: индексы вне каталога отбрасываются, пустой
+     * результат откатывается к стартовому предмету. Вызывается на границе загрузки —
+     * битый сейв не должен ронять экраны, которые индексируют items[ownedHome] напрямую.
+     */
+    fun sanitizeOwned(cat: Category, raw: Set<Int>): Set<Int> {
+        val valid = raw.filter { it in cat.items.indices }.toSet()
+        return if (valid.isEmpty()) setOf(0) else valid
+    }
+
     /** Сумма поля по всем купленным предметам категории. */
     private fun Category.sumOwned(owned: Set<Int>, field: (Item) -> Double): Double =
         owned.sumOf { i -> items.getOrNull(i)?.let(field) ?: 0.0 }
