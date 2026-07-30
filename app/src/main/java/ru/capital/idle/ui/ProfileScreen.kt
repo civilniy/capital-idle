@@ -29,7 +29,7 @@ import ru.capital.idle.ui.theme.*
 fun ProfileScreen(vm: GameViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val cur = Currency.fromCode(state.currencyCode)
-    var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 светская жизнь · 2 хроника · 3 цифры
+    var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 светская жизнь · 2 хроника · 3 цифры · 4 коллекция
     var showRename by remember { mutableStateOf(false) }   // диалог смены имени
 
     val inDebt = state.debt > 0.0
@@ -151,6 +151,7 @@ fun ProfileScreen(vm: GameViewModel) {
         ) {
             GlassTab("Имущество", inner == 0, false, Modifier.weight(1f)) { inner = 0 }
             GlassTab("Отдых", inner == 1, false, Modifier.weight(1f)) { inner = 1 }
+            GlassTab("Коллекция", inner == 4, false, Modifier.weight(1f)) { inner = 4 }
             GlassTab("Хроника", inner == 2, false, Modifier.weight(1f)) { inner = 2 }
             GlassTab("Цифры", inner == 3, false, Modifier.weight(1f)) { inner = 3 }
         }
@@ -188,6 +189,7 @@ fun ProfileScreen(vm: GameViewModel) {
                 }
             }
             2 -> ChronicleBlock(state)
+            4 -> CollectionSection(vm = vm, state = state, cur = cur)
             else -> StatsBlock(state, cur)
         }
         Spacer(Modifier.height(16.dp))

@@ -132,6 +132,7 @@ object Lifestyle {
         st += car.items.getOrElse(state.ownedCar) { car.items.first() }.status
         st += tech.items.getOrElse(state.ownedTech) { tech.items.first() }.status
         st += state.experiencesDone.sumOf { id -> experienceById(id)?.status ?: 0 }
+        st += Collectibles.statusPoints(state)
         return st
     }
 

@@ -145,6 +145,9 @@ object GameMath {
         // имущество: полная цена всех купленных предметов (вариант А)
         w += Lifestyle.ownedCost(state)
 
+        // коллекция: вложение, считаем по текущей цене (как акции)
+        w += Collectibles.portfolioValue(state)
+
         // светская жизнь: разовые траты тоже часть «прожитого» капитала
         w += state.experiencesDone.sumOf { id -> Lifestyle.experienceById(id)?.cost ?: 0.0 }
 

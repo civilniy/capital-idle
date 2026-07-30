@@ -49,6 +49,8 @@ data class GameState(
     val ownedHomes: Set<Int> = setOf(0),
     val ownedCars: Set<Int> = setOf(0),
     val ownedTechs: Set<Int> = setOf(0),
+    // коллекция: id предмета -> цена, за которую он куплен (для расчёта прибыли)
+    val collectibles: Map<String, Double> = emptyMap(),
     val lastTitleIdx: Int = 0,
     val experiencesDone: Set<String> = emptySet(),   // светская жизнь
     val debt: Double = 0.0,                          // долг при жизни не по средствам

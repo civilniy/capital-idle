@@ -7,6 +7,7 @@ import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Enterprise
 import ru.capital.idle.core.game.Exchange
 import ru.capital.idle.core.game.Investments
+import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.Lifestyle
 
 @Entity(tableName = "game_state")
@@ -54,6 +55,8 @@ data class GameEntity(
     val ownedHome: Int,
     val ownedCar: Int,
     val ownedTech: Int,
+    /** Коллекция в формате "id:цена,id:цена". */
+    val collectiblesRaw: String,
     val lastTitleIdx: Int,
     val experiencesDoneCsv: String,
     val debt: Double,
@@ -128,6 +131,23 @@ private fun String.toSet(): Set<String> =
 
 private fun Set<Int>.iSetCsv() = sorted().joinToString(",")
 
+/** Коллекция: "id:цена,id:цена". Id предметов латинские, разделители в них не встречаются. */
+private fun Map<String, Double>.collCsv(): String =
+    entries.sortedBy { it.key }.joinToString(",") { "${it.key}:${it.value}" }
+
+private fun String.toCollectibles(): Map<String, Double> {
+    if (isBlank()) return emptyMap()
+    val out = LinkedHashMap<String, Double>()
+    split(",").forEach { rec ->
+        val f = rec.split(":", limit = 2)
+        val id = f.getOrNull(0)?.trim().orEmpty()
+        val paid = f.getOrNull(1)?.trim()?.toDoubleOrNull()
+        // мусор и неизвестные предметы пропускаем: каталог мог измениться между версиями
+        if (id.isNotEmpty() && paid != null && Collectibles.byId(id) != null) out[id] = paid
+    }
+    return out
+}
+
 /**
  * Множество купленных предметов. Пустая строка = сейв старого формата, где
  * хранился только индекс уровня: восстанавливаем лестницу {0..legacyMaxIdx}.
@@ -165,6 +185,7 @@ fun GameState.toEntity() = GameEntity(
     ownedCarsCsv = ownedCars.iSetCsv(),
     ownedTechsCsv = ownedTechs.iSetCsv(),
     ownedHome = ownedHome, ownedCar = ownedCar, ownedTech = ownedTech,
+    collectiblesRaw = collectibles.collCsv(),
     lastTitleIdx = lastTitleIdx,
     experiencesDoneCsv = experiencesDone.sCsv(), debt = debt, activatedCardTier = activatedCardTier,
     chronicleRaw = chronicle.recCsv(), museumRaw = museum.recCsv(),
@@ -208,6 +229,7 @@ fun GameEntity.toState() = GameState(
     ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
     ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
     ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
+    collectibles = collectiblesRaw.toCollectibles(),
     lastTitleIdx = lastTitleIdx,
     experiencesDone = experiencesDoneCsv.toSet(), debt = debt, activatedCardTier = activatedCardTier,
     chronicle = chronicleRaw.toRecList(), museum = museumRaw.toRecList(),
