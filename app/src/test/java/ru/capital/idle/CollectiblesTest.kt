@@ -9,6 +9,7 @@ import org.junit.Test
 import ru.capital.idle.GameTestFixtures.EPS
 import ru.capital.idle.core.game.Collectible
 import ru.capital.idle.core.game.Collectibles
+import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.core.game.Lifestyle
@@ -47,6 +48,29 @@ class CollectiblesTest {
         assertTrue(Collectibles.all.map { it.growthPerDay }.toSet().size >= 8)
         // статус положительный и растёт вместе с ценой
         Collectibles.all.map { it.status }.zipWithNext().forEach { (a, b) -> assertTrue(b > a) }
+    }
+
+    @Test
+    fun `цены самых дорогих предметов форматируются компактно`() {
+        // на карточке коллекции цена и прибыль должны оставаться в одну строку,
+        // поэтому фиксируем длину строк на потолке роста самого дорогого предмета
+        val top = Collectibles.all.maxByOrNull { it.basePrice }!!
+        val capped = Collectibles.priceAt(top, Collectibles.capReachedOnDay(top))
+        assertEquals(400_000_000_000.0, capped, 1.0)
+
+        Currency.entries.forEach { c ->
+            val s = GameMath.formatMoney(capped, c)
+            assertTrue("$c: строка «$s» длиннее 10 знаков (${s.length})", s.length <= 10)
+        }
+        assertEquals("$ 400B", GameMath.formatMoney(capped, Currency.USD))
+        assertEquals("₽ 29,5T", GameMath.formatMoney(capped, Currency.RUB))
+
+        // и максимально возможная прибыль тоже короткая
+        val maxProfit = capped - top.basePrice
+        Currency.entries.forEach { c ->
+            val s = "+" + GameMath.formatMoney(maxProfit, c)
+            assertTrue("$c: строка прибыли «$s» длиннее 11 знаков (${s.length})", s.length <= 11)
+        }
     }
 
     @Test

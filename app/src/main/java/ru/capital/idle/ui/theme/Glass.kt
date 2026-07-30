@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -61,23 +63,38 @@ fun GlassBackground(content: @Composable () -> Unit) {
     }
 }
 
-/** Стеклянный переключатель раздела: активная вкладка светлее, текст золотой. Общий для всех групп. */
+/**
+ * Стеклянный переключатель раздела: активная вкладка светлее, текст золотой. Общий для всех групп.
+ *
+ * Размер шрифта, число строк и боковой отступ можно поджать — это нужно ряду из пяти вкладок
+ * в профиле, где подпись «Имущество» иначе не помещается. Значения по умолчанию прежние,
+ * поэтому ряды из двух-трёх вкладок выглядят ровно как раньше.
+ */
 @Composable
-fun GlassTab(label: String, on: Boolean, locked: Boolean, modifier: Modifier, onClick: () -> Unit) {
+fun GlassTab(
+    label: String,
+    on: Boolean,
+    locked: Boolean,
+    modifier: Modifier,
+    fontSize: TextUnit = 11.5.sp,
+    maxLines: Int = 2,
+    horizontalPadding: Dp = 4.dp,
+    onClick: () -> Unit
+) {
     Box(
         modifier
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (on) GlassBtn else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center
     ) {
         Text(
             (if (locked) "\uD83D\uDD12 " else "") + label,
             color = if (locked) Mute.copy(alpha = 0.6f) else if (on) Gold else Mute,
             fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Medium,
-            fontSize = 11.5.sp, lineHeight = 13.sp, maxLines = 2,
+            fontSize = fontSize, lineHeight = (fontSize.value + 1.5f).sp, maxLines = maxLines,
             textAlign = TextAlign.Center
         )
     }
