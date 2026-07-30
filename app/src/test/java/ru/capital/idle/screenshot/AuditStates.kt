@@ -24,6 +24,16 @@ object AuditStates {
         currencyCode = "RUB"
     )
 
+    /**
+     * Начало, но окружение уже открыто: раздел «Окружение» появляется с $5 000 заработка.
+     * Нужно, чтобы снять именно пустой список знакомств — при [early] экран молча
+     * возвращается на вкладку курсов, и пустое состояние остаётся неснятым.
+     */
+    val earlyNetUnlocked = early.copy(
+        money = 6_400.0,
+        totalEarned = 12_000.0
+    )
+
     /** Середина: миллионы, часть предметов куплена, часть отраслей открыта. */
     val mid: GameState = run {
         val ent = MutableList(Industries.count) { emptyList<Enterprise>() }

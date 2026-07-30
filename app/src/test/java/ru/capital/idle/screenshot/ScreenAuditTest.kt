@@ -120,7 +120,7 @@ class ScreenAuditTest {
         screen("dev_courses_late", AuditStates.late) { DevScreen(vm = it, onLocked = {}) }
 
     @Test fun `развитие окружение пусто`() =
-        screen("dev_network_early", AuditStates.early) {
+        screen("dev_network_early", AuditStates.earlyNetUnlocked) {
             DevScreen(vm = it, onLocked = {}, startInner = "net")
         }
 
