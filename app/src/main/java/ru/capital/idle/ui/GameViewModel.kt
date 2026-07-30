@@ -637,6 +637,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 phaseIndex = 0, phaseEndGameH = 0.0,
                 tutorialStep = Onboarding.DONE,
                 ownedHomes = setOf(0), ownedCars = setOf(0), ownedTechs = setOf(0),
+                collectibles = emptyMap(),
                 lastTitleIdx = 0,
                 museum = (listOf(memorial) + st.museum).take(20),
                 chronicle = listOf(Chronicle.entry(1, "start")),
@@ -721,6 +722,18 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             st.copy(money = st.money - exp.cost, experiencesDone = st.experiencesDone + id)
                 .withChronicle("exp", id)
         }
+        persistSoon()
+    }
+
+    /** Коллекция: купить предмет по текущей цене. */
+    fun buyCollectible(id: String) {
+        _state.update { st -> Collectibles.buy(st, id) ?: st }
+        persistSoon()
+    }
+
+    /** Коллекция: продать предмет по текущей цене. */
+    fun sellCollectible(id: String) {
+        _state.update { st -> Collectibles.sell(st, id) ?: st }
         persistSoon()
     }
 

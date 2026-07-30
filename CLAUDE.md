@@ -25,7 +25,7 @@ If `./gradlew` fails with "permission denied", run `chmod +x ./gradlew`.
 Locally, `local.properties` (git-ignored) must point `sdk.dir` at the Android SDK. On GitHub Actions runners the Android SDK is preinstalled and `local.properties` is not needed.
 
 > ℹ️ **JVM unit tests live in `app/src/test/java/ru/capital/idle/`** and cover the pure logic in `core/game/` only (no Android, no Compose, no Room). They are **characterization tests**: they pin the current balance numbers as they are. If you deliberately retune a constant in `GameConfig`/`Economy`/`GameMath`, the matching test will go red — update the expected number in the same commit, and never the other way round.
-> Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа), `LifestyleOwnershipTest` (имущество: множества купленных предметов, миграция со старого индекса уровня). Общие помощники — в `GameTestFixtures`.
+> Files: `GameTimeTest` (игровые часы, сон, распорядок), `GameMathIncomeTest` (зарплата, предприятия, множители, пассив), `GameMathOfflineTest` (оффлайн-сейф, престиж), `GameMathFormatTest` (форматирование), `EconomyLaddersTest` (лестницы отраслей, цены, ворота доступа), `LifestyleOwnershipTest` (имущество: множества купленных предметов, миграция со старого индекса уровня), `CollectiblesTest` (коллекция: цена от игрового дня, покупка, продажа, прибыль), `CollectiblesPersistenceTest` (коллекция через мапперы `toEntity`/`toState`). Общие помощники — в `GameTestFixtures`.
 
 ## Architecture
 
@@ -39,6 +39,7 @@ Content/feature modules, each a self-contained `object`/`enum` of game data + ru
 - `Investments.kt` — `Asset` (passive deposits), `Exchange`/`Stock`/`StockEvent` (stock market)
 - `Prestige.kt` — rebirth for gold bullion + permanent upgrades
 - `Lifestyle.kt` — homes/cars/tech, upkeep, `Chronicle`, `Museum`
+- `Collectibles.kt` — коллекция: искусство и редкие объекты. Покупаются в любом порядке, держатся все сразу, дорожают линейно от номера игрового дня с потолком `MAX_GROWTH_MULT`. Содержания не требуют и на доход не влияют; дают очки статуса и входят в `netWorth` по текущей цене. Цена — чистая функция дня, без случайности
 - `Milestones.kt`, `Onboarding.kt`, `RankModel.kt`/`RankingData.kt`, `CardTier.kt`, `Currency.kt`, `EnterpriseNames.kt`
 
 When adding a feature or economy tuning, prefer extending these modules and `GameMath` rather than putting logic in the UI/ViewModel.
