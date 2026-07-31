@@ -38,6 +38,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1115,13 +1117,11 @@ private fun CreditCard(
 
             Column {
                 Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = 9.sp, letterSpacing = 2.sp)
-                Text(GameMath.formatMoney(money, currency),
-                    color = if (money < 0) RedAccent else txt,
-                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                // Всплывашка идёт отдельной строкой: рядом с балансом в 30sp для неё
-                // не остаётся места, и «+$ 999 999 999» уезжал на вторую строку.
-                TapPop(accum = popAccum, tick = popTick, currency = currency,
-                    onExpire = { popAccum = 0.0 })
+                BalanceWithTapPop(
+                    money = money, accum = popAccum, tick = popTick, currency = currency,
+                    moneyColor = if (money < 0) RedAccent else txt,
+                    onExpire = { popAccum = 0.0 }
+                )
                 Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
                     color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             }
@@ -1324,35 +1324,87 @@ private fun GoldBar(size: Dp = 14.dp) {
 }
 
 /**
- * Всплывающая награда за тап по карте.
+ * Баланс на карте и надбавка за тап рядом с ним.
  *
- * Это разовая сумма, а не поток, поэтому символ валюты стоит ПЕРЕД числом (см. CLAUDE.md).
- * Строка живёт в разметке всегда — при пустой награде она прозрачна, но место занимает,
- * иначе карта дёргалась бы по высоте на каждый тап.
+ * Надбавка — это «степень» к балансу: она стоит в той же строке справа, выровнена по верху
+ * и вдвое мельче, чтобы читалась как индекс, а не как второе равноправное число.
+ *
+ * Кегль подбирается под ширину карты, потому что оба числа по правилу полноты (CLAUDE.md)
+ * показываются целиком: в худшем случае это «$ 999 999 999» и «+$ 999 999 999» разом.
+ * Место под надбавку заложено в расчёт ВСЕГДА, даже когда её нет — иначе при каждом тапе
+ * менялся бы кегль баланса, и карта дёргалась бы.
  */
 @Composable
-internal fun TapPop(accum: Double, tick: Int, currency: Currency, onExpire: () -> Unit) {
+internal fun BalanceWithTapPop(
+    money: Double,
+    accum: Double,
+    tick: Int,
+    currency: Currency,
+    moneyColor: Color,
+    onExpire: () -> Unit
+) {
+    val balanceText = GameMath.formatMoney(money, currency)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        // ширина в sp-единицах: делим на плотность и на масштаб системного шрифта
+        val widthSp = with(density) { maxWidth.toPx() / fontScale / density.density }
+        // надбавка не длиннее баланса плюс знак «+», по ней и резервируем место
+        val popLen = balanceText.length + 1
+        val balanceSp = remember(widthSp, balanceText.length) {
+            (widthSp / (0.62f * (balanceText.length + popLen * TAP_POP_RATIO)))
+                .coerceIn(13f, 30f)
+        }
+        Row(verticalAlignment = Alignment.Top) {
+            Text(
+                balanceText, color = moneyColor,
+                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                fontSize = balanceSp.sp, maxLines = 1, softWrap = false
+            )
+            TapPop(
+                accum = accum, tick = tick, currency = currency,
+                fontSize = (balanceSp * TAP_POP_RATIO).sp, onExpire = onExpire
+            )
+        }
+    }
+}
+
+/** Во сколько раз надбавка мельче баланса. */
+private const val TAP_POP_RATIO = 0.5f
+
+/**
+ * Всплывающая награда за тап.
+ *
+ * Это разовая сумма, а не поток, поэтому символ валюты стоит ПЕРЕД числом (см. CLAUDE.md).
+ * Высоту строки не увеличивает: кегль меньше, чем у баланса рядом.
+ */
+@Composable
+internal fun TapPop(
+    accum: Double,
+    tick: Int,
+    currency: Currency,
+    fontSize: TextUnit,
+    onExpire: () -> Unit
+) {
+    if (accum <= 0.0) return
     val anim = remember(tick) { Animatable(0f) }
     LaunchedEffect(tick) {
-        if (accum <= 0.0) return@LaunchedEffect
         anim.snapTo(0f)
         anim.animateTo(1f, animationSpec = tween(800))
         onExpire()
     }
     val alpha = when {
-        accum <= 0.0 -> 0f                               // места не занимает глазом, но занимает в разметке
         anim.value < 0.15f -> anim.value / 0.15f          // быстрое появление
         anim.value < 0.70f -> 1f                          // держим
         else -> 1f - (anim.value - 0.70f) / 0.30f         // тает
     }
     Text(
-        if (accum <= 0.0) " " else "+" + GameMath.formatMoney(accum, currency),
+        "+" + GameMath.formatMoney(accum, currency),
         color = GreenAccent, fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold, fontSize = 14.sp,
-        // суммы до миллиарда показываются целиком, поэтому строка должна вмещать
-        // «+$ 999 999 999» и не переноситься ни при каком масштабе шрифта
+        fontWeight = FontWeight.Bold, fontSize = fontSize,
+        // суммы до миллиарда показываются целиком, поэтому перенос запрещён структурно
         maxLines = 1, softWrap = false,
         modifier = Modifier
+            .padding(start = 4.dp)
             .offset(y = -(anim.value * 6).dp)
             .alpha(alpha)
     )
