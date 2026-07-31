@@ -49,14 +49,39 @@ object GameMath {
     fun boostRemainingMs(state: GameState): Long =
         (state.boostEndsAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
 
+    /** Репутация, как её видит игрок: целое значение, а не непрерывный дрейф. */
+    fun reputationShown(state: GameState): Double =
+        floor(state.reputation).coerceIn(0.0, 100.0)
+
+    /**
+     * Деньги, огрублённые до трёх значащих цифр — вход для давления элит.
+     *
+     * Деньги начисляются каждый тик игрового цикла (100 мс), а давление зависит от них
+     * непрерывно. Без ступеней множитель дохода пересчитывался бы десять раз в секунду,
+     * и цифры в списке отраслей дрожали бы. Ступень в 0.1% от суммы достаточно крупная,
+     * чтобы за обычный тик значение не менялось, и достаточно мелкая, чтобы скачок
+     * давления при переходе через неё был меньше сотой доли процента дохода.
+     *
+     * Сама формула давления не меняется — огрубляется только её вход.
+     */
+    fun pressureMoney(money: Double): Double {
+        if (money <= 0.0) return money
+        val step = 10.0.pow(floor(log10(money)) - 2)
+        return floor(money / step) * step
+    }
+
+    /** Давление элит на тех же ступенях, на которых его видит игрок. */
+    fun pressureShown(state: GameState): Double =
+        Pressure.value(pressureMoney(state.money), reputationShown(state))
+
     fun bizGlobalMult(state: GameState): Double {
         val leadMult = if ("lead" in state.eduDone) 1.15 else 1.0
         // репутация: при 0 доход 70%, при 100 — 100%. Берём ЦЕЛОЕ значение (как показано игроку),
         // чтобы доход не дрожал от непрерывного дрейфа репутации между секундами.
-        val repShown = floor(state.reputation).coerceIn(0.0, 100.0)
-        val repMult = 0.70 + 0.30 * (repShown / 100.0)
+        val repMult = 0.70 + 0.30 * (reputationShown(state) / 100.0)
+        // деньги огрубляем по той же причине — см. pressureMoney
         return crisisMult(state) * leadMult * repMult * Prestige.incomeMult(state) *
-            (1.0 - Pressure.value(state.money, state.reputation))
+            (1.0 - pressureShown(state))
     }
 
     /** Доход одного предприятия в день со всеми множителями, БЕЗ насыщения отрасли (сырой вклад). */

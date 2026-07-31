@@ -183,7 +183,7 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
         Spacer(Modifier.height(8.dp))
 
         // давление элит — отдельной плашкой под картой (после $1 млрд)
-        val pressure = Pressure.value(state.money, state.reputation)
+        val pressure = GameMath.pressureShown(state)
         if (pressure > 0.0) {
             Row(
                 Modifier
