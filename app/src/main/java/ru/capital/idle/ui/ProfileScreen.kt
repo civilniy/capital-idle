@@ -63,12 +63,12 @@ fun ProfileScreen(vm: GameViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showRename = true }
             ) {
-                Text(state.playerName.uppercase(), color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1)
+                Text(state.playerName.uppercase(java.util.Locale.ROOT), color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1)
                 Spacer(Modifier.width(6.dp))
                 Text("✎", color = Mute, fontSize = 12.sp)   // карандаш: имя можно изменить
             }
             Text(
-                Lifestyle.titles[state.lastTitleIdx.coerceIn(Lifestyle.titles.indices)].name.uppercase(),
+                Lifestyle.titles[state.lastTitleIdx.coerceIn(Lifestyle.titles.indices)].name.uppercase(java.util.Locale.ROOT),
                 color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
             )
 

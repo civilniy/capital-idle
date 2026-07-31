@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.GameMath
+import java.util.Locale
 
 /**
  * Форматирование чисел. Разделитель разрядов — неразрывный пробел (U+00A0),
@@ -64,6 +65,62 @@ class GameMathFormatTest {
         assertEquals("₽ 7${NB}370", GameMath.formatMoney(100.0, Currency.RUB))
         assertEquals("7${NB}370", GameMath.formatAmount(100.0, Currency.RUB))
         assertEquals("€ 920", GameMath.formatMoney(1_000.0, Currency.EUR))
+    }
+
+    @Test
+    fun `граница сокращения — ровно миллиард`() {
+        // до миллиарда суммы показываются целиком: в игре про деньги важно видеть настоящее число
+        assertEquals("999${NB}999${NB}999", GameMath.format(999_999_999.0))
+        assertEquals("$ 999${NB}999${NB}999", GameMath.formatMoney(999_999_999.0, Currency.USD))
+        // ровно с миллиарда включается сокращение
+        assertEquals("1,0B", GameMath.format(1_000_000_000.0))
+        assertEquals("$ 1,0B", GameMath.formatMoney(1_000_000_000.0, Currency.USD))
+        // соседние значения по обе стороны границы
+        assertEquals("999${NB}999${NB}998", GameMath.format(999_999_998.0))
+        assertEquals("1,0B", GameMath.format(1_000_000_001.0))
+    }
+
+    @Test
+    fun `разделитель остаётся запятой при любой системной локали`() {
+        val saved = Locale.getDefault()
+        try {
+            // английская локаль: без принудительной замены здесь была бы точка
+            Locale.setDefault(Locale.US)
+            assertEquals("5,5", GameMath.format(5.5))
+            assertEquals("2,4B", GameMath.format(2_400_000_000.0))
+            assertEquals("1,5K", GameMath.formatShort(1_500.0))
+            assertEquals("12,3", GameMath.decimal(12.34))
+            assertEquals("1,50", GameMath.decimal(1.5, 2))
+            assertEquals("1,5 млрд", GameMath.formatRank(1_500_000_000L))
+
+            // немецкая: здесь запятая и так родная — результат обязан совпасть
+            Locale.setDefault(Locale.GERMANY)
+            assertEquals("5,5", GameMath.format(5.5))
+            assertEquals("2,4B", GameMath.format(2_400_000_000.0))
+            assertEquals("1,5 млрд", GameMath.formatRank(1_500_000_000L))
+
+            // русская: то же самое
+            Locale.setDefault(Locale("ru", "RU"))
+            assertEquals("5,5", GameMath.format(5.5))
+            assertEquals("2,4B", GameMath.format(2_400_000_000.0))
+        } finally {
+            Locale.setDefault(saved)
+        }
+    }
+
+    @Test
+    fun `цифры и разряды не зависят от локали с другой системой счисления`() {
+        val saved = Locale.getDefault()
+        try {
+            // локаль с восточноарабскими цифрами: без Locale.ROOT числа стали бы нечитаемыми
+            Locale.setDefault(Locale.forLanguageTag("ar-EG-u-nu-arab"))
+            assertEquals("5,5", GameMath.format(5.5))
+            assertEquals("1${NB}234", GameMath.format(1_234.0))
+            assertEquals("2,4B", GameMath.format(2_400_000_000.0))
+            assertEquals("12,3", GameMath.decimal(12.34))
+        } finally {
+            Locale.setDefault(saved)
+        }
     }
 
     @Test

@@ -46,7 +46,7 @@ object Prestige {
         PrestigeUpgrade.INCOME -> "+${state.pIncome * 40}% к бизнесам"
         PrestigeUpgrade.NEGOTIATOR -> "+${state.pNegotiator * 45}% к зарплате и тапу"
         PrestigeUpgrade.START -> "старт ${GameMath.format(startMoney(state.pStart))} $"
-        PrestigeUpgrade.STUDY -> "учёба ×${String.format("%.2f", studyMult(state))}"
+        PrestigeUpgrade.STUDY -> "учёба ×${GameMath.decimal(studyMult(state), 2)}"
         PrestigeUpgrade.SAFE -> "офлайн-доход: всего ${safeTotalMinutes(state)} мин (${safeFullMinutes(state)} мин выше)"
     }
 }
