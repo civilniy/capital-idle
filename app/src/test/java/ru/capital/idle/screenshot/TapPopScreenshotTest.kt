@@ -124,6 +124,33 @@ class TapPopScreenshotTest {
         shot("balance_pop_billions", 3_400_000_000_000.0, 4_470_000_000.0, Currency.RUB)
     }
 
+    // ===================== надбавка длиннее баланса =====================
+
+    @Test
+    fun `мелкий баланс и максимальная надбавка`() {
+        // после крупной покупки на счету мелочь, а накопленный тап девятизначный:
+        // резерв под надбавку нельзя выводить из длины баланса
+        shot("balance_pop_small_balance_max_pop", 90_945.0, maxFullNumber, Currency.USD)
+    }
+
+    @Test
+    fun `мелкий баланс и максимальная надбавка при крупном шрифте`() {
+        shot("balance_pop_small_balance_max_pop_large_font", 90_945.0, maxFullNumber,
+            Currency.USD, Screenshots.LARGE_FONT)
+    }
+
+    @Test
+    fun `долг и максимальная надбавка`() {
+        // самый длинный баланс из возможных: минус, символ валюты и девять цифр
+        shot("balance_pop_debt_max_pop", -maxFullNumber, maxFullNumber, Currency.USD)
+    }
+
+    @Test
+    fun `долг и максимальная надбавка при крупном шрифте`() {
+        shot("balance_pop_debt_max_pop_large_font", -maxFullNumber, maxFullNumber,
+            Currency.USD, Screenshots.LARGE_FONT)
+    }
+
     // ===================== высота не должна прыгать =====================
 
     @Test

@@ -1348,8 +1348,11 @@ internal fun BalanceWithTapPop(
         val density = LocalDensity.current
         // ширина в sp-единицах: делим на плотность и на масштаб системного шрифта
         val widthSp = with(density) { maxWidth.toPx() / fontScale / density.density }
-        // надбавка не длиннее баланса плюс знак «+», по ней и резервируем место
-        val popLen = balanceText.length + 1
+        // Резерв под надбавку: не меньше самой длинной возможной строки «+$ 999 999 999».
+        // Опираться только на длину баланса нельзя — после крупной покупки на счету может
+        // остаться мелочь, а накопленный тап дать девятизначную сумму, и она бы обрезалась.
+        // Знак «+» добавляется к длине баланса на случай отрицательного баланса при долге.
+        val popLen = maxOf(balanceText.length + 1, MAX_TAP_POP_LEN)
         val balanceSp = remember(widthSp, balanceText.length) {
             (widthSp / (0.62f * (balanceText.length + popLen * TAP_POP_RATIO)))
                 .coerceIn(13f, 30f)
@@ -1370,6 +1373,9 @@ internal fun BalanceWithTapPop(
 
 /** Во сколько раз надбавка мельче баланса. */
 private const val TAP_POP_RATIO = 0.5f
+
+/** Длина самой длинной возможной надбавки: «+$ 999 999 999» — знак, валюта, пробел и 11 знаков числа. */
+private const val MAX_TAP_POP_LEN = 14
 
 /**
  * Всплывающая награда за тап.
