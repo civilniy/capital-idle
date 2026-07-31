@@ -157,7 +157,7 @@ private fun RankRow(row: RankRowData, cur: Currency) {
             if (!row.isPlayer && kotlin.math.abs(row.deltaPct) >= 0.05) {
                 Text(
                     (if (row.deltaPct > 0) "\u25B2 +" else "\u25BC ") +
-                        String.format("%.1f%%", row.deltaPct),
+                        GameMath.decimal(row.deltaPct) + "%",
                     color = if (row.deltaPct > 0) GreenAccent else RedAccent,
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp
                 )

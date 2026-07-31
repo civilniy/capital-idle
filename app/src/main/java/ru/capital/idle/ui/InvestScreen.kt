@@ -184,7 +184,7 @@ private fun PassiveCard(
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(a.title, color = Mute, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(String.format("%.1f%%/день", rate * 100), color = Mute,
+                Text(GameMath.decimal(rate * 100) + "%/день", color = Mute,
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp)
             }
             Spacer(Modifier.height(3.dp))
@@ -200,7 +200,7 @@ private fun PassiveCard(
                 Text(a.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Tag(a.riskText(), riskColor(a.riskText()))
             }
-            Text(String.format("%.1f%%/день", rate * 100), color = GreenAccent,
+            Text(GameMath.decimal(rate * 100) + "%/день", color = GreenAccent,
                 fontFamily = FontFamily.Monospace, fontSize = 11.sp)
         }
         Spacer(Modifier.height(4.dp))
@@ -277,7 +277,7 @@ private fun StockCard(
                 if (unlocked && ref != null && ref > 0) {
                     val ch = (price - ref) / ref * 100
                     Text(
-                        (if (ch >= 0) "\u25B2 +" else "\u25BC ") + String.format("%.1f%% за день", ch),
+                        (if (ch >= 0) "\u25B2 +" else "\u25BC ") + GameMath.decimal(ch) + "% за день",
                         color = if (ch >= 0) GreenAccent else RedAccent,
                         fontFamily = FontFamily.Monospace, fontSize = 9.5.sp
                     )
@@ -385,7 +385,7 @@ private fun Tag(text: String, color: Color) {
 }
 
 private fun fmtPct(p: Double): String {
-    val s = if (p < 1.0) String.format("%.2f", p) else String.format("%.1f", p)
+    val s = if (p < 1.0) GameMath.decimal(p, 2) else GameMath.decimal(p)
     return s.replace('.', ',') + "%"
 }
 

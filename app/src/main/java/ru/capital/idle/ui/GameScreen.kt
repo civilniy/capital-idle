@@ -416,7 +416,8 @@ private fun fmtClock(ms: Long): String {
     val h = totalSec / 3600
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
-    return if (h > 0) String.format("%d:%02d", h, m) else String.format("%d:%02d", m, s)
+    return if (h > 0) String.format(java.util.Locale.ROOT, "%d:%02d", h, m)
+    else String.format(java.util.Locale.ROOT, "%d:%02d", m, s)
 }
 
 @Composable
@@ -474,7 +475,7 @@ private fun MarketBar(state: GameState) {
             color = TextMain, fontWeight = FontWeight.Bold, fontSize = 12.sp,
             modifier = Modifier.weight(1f)
         )
-        Text("×${String.format("%.2f", mult)}",
+        Text("×${GameMath.decimal(mult, 2)}",
             color = if (mult >= 1.0) GreenAccent else RedAccent,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
@@ -1113,13 +1114,13 @@ private fun CreditCard(
 
             Column {
                 Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = 9.sp, letterSpacing = 2.sp)
-                Row(verticalAlignment = Alignment.Top) {
-                    Text(GameMath.formatMoney(money, currency),
-                        color = if (money < 0) RedAccent else txt,
-                        fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                    TapPop(accum = popAccum, tick = popTick, currency = currency,
-                        onExpire = { popAccum = 0.0 })
-                }
+                Text(GameMath.formatMoney(money, currency),
+                    color = if (money < 0) RedAccent else txt,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+                // Всплывашка идёт отдельной строкой: рядом с балансом в 30sp для неё
+                // не остаётся места, и «+$ 999 999 999» уезжал на вторую строку.
+                TapPop(accum = popAccum, tick = popTick, currency = currency,
+                    onExpire = { popAccum = 0.0 })
                 Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
                     color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             }
@@ -1134,7 +1135,7 @@ private fun CreditCard(
                         color = accent.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace, fontSize = 12.sp, letterSpacing = 2.sp)
                     Spacer(Modifier.height(3.dp))
                     if (playerName.isNotBlank()) {
-                        Text(playerName.uppercase(), color = txt, fontSize = 15.sp, letterSpacing = 1.sp,
+                        Text(playerName.uppercase(java.util.Locale.ROOT), color = txt, fontSize = 15.sp, letterSpacing = 1.sp,
                             maxLines = 1, lineHeight = 18.sp)
                     }
                 }
@@ -1321,27 +1322,37 @@ private fun GoldBar(size: Dp = 14.dp) {
     }
 }
 
+/**
+ * Всплывающая награда за тап по карте.
+ *
+ * Это разовая сумма, а не поток, поэтому символ валюты стоит ПЕРЕД числом (см. CLAUDE.md).
+ * Строка живёт в разметке всегда — при пустой награде она прозрачна, но место занимает,
+ * иначе карта дёргалась бы по высоте на каждый тап.
+ */
 @Composable
-private fun TapPop(accum: Double, tick: Int, currency: Currency, onExpire: () -> Unit) {
-    if (accum <= 0.0) return
+internal fun TapPop(accum: Double, tick: Int, currency: Currency, onExpire: () -> Unit) {
     val anim = remember(tick) { Animatable(0f) }
     LaunchedEffect(tick) {
+        if (accum <= 0.0) return@LaunchedEffect
         anim.snapTo(0f)
         anim.animateTo(1f, animationSpec = tween(800))
         onExpire()
     }
     val alpha = when {
+        accum <= 0.0 -> 0f                               // места не занимает глазом, но занимает в разметке
         anim.value < 0.15f -> anim.value / 0.15f          // быстрое появление
         anim.value < 0.70f -> 1f                          // держим
         else -> 1f - (anim.value - 0.70f) / 0.30f         // тает
     }
     Text(
-        "+${GameMath.formatAmount(accum, currency)} ${currency.symbol}",
+        if (accum <= 0.0) " " else "+" + GameMath.formatMoney(accum, currency),
         color = GreenAccent, fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.Bold, fontSize = 14.sp,
+        // суммы до миллиарда показываются целиком, поэтому строка должна вмещать
+        // «+$ 999 999 999» и не переноситься ни при каком масштабе шрифта
+        maxLines = 1, softWrap = false,
         modifier = Modifier
-            .padding(start = 6.dp)
-            .offset(y = (-4).dp - (anim.value * 6).dp)
+            .offset(y = -(anim.value * 6).dp)
             .alpha(alpha)
     )
 }

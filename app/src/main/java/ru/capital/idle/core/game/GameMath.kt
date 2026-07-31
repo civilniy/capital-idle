@@ -1,5 +1,6 @@
 package ru.capital.idle.core.game
 
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.log10
@@ -256,21 +257,31 @@ object GameMath {
 
     // ===================== форматирование =====================
 
+    /**
+     * Дробное число с запятой — независимо от языка системы.
+     *
+     * Locale.ROOT даёт предсказуемую точку, которую мы меняем на запятую сами. Без него
+     * на английском телефоне вышла бы точка, на русском запятая, и на одном экране
+     * получился бы разнобой. Правило «разделитель всегда запятая» — в CLAUDE.md.
+     */
+    fun decimal(value: Double, digits: Int = 1): String =
+        String.format(Locale.ROOT, "%.${digits}f", value).replace('.', ',')
+
     private val SUFFIXES = listOf("", "K", "M", "B", "T", "Qa", "Qi", "Sx")
     private const val FULL_LIMIT = 1_000_000_000.0   // до миллиарда показываем число целиком
 
     fun format(n: Double): String {
         val v = abs(n)
         if (v < 10.0) {
-            return if (v != floor(v)) String.format("%.1f", n).replace('.', ',')
+            return if (v != floor(v)) decimal(n)
             else floor(n).toLong().toString()
         }
         if (v < FULL_LIMIT) return groupDigits(floor(n).toLong())
         var tier = (log10(v) / 3.0).toInt()
         if (tier >= SUFFIXES.size) tier = SUFFIXES.size - 1
         val scaled = n / 1000.0.pow(tier)
-        val s = if (abs(scaled) < 100) String.format("%.1f", scaled) else String.format("%.0f", scaled)
-        return s.replace('.', ',') + SUFFIXES[tier]
+        val s = if (abs(scaled) < 100) decimal(scaled) else decimal(scaled, 0)
+        return s + SUFFIXES[tier]
     }
 
     /** Компактный формат для тесных мест (ячейки сводки): всегда с суффиксом от тысяч. 2,4M, 1,2B. */
@@ -280,8 +291,8 @@ object GameMath {
         var tier = (log10(v) / 3.0).toInt()
         if (tier >= SUFFIXES.size) tier = SUFFIXES.size - 1
         val scaled = n / 1000.0.pow(tier)
-        val s = if (abs(scaled) < 100) String.format("%.1f", scaled) else String.format("%.0f", scaled)
-        return s.replace('.', ',') + SUFFIXES[tier]
+        val s = if (abs(scaled) < 100) decimal(scaled) else decimal(scaled, 0)
+        return s + SUFFIXES[tier]
     }
 
     /** Группировка разрядов неразрывными пробелами: 1 234 567. */
@@ -314,21 +325,23 @@ object GameMath {
     }
 
     fun formatRank(n: Long): String = when {
-        n >= 1_000_000_000L -> String.format("%.1f млрд", n / 1e9)
-        n >= 1_000_000L -> String.format("%.1f млн", n / 1e6)
-        n >= 1_000L -> String.format("%.1f тыс", n / 1e3)
+        n >= 1_000_000_000L -> decimal(n / 1e9) + " млрд"
+        n >= 1_000_000L -> decimal(n / 1e6) + " млн"
+        n >= 1_000L -> decimal(n / 1e3) + " тыс"
         else -> n.toString()
     }
 
     /** Дата и время игрового календаря: "01.01.27 · 08:00". */
     fun gameDateTime(state: GameState): String {
-        val cal = java.util.Calendar.getInstance()
+        // Locale.ROOT обязателен: в тайской или арабской локали getInstance() отдаёт
+        // не григорианский календарь, и год игрового календаря разъезжается на столетия.
+        val cal = java.util.Calendar.getInstance(Locale.ROOT)
         cal.timeInMillis = if (state.startDateMillis > 0) state.startDateMillis else System.currentTimeMillis()
         cal.add(java.util.Calendar.DAY_OF_YEAR, floor(state.gameHours / 24.0).toInt())
         val h = floor(state.gameHours % 24.0).toInt()
         val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
         val mo = cal.get(java.util.Calendar.MONTH) + 1
         val yy = cal.get(java.util.Calendar.YEAR) % 100
-        return String.format("%02d.%02d.%02d · %02d:00", d, mo, yy, h)
+        return String.format(Locale.ROOT, "%02d.%02d.%02d · %02d:00", d, mo, yy, h)
     }
 }
