@@ -205,7 +205,8 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
         }
 
         Text(
-            "нажмите на карту · подработка +${GameMath.formatAmount(reward, cur)} ${cur.symbol}",
+            // та же награда, что и во всплывашке: разовая сумма, символ валюты впереди
+            "нажмите на карту · подработка +${GameMath.formatMoney(reward, cur)}",
             color = Mute, fontSize = 12.sp, textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
