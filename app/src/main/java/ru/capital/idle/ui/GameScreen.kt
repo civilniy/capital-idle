@@ -1365,7 +1365,11 @@ internal fun BalanceWithTapPop(
             )
             TapPop(
                 accum = accum, tick = tick, currency = currency,
-                fontSize = (balanceSp * TAP_POP_RATIO).sp, onExpire = onExpire
+                // не крупнее строки дохода на этой же карте: надбавка — индекс к балансу,
+                // а не второе главное число. Пропорция к балансу тоже сохраняется,
+                // поэтому при крупном системном шрифте надбавка мельчает вместе с ним.
+                fontSize = minOf(TAP_POP_MAX_SP, balanceSp * TAP_POP_RATIO).sp,
+                onExpire = onExpire
             )
         }
     }
@@ -1373,6 +1377,9 @@ internal fun BalanceWithTapPop(
 
 /** Во сколько раз надбавка мельче баланса. */
 private const val TAP_POP_RATIO = 0.5f
+
+/** Потолок кегля надбавки: чуть мельче строки «+N $/день» (12sp) на той же карте. */
+private const val TAP_POP_MAX_SP = 11.5f
 
 /** Длина самой длинной возможной надбавки: «+$ 999 999 999» — знак, валюта, пробел и 11 знаков числа. */
 private const val MAX_TAP_POP_LEN = 14
