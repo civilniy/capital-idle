@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -13,20 +16,23 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import ru.capital.idle.core.game.Currency
-import ru.capital.idle.ui.TapPop
+import ru.capital.idle.ui.BalanceWithTapPop
 import ru.capital.idle.ui.theme.Bg
+import ru.capital.idle.ui.theme.TextMain
 
 /**
- * Всплывающая награда за тап по карте.
+ * Баланс на карте и надбавка за тап рядом с ним.
  *
- * Самое узкое место: сумма показывается целиком до миллиарда, то есть строка должна
- * вмещать «+$ 999 999 999» и не переноситься ни при каком масштабе шрифта.
+ * Худший случай: оба числа максимальные несокращённые — «$ 999 999 999» и «+$ 999 999 999».
+ * По правилу полноты (CLAUDE.md) сокращать их нельзя, поэтому кегль подстраивается
+ * под ширину карты, а перенос запрещён структурно.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -39,61 +45,163 @@ class TapPopScreenshotTest {
     /** Максимум, который показывается без сокращения. */
     private val maxFullNumber = 999_999_999.0
 
-    /**
-     * Снять всплывашку в середине её анимации: к концу она тает до полной прозрачности,
-     * поэтому автопрокрутку часов приходится выключать.
-     */
-    private fun shot(name: String, accum: Double, cur: Currency, fontScale: Float = 1f) {
-        compose.mainClock.autoAdvance = false
-        compose.setContent {
-            val base = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(density = base.density, fontScale = fontScale)
-            ) {
-                Box(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    TapPop(accum = accum, tick = 1, currency = cur, onExpire = {})
-                }
+    /** Столько же, но в рублях: делим на курс, иначе строка уйдёт в суффикс. */
+    private fun maxFullIn(cur: Currency) = maxFullNumber / cur.ratePerUsd
+
+    /** Ширина карты повторяет реальную: отступ экрана 14dp плюс внутренний 16dp. */
+    @Composable
+    private fun OnCard(fontScale: Float, content: @Composable () -> Unit) {
+        val base = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(density = base.density, fontScale = fontScale)
+        ) {
+            Box(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 30.dp, vertical = 10.dp)) {
+                content()
             }
         }
-        compose.mainClock.advanceTimeBy(300)   // середина показа: надпись полностью видна
+    }
+
+    /**
+     * Снять баланс с надбавкой в середине показа: к концу надбавка тает до прозрачности,
+     * поэтому автопрокрутку часов приходится выключать.
+     */
+    private fun shot(name: String, money: Double, accum: Double, cur: Currency, fontScale: Float = 1f) {
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            OnCard(fontScale) {
+                BalanceWithTapPop(
+                    money = money, accum = accum, tick = 1, currency = cur,
+                    moneyColor = TextMain, onExpire = {}
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(300)
         compose.onRoot().captureRoboImage(
             filePath = "${Screenshots.DIR}/$name.png",
             roborazziOptions = Screenshots.OPTIONS
         )
     }
 
+    // ===================== худший случай: оба числа максимальные =====================
+
     @Test
-    fun `максимальная несокращённая сумма в долларах`() {
-        shot("tappop_max_full_usd", maxFullNumber, Currency.USD)
+    fun `оба числа максимальные в долларах`() {
+        shot("balance_pop_max_usd", maxFullNumber, maxFullNumber, Currency.USD)
     }
 
     @Test
-    fun `максимальная несокращённая сумма в рублях`() {
-        // accum задаётся в долларах, а показывается в выбранной валюте: чтобы получить
-        // предельную рублёвую строку «+₽ 999 999 999», сумму нужно поделить на курс.
-        // Иначе вышло бы «+₽ 73,7B» — короткая строка, ничего не проверяющая.
-        shot("tappop_max_full_rub", maxFullNumber / Currency.RUB.ratePerUsd, Currency.RUB)
+    fun `оба числа максимальные в долларах при крупном шрифте`() {
+        shot("balance_pop_max_usd_large_font", maxFullNumber, maxFullNumber,
+            Currency.USD, Screenshots.LARGE_FONT)
     }
 
     @Test
-    fun `максимальная несокращённая сумма в рублях при крупном шрифте`() {
-        // худший случай во всей игре: самая длинная несокращённая строка и шрифт 1.5
-        shot("tappop_max_full_rub_large_font", maxFullNumber / Currency.RUB.ratePerUsd,
-            Currency.RUB, Screenshots.LARGE_FONT)
+    fun `оба числа максимальные в рублях`() {
+        val v = maxFullIn(Currency.RUB)
+        shot("balance_pop_max_rub", v, v, Currency.RUB)
     }
 
     @Test
-    fun `максимальная несокращённая сумма при крупном шрифте`() {
-        shot("tappop_max_full_large_font", maxFullNumber, Currency.USD, Screenshots.LARGE_FONT)
+    fun `оба числа максимальные в рублях при крупном шрифте`() {
+        val v = maxFullIn(Currency.RUB)
+        shot("balance_pop_max_rub_large_font", v, v, Currency.RUB, Screenshots.LARGE_FONT)
+    }
+
+    // ===================== обычные состояния =====================
+
+    @Test
+    fun `баланс без надбавки`() {
+        shot("balance_no_pop", maxFullNumber, 0.0, Currency.USD)
     }
 
     @Test
-    fun `сокращённая сумма за миллиардом`() {
-        shot("tappop_billions", 4_470_000_000.0, Currency.RUB)
+    fun `небольшой баланс с надбавкой`() {
+        shot("balance_pop_small", 1_234.0, 12.0, Currency.RUB)
     }
 
     @Test
-    fun `мелкая награда в начале игры`() {
-        shot("tappop_small", 12.0, Currency.RUB)
+    fun `баланс и надбавка за миллиардом`() {
+        shot("balance_pop_billions", 3_400_000_000_000.0, 4_470_000_000.0, Currency.RUB)
+    }
+
+    // ===================== надбавка длиннее баланса =====================
+
+    @Test
+    fun `мелкий баланс и максимальная надбавка`() {
+        // после крупной покупки на счету мелочь, а накопленный тап девятизначный:
+        // резерв под надбавку нельзя выводить из длины баланса
+        shot("balance_pop_small_balance_max_pop", 90_945.0, maxFullNumber, Currency.USD)
+    }
+
+    @Test
+    fun `мелкий баланс и максимальная надбавка при крупном шрифте`() {
+        shot("balance_pop_small_balance_max_pop_large_font", 90_945.0, maxFullNumber,
+            Currency.USD, Screenshots.LARGE_FONT)
+    }
+
+    @Test
+    fun `долг и максимальная надбавка`() {
+        // самый длинный баланс из возможных: минус, символ валюты и девять цифр
+        shot("balance_pop_debt_max_pop", -maxFullNumber, maxFullNumber, Currency.USD)
+    }
+
+    @Test
+    fun `долг и максимальная надбавка при крупном шрифте`() {
+        shot("balance_pop_debt_max_pop_large_font", -maxFullNumber, maxFullNumber,
+            Currency.USD, Screenshots.LARGE_FONT)
+    }
+
+    // ===================== высота не должна прыгать =====================
+
+    @Test
+    fun `появление надбавки не меняет высоту строки баланса`() {
+        val accum = mutableDoubleStateOf(0.0)
+        val tick = mutableIntStateOf(0)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            OnCard(1f) {
+                BalanceWithTapPop(
+                    money = maxFullNumber, accum = accum.doubleValue, tick = tick.intValue,
+                    currency = Currency.USD, moneyColor = TextMain, onExpire = {}
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(100)
+        val withoutPop = compose.onRoot().fetchSemanticsNode().size.height
+
+        // надбавка появилась
+        accum.doubleValue = maxFullNumber
+        tick.intValue = 1
+        compose.mainClock.advanceTimeBy(300)
+        val withPop = compose.onRoot().fetchSemanticsNode().size.height
+
+        assertEquals(
+            "высота карты не должна меняться при появлении надбавки",
+            withoutPop, withPop
+        )
+    }
+
+    @Test
+    fun `появление надбавки не меняет высоту и при крупном шрифте`() {
+        val accum = mutableDoubleStateOf(0.0)
+        val tick = mutableIntStateOf(0)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            OnCard(Screenshots.LARGE_FONT) {
+                BalanceWithTapPop(
+                    money = maxFullNumber, accum = accum.doubleValue, tick = tick.intValue,
+                    currency = Currency.USD, moneyColor = TextMain, onExpire = {}
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(100)
+        val withoutPop = compose.onRoot().fetchSemanticsNode().size.height
+
+        accum.doubleValue = maxFullNumber
+        tick.intValue = 1
+        compose.mainClock.advanceTimeBy(300)
+        val withPop = compose.onRoot().fetchSemanticsNode().size.height
+
+        assertEquals(withoutPop, withPop)
     }
 }
