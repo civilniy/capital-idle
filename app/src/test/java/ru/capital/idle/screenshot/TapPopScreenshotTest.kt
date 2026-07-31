@@ -69,8 +69,17 @@ class TapPopScreenshotTest {
 
     @Test
     fun `максимальная несокращённая сумма в рублях`() {
-        // в рублях та же сумма уже за миллиардом и показывается с суффиксом
-        shot("tappop_max_full_rub", maxFullNumber, Currency.RUB)
+        // accum задаётся в долларах, а показывается в выбранной валюте: чтобы получить
+        // предельную рублёвую строку «+₽ 999 999 999», сумму нужно поделить на курс.
+        // Иначе вышло бы «+₽ 73,7B» — короткая строка, ничего не проверяющая.
+        shot("tappop_max_full_rub", maxFullNumber / Currency.RUB.ratePerUsd, Currency.RUB)
+    }
+
+    @Test
+    fun `максимальная несокращённая сумма в рублях при крупном шрифте`() {
+        // худший случай во всей игре: самая длинная несокращённая строка и шрифт 1.5
+        shot("tappop_max_full_rub_large_font", maxFullNumber / Currency.RUB.ratePerUsd,
+            Currency.RUB, Screenshots.LARGE_FONT)
     }
 
     @Test
