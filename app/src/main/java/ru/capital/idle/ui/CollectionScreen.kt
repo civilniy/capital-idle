@@ -32,6 +32,13 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
     CollectionSummary(day = day, owned = owned, value = value, profit = profit, cur = cur)
 
     Spacer(Modifier.height(12.dp))
+    AuctionBlock(
+        view = AuctionView.of(state),
+        cur = cur,
+        onBid = { amount -> vm.placeBid(amount) }
+    )
+
+    Spacer(Modifier.height(12.dp))
     CollectionSetsBlock(
         rows = Collectibles.sets.map { SetProgress(it, Collectibles.ownedInSet(state, it)) }
     )
@@ -48,12 +55,260 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
             owned = Collectibles.owns(state, c.id),
             paid = Collectibles.paidFor(state, c.id),
             profit = Collectibles.profit(state, c),
-            canBuy = Collectibles.canBuy(state, c.id),
+            canBuy = Auctions.canBuyInCatalog(state, c.id),
+            inCatalog = Auctions.inCatalog(c.id),
             cur = cur,
             onBuy = { vm.buyCollectible(c.id) },
             onSell = { vm.sellCollectible(c.id) }
         )
         Spacer(Modifier.height(6.dp))
+    }
+}
+
+// ===================== торги =====================
+
+/**
+ * Всё, что нужно нарисовать блоку торгов, посчитано заранее. Блок остаётся чистой
+ * функцией от данных — его можно снять скриншотом без ViewModel.
+ *
+ * @param item лот или null, если торгов сейчас нет
+ * @param unlocked есть ли у игрока доступ к этому уровню торгов
+ * @param nextInH через сколько игровых часов начнутся следующие торги (когда лота нет)
+ */
+internal data class AuctionView(
+    val item: Collectible?,
+    val tier: AuctionTier,
+    val unlocked: Boolean,
+    val reputation: Double,
+    val status: Int,
+    val bid: Double,
+    val bids: Int,
+    val playerLeads: Boolean,
+    val leader: String,
+    val hoursLeft: Double,
+    val timeFraction: Float,
+    val minBid: Double,
+    val boldBid: Double,
+    val money: Double,
+    val catalogPrice: Double,
+    val nextInH: Double
+) {
+    companion object {
+        fun of(state: GameState): AuctionView {
+            val a = state.auction
+            val item = a?.let { Collectibles.byId(it.itemId) }
+            val tier = a?.tier ?: AuctionTier.OPEN
+            return AuctionView(
+                item = item,
+                tier = tier,
+                unlocked = tier.unlocked(state),
+                reputation = GameMath.reputationShown(state),
+                status = Lifestyle.socialStatus(state),
+                bid = a?.bid ?: 0.0,
+                bids = a?.bids ?: 0,
+                playerLeads = a?.playerLeads == true,
+                leader = a?.let { Auctions.leaderTitle(it) }.orEmpty(),
+                hoursLeft = a?.let { Auctions.hoursLeft(it, state.gameHours) } ?: 0.0,
+                timeFraction = a?.let { Auctions.timeFraction(it, state.gameHours) } ?: 0f,
+                minBid = a?.let { Auctions.minBid(it) } ?: 0.0,
+                boldBid = a?.let { Auctions.boldBid(it) } ?: 0.0,
+                money = state.money,
+                catalogPrice = item?.let { Collectibles.priceIn(it, state) } ?: 0.0,
+                nextInH = (state.auctionNextGameH - state.gameHours).coerceAtLeast(0.0)
+            )
+        }
+    }
+}
+
+/**
+ * Раздел активных торгов. Показывает лот, текущую ставку, кто ведёт и сколько времени осталось.
+ *
+ * Три состояния карточки: торгов нет, торги идут и доступны, торги идут но уровень закрыт.
+ * Закрытый уровень не прячем — видно, какой предмет уходит и чего не хватает для допуска.
+ */
+@Composable
+internal fun AuctionBlock(view: AuctionView, cur: Currency, onBid: (Double) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically) {
+        Text("ТОРГИ", color = Mute, fontSize = 11.sp,
+            letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+        if (view.item != null) {
+            Text(view.tier.title, color = if (view.unlocked) Gold else Mute,
+                fontFamily = FontFamily.Monospace, fontSize = 11.sp, maxLines = 1)
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+
+    when {
+        view.item == null -> AuctionIdleCard(view.nextInH)
+        !view.unlocked -> AuctionLockedCard(view)
+        else -> AuctionLiveCard(view, cur, onBid)
+    }
+}
+
+/** Торгов нет: когда ждать следующие. */
+@Composable
+private fun AuctionIdleCard(nextInH: Double) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GlassFill)
+            .padding(horizontal = 12.dp, vertical = 13.dp)
+    ) {
+        Text("Зал пуст", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Spacer(Modifier.height(3.dp))
+        Text(
+            "Следующий лот выставят через ${Auctions.formatLeft(nextInH)}. " +
+                "Самые редкие предметы в каталоге не продаются — только здесь.",
+            color = Mute, fontSize = 10.sp, lineHeight = 14.sp
+        )
+    }
+}
+
+/** Торги идут, но уровень закрыт: видно лот и чего не хватает для допуска. */
+@Composable
+private fun AuctionLockedCard(view: AuctionView) {
+    val item = view.item ?: return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GlassFill)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("🔒", fontSize = 18.sp, modifier = Modifier.width(28.dp))
+            Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
+                Text(item.title, color = Mute, fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp, maxLines = 1)
+                Text("вас не пускают в зал", color = Mute.copy(alpha = 0.75f), fontSize = 9.5.sp)
+            }
+        }
+        Spacer(Modifier.height(9.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GateCell("РЕПУТАЦИЯ", GameMath.decimal(view.reputation, 0),
+                view.tier.reqReputation.toInt().toString(),
+                view.reputation >= view.tier.reqReputation, Modifier.weight(1f))
+            GateCell("СТАТУС", view.status.toString(), view.tier.reqStatus.toString(),
+                view.status >= view.tier.reqStatus, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun GateCell(label: String, have: String, need: String, ok: Boolean, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner)
+            .padding(vertical = 8.dp, horizontal = 10.dp)
+    ) {
+        Text("$have / $need", color = if (ok) GreenAccent else TextMain,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold,
+            fontSize = 13.sp, maxLines = 1)
+        Spacer(Modifier.height(2.dp))
+        Text(label, color = Mute, fontSize = 9.sp, letterSpacing = 1.sp, maxLines = 1)
+    }
+}
+
+/** Торги идут и доступны: ставка, лидер, время, кнопки. */
+@Composable
+private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) -> Unit) {
+    val item = view.item ?: return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(if (view.playerLeads) GlassAccent else GlassFill)
+            .then(
+                if (view.playerLeads)
+                    Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                else Modifier
+            )
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(item.emoji, fontSize = 22.sp, modifier = Modifier.width(30.dp))
+            Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
+                Text(item.title, color = TextMain, fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp, maxLines = 1)
+                Text(
+                    "${item.rarity.title} · ставок ${view.bids} · " +
+                        "в каталоге ${if (Auctions.inCatalog(item.id)) GameMath.formatMoney(view.catalogPrice, cur) else "не продаётся"}",
+                    color = Mute, fontSize = 9.5.sp, lineHeight = 12.sp, maxLines = 2
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AuctionStat("СТАВКА", GameMath.formatMoney(view.bid, cur), TextMain, Modifier.weight(1f))
+            AuctionStat(
+                "ВЕДЁТ", view.leader,
+                if (view.playerLeads) GreenAccent else RedAccent, Modifier.weight(1f)
+            )
+        }
+
+        Spacer(Modifier.height(9.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(GlassInner)
+            ) {
+                Box(
+                    Modifier.fillMaxWidth(1f - view.timeFraction).fillMaxHeight()
+                        .clip(RoundedCornerShape(2.dp)).background(if (view.playerLeads) Gold else GoldDim)
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            Text("осталось ${Auctions.formatLeft(view.hoursLeft)}", color = Mute,
+                fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+        }
+
+        Spacer(Modifier.height(11.dp))
+        if (view.playerLeads) {
+            Text(
+                "Ваша ставка принята. Деньги удержаны и вернутся полностью, если зал перебьёт.",
+                color = GoldDim, fontSize = 10.sp, lineHeight = 14.sp
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                BidButton("ПЕРЕБИТЬ", view.minBid, view.money >= view.minBid, cur,
+                    Modifier.weight(1f)) { onBid(view.minBid) }
+                BidButton("УВЕРЕННО", view.boldBid, view.money >= view.boldBid, cur,
+                    Modifier.weight(1f)) { onBid(view.boldBid) }
+            }
+            Spacer(Modifier.height(7.dp))
+            Text(
+                "Зал отвечает не сразу и до своего предела — предел не объявляют. " +
+                    "Крупная ставка может закрыть торги, но переплатой.",
+                color = Mute, fontSize = 10.sp, lineHeight = 14.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuctionStat(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner)
+            .padding(vertical = 8.dp, horizontal = 10.dp)
+    ) {
+        Text(value, color = color, fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, maxLines = 1)
+        Spacer(Modifier.height(2.dp))
+        Text(label, color = Mute, fontSize = 9.sp, letterSpacing = 1.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun BidButton(
+    label: String, amount: Double, enabled: Boolean, cur: Currency,
+    modifier: Modifier, onClick: () -> Unit
+) {
+    Column(
+        modifier.clip(RoundedCornerShape(11.dp))
+            .background(if (enabled) Gold else GlassBtnOff)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(GameMath.formatMoney(amount, cur),
+            color = if (enabled) CoinText else GlassBtnOffText,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold,
+            fontSize = 12.sp, maxLines = 1)
+        Text(label, color = if (enabled) CoinText else GlassBtnOffText,
+            fontSize = 8.5.sp, letterSpacing = 1.sp, maxLines = 1)
     }
 }
 
@@ -215,7 +470,9 @@ private fun CollectStat(label: String, value: String, color: androidx.compose.ui
 @Composable
 internal fun CollectibleCard(
     item: Collectible, price: Double, owned: Boolean, paid: Double, profit: Double,
-    canBuy: Boolean, cur: Currency, onBuy: () -> Unit, onSell: () -> Unit
+    canBuy: Boolean, cur: Currency, onBuy: () -> Unit, onSell: () -> Unit,
+    /** Продаётся ли предмет в каталоге. Уникальные лоты — только с торгов. */
+    inCatalog: Boolean = true
 ) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
@@ -259,6 +516,19 @@ internal fun CollectibleCard(
                     Text("продать", color = GlassSellText,
                         fontFamily = FontFamily.Monospace, fontSize = 10.sp)
                 }
+            }
+        } else if (!inCatalog) {
+            // предмет ушёл с рынка: цену показываем как ориентир, купить можно только на торгах
+            Column(
+                Modifier.clip(RoundedCornerShape(9.dp)).background(GlassBtnOff)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(GameMath.formatMoney(price, cur), color = GlassBtnOffText,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold,
+                    fontSize = 11.sp, maxLines = 1)
+                Text("только с торгов", color = GlassBtnOffText,
+                    fontSize = 8.5.sp, maxLines = 1)
             }
         } else {
             Box(

@@ -51,6 +51,10 @@ data class GameState(
     val ownedTechs: Set<Int> = setOf(0),
     // коллекция: id предмета -> цена, за которую он куплен (для расчёта прибыли)
     val collectibles: Map<String, Double> = emptyMap(),
+    // торги: активный лот (null — торгов нет), когда начнутся следующие и посев ГПСЧ торгов
+    val auction: Auction? = null,
+    val auctionNextGameH: Double = 0.0,
+    val auctionSeed: Long = 0L,
     val lastTitleIdx: Int = 0,
     val experiencesDone: Set<String> = emptySet(),   // светская жизнь
     val debt: Double = 0.0,                          // долг при жизни не по средствам
