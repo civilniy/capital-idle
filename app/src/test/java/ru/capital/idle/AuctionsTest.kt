@@ -93,6 +93,21 @@ class AuctionsTest {
         assertEquals(4, Auctions.lotPool(st, AuctionTier.CLOSED).size)
     }
 
+    @Test
+    fun `имена соперников влезают в ячейку «ведёт»`() {
+        // ячейка однострочная: имя длиннее лимита обрежется без многоточия
+        Auctions.rivalNames.forEach { n ->
+            assertTrue("«$n» — ${n.length} знаков при лимите ${Auctions.MAX_RIVAL_NAME_LEN}",
+                n.length <= Auctions.MAX_RIVAL_NAME_LEN)
+            assertTrue(n.isNotBlank())
+        }
+        // «ведёте вы» показывается в той же ячейке и тоже обязано влезать
+        assertTrue("ведёте вы".length <= Auctions.MAX_RIVAL_NAME_LEN)
+        // индекс соперника растёт без границ — имя должно находиться по кругу
+        assertEquals(Auctions.rivalNames[0], Auctions.rivalName(Auctions.rivalNames.size))
+        assertEquals(Auctions.rivalNames[1], Auctions.rivalName(Auctions.rivalNames.size * 3 + 1))
+    }
+
     // ===================== ворота доступа =====================
 
     @Test

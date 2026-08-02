@@ -38,6 +38,9 @@ class AuctionLayoutScreenshotTest {
     /** Полотно импрессиониста — рядовой открытый лот. */
     private val canvas = Collectibles.byId("canvas")!!
 
+    /** Самое длинное имя соперника: ячейка «ВЕДЁТ» однострочная, проверяем худший случай. */
+    private val longestRival = Auctions.rivalNames.maxByOrNull { it.length }!!
+
     private fun view(
         item: ru.capital.idle.core.game.Collectible? = canvas,
         tier: AuctionTier = AuctionTier.OPEN,
@@ -45,7 +48,7 @@ class AuctionLayoutScreenshotTest {
         bid: Double = 62_000_000.0,
         bids: Int = 3,
         playerLeads: Boolean = false,
-        leader: String = Auctions.rivalName(2),
+        leader: String = longestRival,
         hoursLeft: Double = 31.0,
         timeFraction: Float = 0.57f,
         money: Double = 999_999_999.0,
@@ -135,7 +138,7 @@ class AuctionLayoutScreenshotTest {
     fun `игрок проигрывает — денег на перебив не хватает`() {
         // ставка выше наличных: обе кнопки должны погаснуть, а не обрезаться
         shot("auction_losing", view(bid = 740_000_000.0, bids = 7, money = 12_500_000.0,
-            leader = Auctions.rivalName(5), hoursLeft = 4.0, timeFraction = 0.94f))
+            hoursLeft = 4.0, timeFraction = 0.94f))
     }
 
     @Test
@@ -143,7 +146,7 @@ class AuctionLayoutScreenshotTest {
         shot(
             "auction_losing_large_font",
             view(bid = 740_000_000.0, bids = 7, money = 12_500_000.0,
-                leader = Auctions.rivalName(5), hoursLeft = 4.0, timeFraction = 0.94f),
+                hoursLeft = 4.0, timeFraction = 0.94f),
             fontScale = Screenshots.LARGE_FONT
         )
     }
