@@ -15,6 +15,7 @@ import ru.capital.idle.core.game.Auctions
 import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.ui.AuctionBlock
+import ru.capital.idle.ui.AuctionResultCard
 import ru.capital.idle.ui.AuctionView
 
 /**
