@@ -31,6 +31,26 @@ data class Collectible(
     val rarity: Rarity
 )
 
+/**
+ * Набор коллекционных предметов: несколько вещей, собранных по смыслу.
+ *
+ * Наборы ничего не хранят в состоянии игры — полнота вычисляется из тех же
+ * `state.collectibles`, что и владение отдельными предметами. Один предмет
+ * может входить в несколько наборов: так поздняя покупка закрывает сразу
+ * две цели, и собирать становится интереснее, чем скупать по порядку цен.
+ *
+ * @param itemIds идентификаторы предметов, входящих в набор
+ * @param bonus очки социального статуса за полностью собранный набор
+ */
+data class CollectibleSet(
+    val id: String,
+    val emoji: String,
+    val title: String,
+    val info: String,
+    val itemIds: List<String>,
+    val bonus: Int
+)
+
 object Collectibles {
 
     /**
@@ -85,6 +105,73 @@ object Collectibles {
 
     fun byId(id: String): Collectible? = all.firstOrNull { it.id == id }
 
+    // ===================== наборы =====================
+
+    /**
+     * Четыре набора из тех же двенадцати предметов.
+     *
+     * Каждый предмет входит хотя бы в один набор, а «Полотно импрессиониста»
+     * и «Утраченный шедевр» — сразу в два: это и живопись, и вещи с именем автора.
+     *
+     * Бонусы подобраны так, чтобы их сумма (600) была заметно меньше суммы
+     * статуса самих предметов (816): наборы — весомая надбавка сверху, а не
+     * вторая, более выгодная валюта. Внутри бонус растёт со сложностью сбора —
+     * дороже вход и больше предметов, больше очков.
+     */
+    val sets = listOf(
+        CollectibleSet(
+            "nature", "🌑", "Дар природы",
+            "Три вещи, которых не касалась рука человека",
+            listOf("diamond", "rex", "meteor"), 110
+        ),
+        CollectibleSet(
+            "gallery", "🖼", "Галерея",
+            "Стена, на которую водят гостей",
+            listOf("litho", "canvas", "lost"), 140
+        ),
+        CollectibleSet(
+            "ancient", "🏺", "Древний мир",
+            "От черепка до целого храма",
+            listOf("amphora", "mask", "temple"), 170
+        ),
+        CollectibleSet(
+            "names", "👑", "Имена в истории",
+            "У каждой вещи есть хозяин, о котором пишут в учебниках",
+            listOf("violin", "folio", "canvas", "crown", "lost"), 180
+        ),
+    )
+
+    fun setById(id: String): CollectibleSet? = sets.firstOrNull { it.id == id }
+
+    /** Предметы набора в порядке каталога; неизвестные идентификаторы отбрасываются. */
+    fun itemsOf(set: CollectibleSet): List<Collectible> = set.itemIds.mapNotNull { byId(it) }
+
+    /** Наборы, в которые входит предмет. Пустой список — предмет сам по себе. */
+    fun setsWith(itemId: String): List<CollectibleSet> = sets.filter { itemId in it.itemIds }
+
+    /** Сколько предметов набора уже в коллекции. */
+    fun ownedInSet(state: GameState, set: CollectibleSet): Int =
+        itemsOf(set).count { owns(state, it.id) }
+
+    /** Сколько предметов в наборе всего. */
+    fun sizeOf(set: CollectibleSet): Int = itemsOf(set).size
+
+    /** Набор собран, когда в коллекции есть все его предметы. Пустой набор собранным не считается. */
+    fun isComplete(state: GameState, set: CollectibleSet): Boolean {
+        val items = itemsOf(set)
+        return items.isNotEmpty() && items.all { owns(state, it.id) }
+    }
+
+    /** Очки за конкретный набор: полный бонус или ничего, промежуточных начислений нет. */
+    fun setBonus(state: GameState, set: CollectibleSet): Int =
+        if (isComplete(state, set)) set.bonus else 0
+
+    /** Сумма бонусов за все собранные наборы. */
+    fun setBonusPoints(state: GameState): Int = sets.sumOf { setBonus(state, it) }
+
+    /** Сколько наборов собрано полностью. */
+    fun completedSets(state: GameState): Int = sets.count { isComplete(state, it) }
+
     // ===================== цена =====================
 
     /** Номер игрового дня: в первые сутки 0. */
@@ -127,9 +214,12 @@ object Collectibles {
 
     fun totalProfit(state: GameState): Double = portfolioValue(state) - totalPaid(state)
 
-    /** Очки социального статуса от собранной коллекции. */
-    fun statusPoints(state: GameState): Int =
+    /** Очки статуса от самих предметов, без бонусов за наборы. */
+    fun itemStatusPoints(state: GameState): Int =
         state.collectibles.keys.sumOf { id -> byId(id)?.status ?: 0 }
+
+    /** Очки социального статуса от собранной коллекции: предметы плюс бонусы за полные наборы. */
+    fun statusPoints(state: GameState): Int = itemStatusPoints(state) + setBonusPoints(state)
 
     /** Сколько предметов собрано из каталога. */
     fun ownedCount(state: GameState): Int = state.collectibles.keys.count { byId(it) != null }

@@ -1,5 +1,8 @@
 package ru.capital.idle.screenshot
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -10,7 +13,9 @@ import org.robolectric.annotation.GraphicsMode
 import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.ui.CollectibleCard
+import ru.capital.idle.ui.CollectionSetsBlock
 import ru.capital.idle.ui.CollectionSummary
+import ru.capital.idle.ui.SetProgress
 
 /**
  * Вёрстка карточек коллекции. Главный риск здесь — длинные числа:
@@ -115,5 +120,60 @@ class CollectionLayoutScreenshotTest {
                 value = 6.1e11, profit = 4.9e11, cur = Currency.RUB
             )
         }
+    }
+
+    // ===================== блок наборов =====================
+
+    /** Прогресс наборов при заданном списке купленных предметов. */
+    private fun rows(owned: Set<String>) = Collectibles.sets.map { s ->
+        SetProgress(s, s.itemIds.count { it in owned })
+    }
+
+    /**
+     * Блок наборов отдаёт несколько соседей подряд, а не одну карточку,
+     * поэтому в снимке его нужно положить в Column — как и на самом экране.
+     */
+    private fun setsShot(name: String, owned: Set<String>, fontScale: Float = 1f) {
+        compose.captureOnBackground(name, fontScale = fontScale) {
+            Column(Modifier.fillMaxWidth()) { CollectionSetsBlock(rows(owned)) }
+        }
+    }
+
+    /**
+     * Частичный сбор: «Галерея» уже закрыта, «Дар природы» на двух предметах из трёх,
+     * «Имена в истории» — на двух из пяти (те же полотно и шедевр из «Галереи»),
+     * «Древний мир» пуст. Один снимок показывает сразу все четыре состояния строки.
+     */
+    private val partial = setOf("litho", "canvas", "lost", "diamond", "rex")
+
+    @Test
+    fun `наборы — ничего не собрано`() {
+        setsShot("collection_sets_empty", emptySet())
+    }
+
+    @Test
+    fun `наборы — ничего не собрано при крупном системном шрифте`() {
+        setsShot("collection_sets_empty_large_font", emptySet(), Screenshots.LARGE_FONT)
+    }
+
+    @Test
+    fun `наборы — собрано частично`() {
+        setsShot("collection_sets_partial", partial)
+    }
+
+    @Test
+    fun `наборы — собрано частично при крупном системном шрифте`() {
+        setsShot("collection_sets_partial_large_font", partial, Screenshots.LARGE_FONT)
+    }
+
+    @Test
+    fun `наборы — собрано всё`() {
+        setsShot("collection_sets_full", Collectibles.all.map { it.id }.toSet())
+    }
+
+    @Test
+    fun `наборы — собрано всё при крупном системном шрифте`() {
+        setsShot("collection_sets_full_large_font",
+            Collectibles.all.map { it.id }.toSet(), Screenshots.LARGE_FONT)
     }
 }

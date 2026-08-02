@@ -80,7 +80,7 @@ Content/feature modules, each a self-contained `object`/`enum` of game data + ru
 - `Investments.kt` — `Asset` (passive deposits), `Exchange`/`Stock`/`StockEvent` (stock market)
 - `Prestige.kt` — rebirth for gold bullion + permanent upgrades
 - `Lifestyle.kt` — homes/cars/tech, upkeep, `Chronicle`, `Museum`
-- `Collectibles.kt` — коллекция: искусство и редкие объекты. Покупаются в любом порядке, держатся все сразу, дорожают линейно от номера игрового дня с потолком `MAX_GROWTH_MULT`. Содержания не требуют и на доход не влияют; дают очки статуса и входят в `netWorth` по текущей цене. Цена — чистая функция дня, без случайности
+- `Collectibles.kt` — коллекция: искусство и редкие объекты. Покупаются в любом порядке, держатся все сразу, дорожают линейно от номера игрового дня с потолком `MAX_GROWTH_MULT`. Содержания не требуют и на доход не влияют; дают очки статуса и входят в `netWorth` по текущей цене. Цена — чистая функция дня, без случайности. Там же `CollectibleSet` — наборы предметов, собранные по смыслу: полнота вычисляется из тех же `state.collectibles` (своих полей в `GameState` нет), за полный набор даются очки статуса. Предмет может входить в несколько наборов
 - `Milestones.kt`, `Onboarding.kt`, `RankModel.kt`/`RankingData.kt`, `CardTier.kt`, `Currency.kt`, `EnterpriseNames.kt`
 
 When adding a feature or economy tuning, prefer extending these modules and `GameMath` rather than putting logic in the UI/ViewModel.
