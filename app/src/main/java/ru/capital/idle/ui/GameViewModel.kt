@@ -143,8 +143,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 // торги шли и без вас: зал перебивал по своим правилам, лот мог закрыться
                 val adv = Auctions.skipOffline(st, hoursAway)
-                adv.ended?.let { e -> _auctionResult.value = e }
                 st = adv.state
+                adv.ended?.let { e ->
+                    _auctionResult.value = e
+                    // запись в хронику переживает и убийство процесса: карточка покажется
+                    // не всегда, а исход лота должен остаться известен в любом случае
+                    st = st.withChronicle(e.chronicleCode, e.chronicleParam)
+                }
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st
@@ -391,8 +396,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             ).let { next ->
                 // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
                 val adv = Auctions.advance(next, gameH)
-                adv.ended?.let { e -> _auctionResult.value = e }
-                adv.state
+                val e = adv.ended
+                if (e == null) adv.state else {
+                    _auctionResult.value = e
+                    adv.state.withChronicle(e.chronicleCode, e.chronicleParam)
+                }
             }
         }
     }
@@ -652,6 +660,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 tutorialStep = Onboarding.DONE,
                 ownedHomes = setOf(0), ownedCars = setOf(0), ownedTechs = setOf(0),
                 collectibles = emptyMap(),
+                // торги прошлой жизни закрываются вместе с ней: иначе залог вернулся бы
+                // уже на новый баланс, а выигранный предмет пережил бы перерождение
+                auction = null, auctionNextGameH = 0.0,
                 lastTitleIdx = 0,
                 museum = (listOf(memorial) + st.museum).take(20),
                 chronicle = listOf(Chronicle.entry(1, "start")),
@@ -659,6 +670,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 // остаются: eduDone, netOwned, reputation, престиж-апгрейды, имя, валюта, вехи
             )
         }
+        _auctionResult.value = null   // итог чужой жизни показывать незачем
         persist()
     }
 

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +34,13 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
     CollectionSummary(day = day, owned = owned, value = value, profit = profit, cur = cur)
 
     Spacer(Modifier.height(12.dp))
+    // итог торгов: лот мог закрыться и пока игра была свёрнута — тогда это единственное место,
+    // где игрок узнаёт, достался ему предмет или ушёл
+    val auctionResult by vm.auctionResult.collectAsStateWithLifecycle()
+    auctionResult?.let { ended ->
+        AuctionResultCard(ended = ended, cur = cur, onDismiss = { vm.dismissAuctionResult() })
+        Spacer(Modifier.height(8.dp))
+    }
     AuctionBlock(
         view = AuctionView.of(state),
         cur = cur,
@@ -116,6 +125,49 @@ internal data class AuctionView(
                 catalogPrice = item?.let { Collectibles.priceIn(it, state) } ?: 0.0,
                 nextInH = (state.auctionNextGameH - state.gameHours).coerceAtLeast(0.0)
             )
+        }
+    }
+}
+
+/**
+ * Итог закончившихся торгов. Показывается, пока игрок его не закроет: лот мог завершиться,
+ * пока игра была свёрнута, и другого случая узнать исход не будет.
+ */
+@Composable
+internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: () -> Unit) {
+    val item = Collectibles.byId(ended.itemId)
+    val won = ended.won
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(if (won) GlassAccent else GlassFill)
+            .then(
+                if (won) Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                else Modifier
+            )
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(item?.emoji.orEmpty(), fontSize = 20.sp, modifier = Modifier.width(28.dp))
+        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+            Text(
+                if (won) "Лот ваш" else "Лот ушёл",
+                color = if (won) Gold else RedAccent,
+                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1
+            )
+            Text(
+                item?.title.orEmpty(), color = TextMain, fontSize = 10.5.sp,
+                lineHeight = 13.sp, maxLines = 2
+            )
+            Text(
+                (if (won) "куплено за " else "ушёл за ") + GameMath.formatMoney(ended.price, cur),
+                color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1
+            )
+        }
+        Box(
+            Modifier.clip(RoundedCornerShape(9.dp)).background(GlassBtn)
+                .clickable(onClick = onDismiss).padding(horizontal = 12.dp, vertical = 7.dp)
+        ) {
+            Text("ясно", color = TextMain, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
         }
     }
 }
