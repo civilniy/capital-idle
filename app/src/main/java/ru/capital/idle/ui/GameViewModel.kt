@@ -30,6 +30,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     val announceQueue: StateFlow<List<Onboarding.Announce>> = _announceQueue.asStateFlow()
     fun dismissAnnounce() { _announceQueue.update { it.drop(1) } }
 
+    /** Чем закончились последние торги, в которых игрок участвовал (или null). */
+    private val _auctionResult = MutableStateFlow<Auctions.Ended?>(null)
+    val auctionResult: StateFlow<Auctions.Ended?> = _auctionResult.asStateFlow()
+    fun dismissAuctionResult() { _auctionResult.value = null }
+
     /** Активное новостное событие биржи для UI (или null). */
     /** Переключить капитализацию вклада (доход в тело vs на карту). */
     /** Награда за просмотр рекламы: +1 час удвоения, запас обрезается до 4 часов. */
@@ -136,6 +141,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     _offlineGain.value = Triple(gain, missed, elapsedSec)
                     st = st.copy(money = st.money + gain, totalEarned = st.totalEarned + gain)
                 }
+                // торги шли и без вас: зал перебивал по своим правилам, лот мог закрыться
+                val adv = Auctions.skipOffline(st, hoursAway)
+                adv.ended?.let { e -> _auctionResult.value = e }
+                st = adv.state
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st
@@ -379,7 +388,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 },
                 announced = announced,
                 tutorialStep = tut
-            )
+            ).let { next ->
+                // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
+                val adv = Auctions.advance(next, gameH)
+                adv.ended?.let { e -> _auctionResult.value = e }
+                adv.state
+            }
         }
     }
 
@@ -727,7 +741,14 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Коллекция: купить предмет по текущей цене. */
     fun buyCollectible(id: String) {
-        _state.update { st -> Collectibles.buy(st, id) ?: st }
+        // уникальные лоты в каталоге не продаются — только с торгов
+        _state.update { st -> if (Auctions.inCatalog(id)) Collectibles.buy(st, id) ?: st else st }
+        persistSoon()
+    }
+
+    /** Торги: поставить указанную сумму. Деньги блокируются сразу и вернутся при перебиве. */
+    fun placeBid(amount: Double) {
+        _state.update { st -> Auctions.bid(st, amount) ?: st }
         persistSoon()
     }
 
@@ -749,6 +770,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 startDateMillis = System.currentTimeMillis(),
                 gameHours = 8.0,
                 lastSeenMillis = System.currentTimeMillis(),
+                // посев торгов от момента старта: сценарий лотов у каждой партии свой
+                auctionSeed = Auctions.nextSeed(System.currentTimeMillis().mod(1L shl 32)),
                 chronicle = listOf(Chronicle.entry(1, "start"))
             )
         }

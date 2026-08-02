@@ -56,6 +56,9 @@ object SaveFile {
         o.put("ownedCar", e.ownedCar)
         o.put("ownedTech", e.ownedTech)
         o.put("collectiblesRaw", e.collectiblesRaw)
+        o.put("auctionRaw", e.auctionRaw)
+        o.put("auctionNextGameH", e.auctionNextGameH)
+        o.put("auctionSeed", e.auctionSeed)
         o.put("lastTitleIdx", e.lastTitleIdx)
         o.put("experiencesDoneCsv", e.experiencesDoneCsv)
         o.put("debt", e.debt)
@@ -135,6 +138,9 @@ object SaveFile {
         ownedCar = o.optInt("ownedCar", d.ownedCar),
         ownedTech = o.optInt("ownedTech", d.ownedTech),
         collectiblesRaw = o.optString("collectiblesRaw", d.collectiblesRaw),
+        auctionRaw = o.optString("auctionRaw", d.auctionRaw),
+        auctionNextGameH = o.optDouble("auctionNextGameH", d.auctionNextGameH),
+        auctionSeed = o.optLong("auctionSeed", d.auctionSeed),
         lastTitleIdx = o.optInt("lastTitleIdx", d.lastTitleIdx),
         experiencesDoneCsv = o.optString("experiencesDoneCsv", d.experiencesDoneCsv),
         debt = o.optDouble("debt", d.debt),

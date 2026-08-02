@@ -7,6 +7,7 @@ import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Enterprise
 import ru.capital.idle.core.game.Exchange
 import ru.capital.idle.core.game.Investments
+import ru.capital.idle.core.game.Auction
 import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.Lifestyle
 
@@ -57,6 +58,10 @@ data class GameEntity(
     val ownedTech: Int,
     /** Коллекция в формате "id:цена,id:цена". */
     val collectiblesRaw: String,
+    /** Активные торги одной строкой через «|»; пусто — торгов нет. */
+    val auctionRaw: String,
+    val auctionNextGameH: Double,
+    val auctionSeed: Long,
     val lastTitleIdx: Int,
     val experiencesDoneCsv: String,
     val debt: Double,
@@ -149,6 +154,49 @@ private fun String.toCollectibles(): Map<String, Double> {
 }
 
 /**
+ * Активные торги одной строкой: поля через «|» в фиксированном порядке.
+ * Имя соперника хранится индексом, поэтому строка целиком числовая, кроме id предмета —
+ * разделитель в ней встретиться не может.
+ */
+private fun Auction?.aucRaw(): String {
+    val a = this ?: return ""
+    return listOf(
+        a.itemId, a.tierOrdinal, a.startGameH, a.endsGameH, a.bid, a.bids, a.playerBids,
+        if (a.playerLeads) 1 else 0, a.playerEscrow, a.rivalNameIdx, a.rivalLimit,
+        a.rivalStepFrac, if (a.rivalReplies) 1 else 0, a.rivalReplyAtGameH
+    ).joinToString("|")
+}
+
+private fun String.toAuction(): Auction? {
+    if (isBlank()) return null
+    val f = split("|")
+    if (f.size < 14) return null
+    val id = f[0]
+    // предмета может уже не быть в каталоге — тогда лот бессмысленен
+    if (Collectibles.byId(id) == null) return null
+    return try {
+        Auction(
+            itemId = id,
+            tierOrdinal = f[1].toInt(),
+            startGameH = f[2].toDouble(),
+            endsGameH = f[3].toDouble(),
+            bid = f[4].toDouble(),
+            bids = f[5].toInt(),
+            playerBids = f[6].toInt(),
+            playerLeads = f[7] == "1",
+            playerEscrow = f[8].toDouble(),
+            rivalNameIdx = f[9].toInt(),
+            rivalLimit = f[10].toDouble(),
+            rivalStepFrac = f[11].toDouble(),
+            rivalReplies = f[12] == "1",
+            rivalReplyAtGameH = f[13].toDouble()
+        )
+    } catch (t: Throwable) {
+        null
+    }
+}
+
+/**
  * Множество купленных предметов. Пустая строка = сейв старого формата, где
  * хранился только индекс уровня: восстанавливаем лестницу {0..legacyMaxIdx}.
  * Результат чистится по каталогу категории, чтобы мусорный индекс из
@@ -186,6 +234,9 @@ fun GameState.toEntity() = GameEntity(
     ownedTechsCsv = ownedTechs.iSetCsv(),
     ownedHome = ownedHome, ownedCar = ownedCar, ownedTech = ownedTech,
     collectiblesRaw = collectibles.collCsv(),
+    auctionRaw = auction.aucRaw(),
+    auctionNextGameH = auctionNextGameH,
+    auctionSeed = auctionSeed,
     lastTitleIdx = lastTitleIdx,
     experiencesDoneCsv = experiencesDone.sCsv(), debt = debt, activatedCardTier = activatedCardTier,
     chronicleRaw = chronicle.recCsv(), museumRaw = museum.recCsv(),
@@ -230,6 +281,9 @@ fun GameEntity.toState() = GameState(
     ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
     ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
     collectibles = collectiblesRaw.toCollectibles(),
+    auction = auctionRaw.toAuction(),
+    auctionNextGameH = auctionNextGameH,
+    auctionSeed = auctionSeed,
     lastTitleIdx = lastTitleIdx,
     experiencesDone = experiencesDoneCsv.toSet(), debt = debt, activatedCardTier = activatedCardTier,
     chronicle = chronicleRaw.toRecList(), museum = museumRaw.toRecList(),
