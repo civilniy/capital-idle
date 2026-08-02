@@ -76,10 +76,12 @@ internal fun CollectionSetsBlock(rows: List<SetProgress>) {
 
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically) {
-        Text("НАБОРЫ · бонус за полный сбор", color = Mute, fontSize = 11.sp,
+        // подпись нарочно короткая: с разрядкой 2sp длинный заголовок при системном
+        // шрифте 1.5 не помещается в строку рядом со счётчиком
+        Text("НАБОРЫ", color = Mute, fontSize = 11.sp,
             letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-        Text("$doneCount / ${rows.size}", color = if (doneCount > 0) Gold else Mute,
-            fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+        Text("собрано $doneCount / ${rows.size}", color = if (doneCount > 0) Gold else Mute,
+            fontFamily = FontFamily.Monospace, fontSize = 11.sp, maxLines = 1)
     }
     Spacer(Modifier.height(6.dp))
 
@@ -111,25 +113,26 @@ private fun SetCard(row: SetProgress) {
     ) {
         Text(row.set.emoji, fontSize = 20.sp, modifier = Modifier.width(30.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (done) "✓ ${row.set.title}" else row.set.title,
-                    color = if (done) Gold else TextMain,
-                    fontWeight = FontWeight.Bold, fontSize = 13.sp,
-                    maxLines = 1, modifier = Modifier.weight(1f, fill = false)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("${row.owned} / $total", color = if (done) Gold else Mute,
-                    fontFamily = FontFamily.Monospace, fontSize = 11.sp, maxLines = 1)
-            }
+            // счётчик стоит не рядом с названием, а в строке полоски: при крупном системном
+            // шрифте «✓ Имена в истории» и «5 / 5» в одной строке уже не помещаются
+            Text(
+                if (done) "✓ ${row.set.title}" else row.set.title,
+                color = if (done) Gold else TextMain,
+                fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1
+            )
             Text(
                 if (done) "набор собран" else row.set.info,
                 color = if (done) GoldDim else Mute.copy(alpha = 0.75f),
                 fontSize = 9.5.sp, lineHeight = 12.sp, maxLines = 2
             )
             Spacer(Modifier.height(6.dp))
-            SetProgressBar(owned = row.owned, total = total, done = done)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                SetProgressBar(owned = row.owned, total = total, done = done,
+                    modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(6.dp))
+                Text("${row.owned} / $total", color = if (done) Gold else Mute,
+                    fontFamily = FontFamily.Monospace, fontSize = 10.sp, maxLines = 1)
+            }
         }
         Spacer(Modifier.width(4.dp))
         Column(
@@ -148,9 +151,9 @@ private fun SetCard(row: SetProgress) {
 
 /** Полоска прогресса набора: делится на клетки по числу предметов, чтобы «3 из 5» читалось и без цифр. */
 @Composable
-private fun SetProgressBar(owned: Int, total: Int, done: Boolean) {
+private fun SetProgressBar(owned: Int, total: Int, done: Boolean, modifier: Modifier = Modifier) {
     if (total <= 0) return
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         repeat(total) { i ->
             Box(
                 Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
