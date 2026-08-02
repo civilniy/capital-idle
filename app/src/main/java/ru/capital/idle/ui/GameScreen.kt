@@ -793,7 +793,7 @@ private fun EnterpriseNameDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 androidx.compose.foundation.text.BasicTextField(
                     value = text,
-                    onValueChange = { if (it.length <= 22) text = it },
+                    onValueChange = { if (it.length <= EnterpriseNames.MAX_NAME_LEN) text = it },
                     singleLine = true,
                     textStyle = androidx.compose.ui.text.TextStyle(
                         color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp),
