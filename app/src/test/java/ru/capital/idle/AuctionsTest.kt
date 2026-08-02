@@ -364,6 +364,30 @@ class AuctionsTest {
         assertTrue(after.state.auctionNextGameH > 100.0)
     }
 
+    // ===================== перерождение =====================
+
+    @Test
+    fun `торги прошлой жизни не должны переезжать через престиж`() {
+        // GameViewModel.prestige() обнуляет auction и auctionNextGameH; проверяем, что
+        // без этого залог и выигранный предмет действительно перетекли бы в новую жизнь
+        var old = state(money = 1e6, auction = lot(limit = 2_000.0))
+        old = Auctions.bid(old, 1_900.0)!!
+
+        // так выглядит перерождение БЕЗ обнуления торгов: деньги, коллекция и часы сброшены
+        val leaked = old.copy(
+            money = 0.0, collectibles = emptyMap(), gameHours = 8.0, totalEarned = 0.0
+        )
+        val after = Auctions.advance(leaked, 200.0).state
+        assertTrue("иначе предмет прошлой жизни достался бы новой",
+            Collectibles.owns(after, "canvas"))
+
+        // а с обнулением (как в prestige) переезжать нечему
+        val clean = leaked.copy(auction = null, auctionNextGameH = 0.0)
+        val cleanAfter = Auctions.advance(clean, 8.0).state
+        assertFalse(Collectibles.owns(cleanAfter, "canvas"))
+        assertEquals(0.0, cleanAfter.money, EPS)
+    }
+
     // ===================== оффлайн =====================
 
     @Test

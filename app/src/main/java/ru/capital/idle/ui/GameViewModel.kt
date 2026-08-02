@@ -652,6 +652,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 tutorialStep = Onboarding.DONE,
                 ownedHomes = setOf(0), ownedCars = setOf(0), ownedTechs = setOf(0),
                 collectibles = emptyMap(),
+                // торги прошлой жизни закрываются вместе с ней: иначе залог вернулся бы
+                // уже на новый баланс, а выигранный предмет пережил бы перерождение
+                auction = null, auctionNextGameH = 0.0,
                 lastTitleIdx = 0,
                 museum = (listOf(memorial) + st.museum).take(20),
                 chronicle = listOf(Chronicle.entry(1, "start")),
@@ -659,6 +662,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 // остаются: eduDone, netOwned, reputation, престиж-апгрейды, имя, валюта, вехи
             )
         }
+        _auctionResult.value = null   // итог чужой жизни показывать незачем
         persist()
     }
 

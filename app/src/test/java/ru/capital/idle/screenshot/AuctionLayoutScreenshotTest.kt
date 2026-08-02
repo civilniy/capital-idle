@@ -151,6 +151,38 @@ class AuctionLayoutScreenshotTest {
         )
     }
 
+    // ===================== итог закончившихся торгов =====================
+
+    private fun resultShot(name: String, won: Boolean, fontScale: Float = 1f) {
+        val capped = Collectibles.priceAt(temple, Collectibles.capReachedOnDay(temple))
+        compose.captureOnBackground(name, fontScale = fontScale) {
+            AuctionResultCard(
+                ended = Auctions.Ended(temple.id, capped, won = won),
+                cur = Currency.RUB, onDismiss = {}
+            )
+        }
+    }
+
+    @Test
+    fun `итог торгов — выигран`() {
+        resultShot("auction_result_won", won = true)
+    }
+
+    @Test
+    fun `итог торгов — выигран, крупный шрифт`() {
+        resultShot("auction_result_won_large_font", won = true, fontScale = Screenshots.LARGE_FONT)
+    }
+
+    @Test
+    fun `итог торгов — проигран`() {
+        resultShot("auction_result_lost", won = false)
+    }
+
+    @Test
+    fun `итог торгов — проигран, крупный шрифт`() {
+        resultShot("auction_result_lost_large_font", won = false, fontScale = Screenshots.LARGE_FONT)
+    }
+
     // ===================== закрытые торги недоступны =====================
 
     @Test
