@@ -10,6 +10,7 @@ import ru.capital.idle.GameTestFixtures.EPS
 import ru.capital.idle.core.game.Auction
 import ru.capital.idle.core.game.AuctionTier
 import ru.capital.idle.core.game.Auctions
+import ru.capital.idle.core.game.Chronicle
 import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.core.game.Lifestyle
@@ -362,6 +363,32 @@ class AuctionsTest {
         assertNull(after.state.auction)
         assertNull(Auctions.start(everything, 100.0))
         assertTrue(after.state.auctionNextGameH > 100.0)
+    }
+
+    // ===================== след в хронике =====================
+
+    @Test
+    fun `исход торгов ложится в хронику и переживает перезапуск`() {
+        // всплывающая карточка живёт в ViewModel и умирает вместе с процессом,
+        // поэтому исход обязан оставаться и в хронике — она сохраняется в сейв
+        val won = Auctions.Ended("temple", 52_000_000_000.0, won = true)
+        assertEquals("auc+", won.chronicleCode)
+        assertEquals("temple:5.2E10", won.chronicleParam)
+
+        val lost = Auctions.Ended("crown", 6_100_000_000.0, won = false)
+        assertEquals("auc-", lost.chronicleCode)
+
+        val (day, text) = Chronicle.render(Chronicle.entry(9, won.chronicleCode, won.chronicleParam))!!
+        assertEquals(9, day)
+        assertTrue(text, text.startsWith("Торги выиграны:"))
+        assertTrue(text, text.contains("Античный храм"))
+
+        val (_, lostText) = Chronicle.render(Chronicle.entry(9, lost.chronicleCode, lost.chronicleParam))!!
+        assertTrue(lostText, lostText.startsWith("Торги проиграны:"))
+        assertTrue(lostText, lostText.contains("Историческая корона"))
+
+        // мусор в параметре запись не роняет
+        assertNotNull(Chronicle.render(Chronicle.entry(1, "auc+", "исчез:непонятно")))
     }
 
     // ===================== перерождение =====================

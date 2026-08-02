@@ -143,8 +143,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 // торги шли и без вас: зал перебивал по своим правилам, лот мог закрыться
                 val adv = Auctions.skipOffline(st, hoursAway)
-                adv.ended?.let { e -> _auctionResult.value = e }
                 st = adv.state
+                adv.ended?.let { e ->
+                    _auctionResult.value = e
+                    // запись в хронику переживает и убийство процесса: карточка покажется
+                    // не всегда, а исход лота должен остаться известен в любом случае
+                    st = st.withChronicle(e.chronicleCode, e.chronicleParam)
+                }
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st
@@ -391,8 +396,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             ).let { next ->
                 // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
                 val adv = Auctions.advance(next, gameH)
-                adv.ended?.let { e -> _auctionResult.value = e }
-                adv.state
+                val e = adv.ended
+                if (e == null) adv.state else {
+                    _auctionResult.value = e
+                    adv.state.withChronicle(e.chronicleCode, e.chronicleParam)
+                }
             }
         }
     }

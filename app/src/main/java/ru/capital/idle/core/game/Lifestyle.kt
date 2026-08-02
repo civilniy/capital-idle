@@ -198,6 +198,16 @@ object Chronicle {
             "title" -> "Новый статус: ${Lifestyle.titles.getOrNull(param.toIntOrNull() ?: 0)?.name ?: param}"
             "net" -> "Окружение: ${Network.all.firstOrNull { it.id == param }?.title ?: param}"
             "ms" -> "Веха: «${Milestones.all.getOrNull(param.toIntOrNull() ?: 0)?.name ?: param}»"
+            // торги: параметр — "id:цена". Запись остаётся в хронике навсегда, поэтому исход
+            // лота можно узнать и после перезапуска, когда всплывающая карточка уже не покажется
+            "auc+", "auc-" -> {
+                val parts = param.split(":")
+                val item = Collectibles.byId(parts.getOrNull(0) ?: "")
+                val price = parts.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                val name = item?.let { "${it.emoji} ${it.title}" } ?: param
+                if (p[1] == "auc+") "Торги выиграны: $name за ${GameMath.format(price)}"
+                else "Торги проиграны: $name ушёл за ${GameMath.format(price)}"
+            }
             else -> return null
         }
         return day to text

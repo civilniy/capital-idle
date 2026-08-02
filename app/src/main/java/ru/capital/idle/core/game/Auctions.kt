@@ -191,7 +191,11 @@ object Auctions {
     // ===================== ход времени =====================
 
     /** Чем закончились торги. Нужен интерфейсу для сообщения игроку. */
-    data class Ended(val itemId: String, val price: Double, val won: Boolean)
+    data class Ended(val itemId: String, val price: Double, val won: Boolean) {
+        /** Код и параметр записи в хронику: исход лота должен пережить перезапуск. */
+        val chronicleCode: String get() = if (won) "auc+" else "auc-"
+        val chronicleParam: String get() = "$itemId:$price"
+    }
 
     data class Advance(val state: GameState, val ended: Ended? = null)
 
