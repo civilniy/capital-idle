@@ -874,12 +874,12 @@ private fun EnterpriseCard(
         Spacer(Modifier.height(8.dp))
         if (e.isManual) {
             Text(
-                "\u23F1 занимает ${BusinessConfig.HOURS_PER_MANUAL_ENTERPRISE} ваших часа \u00B7 выручка ${GameMath.formatAmount(income, cur)}/день",
+                "\u23F1 занимает ${BusinessConfig.HOURS_PER_MANUAL_ENTERPRISE} ваших часа \u00B7 выручка ${GameMath.formatAmount(income, cur)} ${cur.symbol}/день",
                 color = Gold, fontFamily = FontFamily.Monospace, fontSize = 10.sp
             )
         } else {
             Text(
-                "\uD83D\uDCBC ${e.manager!!.title} \u00B7 выручка ${GameMath.formatAmount(income, cur)}/день",
+                "\uD83D\uDCBC ${e.manager!!.title} \u00B7 выручка ${GameMath.formatAmount(income, cur)} ${cur.symbol}/день",
                 color = Color(0xFF6A9BD8), fontFamily = FontFamily.Monospace, fontSize = 10.sp
             )
             Text(
