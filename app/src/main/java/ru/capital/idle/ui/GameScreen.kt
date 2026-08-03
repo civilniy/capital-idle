@@ -746,10 +746,14 @@ private const val CARD_NUMBER = "\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u20
 
 /**
  * С какого масштаба системного шрифта дата переезжает на свою строку.
- * Чуть выше единицы: обычный шрифт (и лёгкое увеличение, которое ещё помещается)
- * должен рисоваться прежней однострочной шапкой.
+ *
+ * Ровно единица, без запаса: при обычном шрифте датой остаётся около 10dp свободной ширины,
+ * так что уже ближайший системный шаг (1.15) её обрезает. Порог «строго больше 1» держит
+ * обычный шрифт в прежней однострочной шапке и уводит дату вниз при любом увеличении.
+ * Решать замером было бы точнее, но ширину валютной плашки и слитков пришлось бы
+ * пересобирать из отступов вручную, а цена ошибки там — обрезанная дата.
  */
-private const val HEADER_COMPACT_FONT_SCALE = 1.15f
+private const val HEADER_COMPACT_FONT_SCALE = 1f
 
 /** Кегль подписи под числом в сводке и наименьший её размер на экране. */
 private const val SUMMARY_LABEL_SP = 7.5f
@@ -1240,8 +1244,17 @@ internal fun CreditCard(
                     fontSize = 12.sp, letterSpacing = 2.sp)
                 val tierStyle = TextStyle(fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold)
+                val nameStyle = TextStyle(fontSize = 15.sp, letterSpacing = 1.sp)
                 val gapPx = with(LocalDensity.current) { 10.dp.toPx() }
-                val sameLine = measurer.measure(CARD_NUMBER, numberStyle).size.width +
+                // левая колонка шире номера, если имя игрока длиннее: в диалоге до 18 знаков,
+                // и по такому имени она и меряется. Считать только по номеру значило бы
+                // оставить подпись тира в строке, где ей уже не хватает места
+                val leftWidth = maxOf(
+                    measurer.measure(CARD_NUMBER, numberStyle).size.width,
+                    if (playerName.isBlank()) 0
+                    else measurer.measure(playerName.uppercase(java.util.Locale.ROOT), nameStyle).size.width
+                )
+                val sameLine = leftWidth +
                     measurer.measure(tier.title, tierStyle).size.width + gapPx <= constraints.maxWidth
 
                 Column(Modifier.fillMaxWidth()) {
