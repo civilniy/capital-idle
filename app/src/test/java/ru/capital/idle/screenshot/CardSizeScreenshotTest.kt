@@ -16,6 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -41,8 +43,11 @@ import ru.capital.idle.ui.theme.Bg
  * Карта на главном экране: постоянные пропорции и высота, не зависящая от содержимого.
  *
  * Раньше высоту карты определял текст — длинный баланс делал её выше короткого, и всё под
- * картой прыгало. Теперь высота считается от ширины по константе проекта (размер карты
- * в макете, 365 × 218 dp), а содержимое подстраивается под карту.
+ * картой прыгало. Теперь высота считается от ширины по константе проекта (опорный размер
+ * карты, 365 × 218 dp), а содержимое подстраивается под карту.
+ *
+ * Отсюда же и проверки на узких экранах: раз высота считается от ширины, на экране уже
+ * опорного карта ниже опорной — и содержимое обязано уменьшаться вместе с ней.
  *
  * Правило теста Compose: `setContent` вызывается один раз, поэтому варианты гоняются
  * через состояние, а не повторной установкой содержимого.
@@ -62,6 +67,16 @@ class CardSizeScreenshotTest {
         "mid" to 25_963_353.0
     )
 
+    /**
+     * Имена: обычное, длинное с дефисом и предельное. Предел — 18 знаков,
+     * `GameViewModel` режет ввод именно по нему (`name.trim().take(18)`).
+     */
+    private val names = listOf(
+        "обычное" to "Владимир",
+        "длинное" to "Мстислав-Радомир",
+        "предельное" to "Владислав-Мстислав"
+    )
+
     private val money = mutableDoubleStateOf(999_999_999.0)
     private val reward = mutableDoubleStateOf(0.0)
     private val popTick = mutableIntStateOf(0)
@@ -69,6 +84,7 @@ class CardSizeScreenshotTest {
     private val pressure = mutableDoubleStateOf(0.0)
     private val reserved = mutableStateOf(true)
     private val withPressureSlot = mutableStateOf(false)
+    private val playerName = mutableStateOf("Владимир")
 
     @Composable
     private fun Screen() {
@@ -81,7 +97,7 @@ class CardSizeScreenshotTest {
                 Column(Modifier.fillMaxWidth()) {
                     CardFace(
                         money = money.doubleValue, incomePerDay = 413_000_000.0,
-                        currency = Currency.USD, playerName = "Владимир",
+                        currency = Currency.USD, playerName = playerName.value,
                         tier = CardTier.entries.last(),
                         popAccum = reward.doubleValue, popTick = popTick.intValue
                     )
@@ -121,6 +137,66 @@ class CardSizeScreenshotTest {
             roborazziOptions = Screenshots.OPTIONS
         )
     }
+
+    // ===================== геометрия карты в корневых координатах =====================
+
+    /** Верх карты: снимок добавляет свой вертикальный отступ, карта начинается под ним. */
+    private fun cardTopPx() = with(compose.density) { 10.dp.toPx() }
+
+    /**
+     * Низ карты берётся из настоящего размера корня, а не из [CARD_REFERENCE_HEIGHT_DP]:
+     * высота считается от ширины экрана, и на узком экране карта ниже опорной.
+     */
+    private fun cardBottomPx() = rootHeight() - with(compose.density) { 10.dp.toPx() }
+
+    /**
+     * Верх опорного прямоугольника содержимого в корневых координатах.
+     *
+     * Содержимое карты размечается в опорном размере и лишь потом масштабируется под
+     * фактический — `Modifier.scale` меняет рисование, но не разметку. Поэтому координаты
+     * узлов приходят в опорной системе, и сверять их надо с опорным прямоугольником:
+     * он центрирован в карте, а масштаб переносит его на карту один в один.
+     */
+    private fun refTopPx(): Float {
+        val top = cardTopPx()
+        val refH = with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+        return top + ((cardBottomPx() - top) - refH) / 2f
+    }
+
+    private fun refBottomPx() =
+        refTopPx() + with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+
+    /** Внутреннее поле карты — под ним содержимому уже нельзя. */
+    private fun contentBottomLimitPx() = refBottomPx() - with(compose.density) { 16.dp.toPx() }
+
+    /** Верх фирменного знака: 49×32dp, прижат к низу карты с отступом 16dp. */
+    private fun logoTopPx() = refBottomPx() - with(compose.density) { (16 + 32).dp.toPx() }
+
+    private fun px2dp(v: Float) = v / compose.density.density
+
+    /**
+     * Верх и высота узла с таким текстом, в пикселях от верха корня.
+     *
+     * Берётся `positionInRoot` + `size`, а не `boundsInRoot`: второй обрезан родителями,
+     * и у вылезшего за карту текста он показал бы край карты вместо настоящего края текста.
+     */
+    private fun textBox(text: String): Pair<Float, Int> {
+        compose.waitForIdle()
+        val node = compose.onNodeWithText(text).fetchSemanticsNode()
+        return node.positionInRoot.y to node.size.height
+    }
+
+    /**
+     * Ниже этой высоты строка считается несуществующей.
+     *
+     * `Column` при нехватке места не выталкивает нижние элементы за край, а меряет их
+     * с нулевым запасом по высоте — строка остаётся в дереве, но рисуется в ноль пикселей.
+     * Поэтому проверять «низ внутри карты» недостаточно: сжатая в ноль строка эту проверку
+     * проходит, а на экране её нет. Порог взят с запасом вниз: самая мелкая строка карты —
+     * подпись тира в 11sp, при увеличенном системном шрифте она сжимается `textScale`
+     * примерно до 11dp экранной высоты, так что 8dp ниже любой нормальной строки.
+     */
+    private val MIN_LINE_DP = 8f
 
     // ===================== пропорции =====================
 
@@ -200,6 +276,143 @@ class CardSizeScreenshotTest {
         assertEquals("высота задана шириной, а ширина от шрифта не зависит", normal, large)
     }
 
+    // ===================== содержимое помещается в карту =====================
+
+    /**
+     * Отдельная проверка на саму строку с именем владельца: она есть на карте и нарисована.
+     *
+     * Её исчезновение не поймал ни один тест — снимки карты были сняты только на опорной
+     * ширине экрана, а размер и пропорции карты сходились и без этой строки.
+     *
+     * Проверяется на всех трёх ширинах экрана, потому что именно ширина и определяет,
+     * хватит ли карте высоты: строка имени в потоке последняя и обрезается первой.
+     */
+    @Test
+    fun `строка с именем владельца есть на карте`() {
+        compose.setContent { Screen() }
+        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
+            fontScale.floatValue = fs
+            names.forEach { (kind, name) ->
+                playerName.value = name
+                val (_, h) = textBox(name.uppercase(java.util.Locale.ROOT))
+                assertTrue(
+                    "имя владельца ($kind, шрифт $fs) нарисовано высотой ${px2dp(h.toFloat())}dp",
+                    px2dp(h.toFloat()) >= MIN_LINE_DP
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `строка с именем владельца есть на карте и на узком экране`() {
+        compose.setContent { Screen() }
+        assertScreenWidth(360f)
+        playerName.value = names.last().second
+        val (_, h) = textBox(names.last().second.uppercase(java.util.Locale.ROOT))
+        assertTrue("имя владельца нарисовано высотой ${px2dp(h.toFloat())}dp",
+            px2dp(h.toFloat()) >= MIN_LINE_DP)
+    }
+
+    /** Пустое имя строкой на карте не показывается — это не потеря, а отсутствие данных. */
+    @Test
+    fun `без имени строки нет`() {
+        compose.setContent { Screen() }
+        playerName.value = ""
+        compose.waitForIdle()
+        assertTrue(
+            "пустое имя не должно рисоваться строкой",
+            compose.onAllNodesWithText("ВЛАДИМИР").fetchSemanticsNodes().isEmpty()
+        )
+    }
+
+    /**
+     * Прогнать все состояния карты и собрать те, где содержимому не хватило места.
+     * Значение — что именно случилось и сколько dp не хватило.
+     */
+    private fun overflowReport(): Map<String, String> {
+        val bad = LinkedHashMap<String, String>()
+        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
+            fontScale.floatValue = fs
+            names.forEach { (nameKind, name) ->
+                playerName.value = name
+                balances.forEach { (balKind, v) ->
+                    money.doubleValue = v
+                    val key = "$nameKind/$balKind/шрифт=$fs"
+
+                    val (nameTop, nameH) = textBox(name.uppercase(java.util.Locale.ROOT))
+                    if (px2dp(nameH.toFloat()) < MIN_LINE_DP) {
+                        bad["имя сжато: $key"] = "строка %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(nameH.toFloat())
+                        )
+                    } else if (nameTop + nameH > contentBottomLimitPx()) {
+                        bad["имя за краем: $key"] = "опора %.0fdp, нужно %.1fdp".format(
+                            java.util.Locale.ROOT, CARD_REFERENCE_HEIGHT_DP,
+                            px2dp(nameTop + nameH - refTopPx()) + 16f
+                        )
+                    }
+
+                    val (tierTop, tierH) = textBox(CardTier.entries.last().title)
+                    if (px2dp(tierH.toFloat()) < MIN_LINE_DP) {
+                        bad["тир сжат: $key"] = "строка %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierH.toFloat())
+                        )
+                    } else if (tierTop + tierH > logoTopPx()) {
+                        bad["тир на знаке: $key"] = "заходит на %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierTop + tierH - logoTopPx())
+                        )
+                    }
+                }
+            }
+        }
+        return bad
+    }
+
+    /**
+     * Строка с именем владельца — последняя в потоке карты, а подпись тира стоит над
+     * фирменным знаком. Оба пропадают первыми, если содержимое перестало помещаться:
+     * карта обрезает всё, что вышло за её край. Ни один тест этого не ловил.
+     */
+    @Test
+    fun `содержимое помещается в карту на опорном экране`() {
+        compose.setContent { Screen() }
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    /**
+     * Ширина экрана в dp меняется и от модели телефона, и от системной настройки размера
+     * экрана. Высота карты считается от ширины, поэтому на узком экране карта ниже опорной —
+     * и содержимое обязано уезжать вместе с ней, а не обрезаться её краем.
+     */
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `содержимое помещается в карту на узком экране`() {
+        compose.setContent { Screen() }
+        assertScreenWidth(360f)
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w320dp-h640dp-xxhdpi")
+    fun `содержимое помещается в карту на самом узком экране`() {
+        compose.setContent { Screen() }
+        assertScreenWidth(320f)
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    /**
+     * Без этой проверки узкие тесты бессмысленны: если квалификатор ширины не применился,
+     * они молча гоняют ту же опорную раскладку и всё «проходит».
+     */
+    private fun assertScreenWidth(expectedDp: Float) {
+        compose.waitForIdle()
+        val w = px2dp(compose.onRoot().fetchSemanticsNode().size.width.toFloat())
+        assertEquals("ширина экрана в тесте", expectedDp, w, 1f)
+    }
+
     // ===================== плашка давления не двигает разметку =====================
 
     @Test
@@ -266,6 +479,36 @@ class CardSizeScreenshotTest {
                 )
             }
         }
+    }
+
+    /** Карта на узком экране: высота считается от ширины, а содержимое задано в dp. */
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `карта на узком экране`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_narrow_360")
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w320dp-h640dp-xxhdpi")
+    fun `карта на самом узком экране`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_narrow_320")
+    }
+
+    /** Предельное имя в 18 знаков: левая колонка шире всего, подписи тира теснее всего. */
+    @Test
+    fun `карта с предельно длинным именем владельца`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_longest_name")
+        fontScale.floatValue = Screenshots.LARGE_FONT
+        capture("card_longest_name_large_font")
     }
 
     @Test
