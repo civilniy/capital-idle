@@ -744,9 +744,12 @@ private val TIER_TITLE_LIFT = (-6.33).dp
 /** Декоративный номер на карте. Строка постоянная, поэтому её ширину можно измерить заранее. */
 private const val CARD_NUMBER = "\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 4040"
 
-/** Кегль даты в шапке при обычном шрифте и наименьший размер, до которого её можно ужать. */
-private const val HEADER_DATE_SP = 12f
-private const val HEADER_DATE_MIN_DP = 8f
+/**
+ * С какого масштаба системного шрифта дата переезжает на свою строку.
+ * Чуть выше единицы: обычный шрифт (и лёгкое увеличение, которое ещё помещается)
+ * должен рисоваться прежней однострочной шапкой.
+ */
+private const val HEADER_COMPACT_FONT_SCALE = 1.15f
 
 /** Кегль подписи под числом в сводке и наименьший её размер на экране. */
 private const val SUMMARY_LABEL_SP = 7.5f
@@ -800,20 +803,15 @@ internal fun CapitalHeader(
     onCurrency: () -> Unit = {},
     onCurrencyLong: () -> Unit = {}
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
-            modifier = Modifier.pointerInput(Unit) {
-                detectTapGestures(onLongPress = { onTitleLongPress() })
-            })
-        // дата ужимается под оставшуюся ширину: при крупном системном шрифте она рвалась
-        // на три строки посреди числа — «28.02» / «.36 ·» / «19:00»
-        BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            val style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = HEADER_DATE_SP.sp)
-            val sp = fitFontSp(dateText, style, constraints.maxWidth, HEADER_DATE_SP, HEADER_DATE_MIN_DP)
-            Text(dateText, color = Mute,
-                fontFamily = FontFamily.Monospace, fontSize = sp.sp,
-                maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
-        }
+    // При заметно увеличенном системном шрифте заголовок, валюта и слитки съедают почти всю
+    // ширину: даты остаётся полоска в считаные десятки dp, и она рвалась на три строки посреди
+    // числа — «28.02» / «.36 ·» / «19:00». Тогда дата уходит на свою строку, где помещается
+    // целиком. Порог сравнивает масштаб шрифта, а не ширину: при обычном шрифте ветка та же,
+    // что и была, вплоть до пикселя.
+    val dateOnOwnLine = LocalDensity.current.fontScale > HEADER_COMPACT_FONT_SCALE
+
+    @Composable
+    fun chips() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             CurrencyChip(code = currencyCode, onClick = onCurrency, onLongPress = onCurrencyLong)
             Spacer(Modifier.width(8.dp))
@@ -829,6 +827,40 @@ internal fun CapitalHeader(
                 Text(bullionText, color = Gold,
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
+        }
+    }
+
+    @Composable
+    fun title() {
+        Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
+            modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures(onLongPress = { onTitleLongPress() })
+            })
+    }
+
+    @Composable
+    fun date(modifier: Modifier) {
+        Text(dateText, color = Mute,
+            fontFamily = FontFamily.Monospace, fontSize = 12.sp,
+            maxLines = 1, softWrap = false,
+            modifier = modifier, textAlign = TextAlign.Center)
+    }
+
+    if (dateOnOwnLine) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                title()
+                Spacer(Modifier.weight(1f))
+                chips()
+            }
+            Spacer(Modifier.height(4.dp))
+            date(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            title()
+            date(Modifier.weight(1f))
+            chips()
         }
     }
 }
