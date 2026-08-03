@@ -273,11 +273,14 @@ internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
             ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()).toInt()
         }
         val longest = tabs.maxByOrNull { it.first.length }!!.first
-        // кегль подбирается настоящим замером самой длинной подписи; нижняя граница задана
-        // в экранных единицах, а не в sp — при системном шрифте 1.5 те же sp рисуются
-        // в полтора раза крупнее, и общий для всех масштабов порог обрезал «Имущество»
+        // Кегль подбирается настоящим замером самой длинной подписи — и обязательно жирным
+        // начертанием: выбранная вкладка рисуется ExtraBold и шире остальных, замер обычным
+        // начертанием обрезал именно её. Нижняя граница задана в экранных единицах, а не в sp:
+        // при системном шрифте 1.5 те же sp рисуются в полтора раза крупнее
         val tabFont = fitFontSp(
-            longest, TextStyle(fontSize = TAB_MAX_SP.sp), cellWidthPx, TAB_MAX_SP, TAB_MIN_DP
+            longest,
+            TextStyle(fontSize = TAB_MAX_SP.sp, fontWeight = FontWeight.ExtraBold),
+            cellWidthPx, TAB_MAX_SP, TAB_MIN_DP
         ).sp
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
