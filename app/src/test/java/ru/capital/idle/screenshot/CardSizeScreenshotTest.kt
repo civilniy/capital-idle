@@ -154,16 +154,28 @@ class CardSizeScreenshotTest {
     private fun px2dp(v: Float) = v / compose.density.density
 
     /**
-     * Нижний край узла с таким текстом, в пикселях от верха корня.
+     * Верх и высота узла с таким текстом, в пикселях от верха корня.
      *
      * Берётся `positionInRoot` + `size`, а не `boundsInRoot`: второй обрезан родителями,
      * и у вылезшего за карту текста он показал бы край карты вместо настоящего края текста.
      */
-    private fun textBottomPx(text: String): Float {
+    private fun textBox(text: String): Pair<Float, Int> {
         compose.waitForIdle()
         val node = compose.onNodeWithText(text).fetchSemanticsNode()
-        return node.positionInRoot.y + node.size.height
+        return node.positionInRoot.y to node.size.height
     }
+
+    /**
+     * Ниже этой высоты строка считается несуществующей.
+     *
+     * `Column` при нехватке места не выталкивает нижние элементы за край, а меряет их
+     * с нулевым запасом по высоте — строка остаётся в дереве, но рисуется в ноль пикселей.
+     * Поэтому проверять «низ внутри карты» недостаточно: сжатая в ноль строка эту проверку
+     * проходит, а на экране её нет. Порог взят с запасом вниз: самая мелкая строка карты —
+     * подпись тира в 11sp, при увеличенном системном шрифте она сжимается `textScale`
+     * примерно до 11dp экранной высоты, так что 8dp ниже любой нормальной строки.
+     */
+    private val MIN_LINE_DP = 8f
 
     // ===================== пропорции =====================
 
@@ -263,17 +275,27 @@ class CardSizeScreenshotTest {
                 balances.forEach { (balKind, v) ->
                     money.doubleValue = v
                     val key = "$nameKind/$balKind/шрифт=$fs"
-                    val nameBottom = textBottomPx(name.uppercase(java.util.Locale.ROOT))
                     val cardH = px2dp(cardBottomPx() - cardTopPx())
-                    if (nameBottom > contentBottomLimitPx()) {
-                        bad["имя: $key"] = "карта %.1fdp, нужно %.1fdp".format(
-                            java.util.Locale.ROOT, cardH, px2dp(nameBottom - cardTopPx()) + 16f
+
+                    val (nameTop, nameH) = textBox(name.uppercase(java.util.Locale.ROOT))
+                    if (px2dp(nameH.toFloat()) < MIN_LINE_DP) {
+                        bad["имя сжато: $key"] = "строка %.1fdp при карте %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(nameH.toFloat()), cardH
+                        )
+                    } else if (nameTop + nameH > contentBottomLimitPx()) {
+                        bad["имя за краем: $key"] = "карта %.1fdp, нужно %.1fdp".format(
+                            java.util.Locale.ROOT, cardH, px2dp(nameTop + nameH - cardTopPx()) + 16f
                         )
                     }
-                    val tierBottom = textBottomPx(CardTier.entries.last().title)
-                    if (tierBottom > logoTopPx()) {
-                        bad["тир: $key"] = "заходит на знак на %.1fdp".format(
-                            java.util.Locale.ROOT, px2dp(tierBottom - logoTopPx())
+
+                    val (tierTop, tierH) = textBox(CardTier.entries.last().title)
+                    if (px2dp(tierH.toFloat()) < MIN_LINE_DP) {
+                        bad["тир сжат: $key"] = "строка %.1fdp при карте %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierH.toFloat()), cardH
+                        )
+                    } else if (tierTop + tierH > logoTopPx()) {
+                        bad["тир на знаке: $key"] = "заходит на %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierTop + tierH - logoTopPx())
                         )
                     }
                 }
