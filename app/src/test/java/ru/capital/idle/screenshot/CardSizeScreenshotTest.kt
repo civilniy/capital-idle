@@ -258,13 +258,8 @@ class CardSizeScreenshotTest {
     // ===================== содержимое помещается в карту =====================
 
     /**
-     * Строка с именем владельца — последняя в потоке карты, поэтому она пропадает первой,
-     * если содержимое перестало помещаться: карта обрезает всё, что вылезло за её край.
-     * Ни один тест этого не ловил — имя исчезло молча.
-     */
-    /**
-     * Прогнать все состояния карты и собрать те, где содержимое вышло за её край.
-     * Значение — сколько dp высоты карте не хватило.
+     * Прогнать все состояния карты и собрать те, где содержимому не хватило места.
+     * Значение — что именно случилось и сколько dp не хватило.
      */
     private fun overflowReport(): Map<String, String> {
         val bad = LinkedHashMap<String, String>()
@@ -325,6 +320,7 @@ class CardSizeScreenshotTest {
     @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
     fun `содержимое помещается в карту на узком экране`() {
         compose.setContent { Screen() }
+        assertScreenWidth(360f)
         val bad = overflowReport()
         assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
     }
@@ -333,8 +329,19 @@ class CardSizeScreenshotTest {
     @Config(qualifiers = "ru-rRU-w320dp-h640dp-xxhdpi")
     fun `содержимое помещается в карту на самом узком экране`() {
         compose.setContent { Screen() }
+        assertScreenWidth(320f)
         val bad = overflowReport()
         assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    /**
+     * Без этой проверки узкие тесты бессмысленны: если квалификатор ширины не применился,
+     * они молча гоняют ту же опорную раскладку и всё «проходит».
+     */
+    private fun assertScreenWidth(expectedDp: Float) {
+        compose.waitForIdle()
+        val w = px2dp(compose.onRoot().fetchSemanticsNode().size.width.toFloat())
+        assertEquals("ширина экрана в тесте", expectedDp, w, 1f)
     }
 
     // ===================== плашка давления не двигает разметку =====================
@@ -403,6 +410,25 @@ class CardSizeScreenshotTest {
                 )
             }
         }
+    }
+
+    /** Карта на узком экране: высота считается от ширины, а содержимое задано в dp. */
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `карта на узком экране`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_narrow_360")
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w320dp-h640dp-xxhdpi")
+    fun `карта на самом узком экране`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_narrow_320")
     }
 
     /** Предельное имя в 18 знаков: левая колонка шире всего, подписи тира теснее всего. */
