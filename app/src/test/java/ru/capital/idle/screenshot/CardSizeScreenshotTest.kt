@@ -15,7 +15,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -208,16 +210,40 @@ class CardSizeScreenshotTest {
     // ===================== снимки =====================
 
     @Test
-    fun `карта при разных балансах, с надбавкой и без`() {
+    fun `карта при разных балансах без надбавки`() {
         compose.setContent { Screen() }
-        listOf(0.0 to "plain", 999_999_999.0 to "pop").forEach { (r, suffix) ->
-            reward.doubleValue = r
-            listOf(1f to "", Screenshots.LARGE_FONT to "_large_font").forEach { (fs, tail) ->
-                fontScale.floatValue = fs
-                balances.forEach { (name, v) ->
-                    money.doubleValue = v
-                    capture("card_${name}_$suffix$tail")
-                }
+        listOf(1f to "", Screenshots.LARGE_FONT to "_large_font").forEach { (fs, tail) ->
+            fontScale.floatValue = fs
+            balances.forEach { (name, v) ->
+                money.doubleValue = v
+                capture("card_${name}_plain$tail")
+            }
+        }
+    }
+
+    /**
+     * Надбавка появляется только от настоящего нажатия на карту — она копится во внутреннем
+     * состоянии `CreditCard`. Поэтому здесь останавливаются часы, делается тап и снимок берётся,
+     * пока надбавка не растаяла.
+     */
+    @Test
+    fun `карта с надбавкой за тап`() {
+        compose.mainClock.autoAdvance = false
+        reward.doubleValue = 999_999_999.0
+        compose.setContent { Screen() }
+        listOf(1f to "", Screenshots.LARGE_FONT to "_large_font").forEach { (fs, tail) ->
+            fontScale.floatValue = fs
+            balances.forEach { (name, v) ->
+                money.doubleValue = v
+                compose.mainClock.advanceTimeBy(50)
+                compose.onRoot().performTouchInput { click() }
+                compose.mainClock.advanceTimeBy(300)
+                compose.onRoot().captureRoboImage(
+                    filePath = "${Screenshots.DIR}/card_${name}_pop$tail.png",
+                    roborazziOptions = Screenshots.OPTIONS
+                )
+                // дать надбавке истечь, чтобы следующий снимок начинался с чистого листа
+                compose.mainClock.advanceTimeBy(4_000)
             }
         }
     }
