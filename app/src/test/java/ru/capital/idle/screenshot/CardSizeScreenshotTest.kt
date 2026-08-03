@@ -223,20 +223,24 @@ class CardSizeScreenshotTest {
     }
 
     /**
-     * Надбавка живёт ограниченное время и тает к концу, поэтому часы останавливаются,
-     * а снимок берётся на середине показа.
+     * Надбавка показывается 800 мс и к концу тает, поэтому часы останавливаются, а анимация
+     * перезапускается перед каждым снимком — иначе к третьему кадру она уже невидима.
+     * Лишний кадр после смены состояния нужен, чтобы снимок брался с уже отрисованного экрана,
+     * а не с предыдущего.
      */
     @Test
     fun `карта с надбавкой за тап`() {
         compose.mainClock.autoAdvance = false
         reward.doubleValue = 999_999_999.0
-        popTick.intValue = 1
         compose.setContent { Screen() }
         listOf(1f to "", Screenshots.LARGE_FONT to "_large_font").forEach { (fs, tail) ->
             fontScale.floatValue = fs
             balances.forEach { (name, v) ->
                 money.doubleValue = v
-                compose.mainClock.advanceTimeBy(300)
+                popTick.intValue += 1
+                compose.mainClock.advanceTimeByFrame()
+                compose.mainClock.advanceTimeBy(300)   // середина показа: надбавка непрозрачна
+                compose.mainClock.advanceTimeByFrame()
                 compose.onRoot().captureRoboImage(
                     filePath = "${Screenshots.DIR}/card_${name}_pop$tail.png",
                     roborazziOptions = Screenshots.OPTIONS
