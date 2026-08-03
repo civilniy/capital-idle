@@ -31,6 +31,8 @@ import org.robolectric.annotation.GraphicsMode
 import ru.capital.idle.core.game.CardTier
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.ui.CARD_ASPECT_RATIO
+import ru.capital.idle.ui.CARD_REFERENCE_HEIGHT_DP
+import ru.capital.idle.ui.CARD_REFERENCE_WIDTH_DP
 import ru.capital.idle.ui.CardFace
 import ru.capital.idle.ui.PressureSlot
 import ru.capital.idle.ui.theme.Bg
@@ -39,8 +41,8 @@ import ru.capital.idle.ui.theme.Bg
  * Карта на главном экране: постоянные пропорции и высота, не зависящая от содержимого.
  *
  * Раньше высоту карты определял текст — длинный баланс делал её выше короткого, и всё под
- * картой прыгало. Теперь высота считается от ширины по формату ISO/IEC 7810 ID-1,
- * а содержимое подстраивается под карту.
+ * картой прыгало. Теперь высота считается от ширины по константе проекта (размер карты
+ * в макете, 365 × 218 dp), а содержимое подстраивается под карту.
  *
  * Правило теста Compose: `setContent` вызывается один раз, поэтому варианты гоняются
  * через состояние, а не повторной установкой содержимого.
@@ -123,9 +125,26 @@ class CardSizeScreenshotTest {
     // ===================== пропорции =====================
 
     @Test
-    fun `константа пропорций — формат банковской карты`() {
-        // ISO/IEC 7810 ID-1: 85.60 × 53.98 мм
-        assertEquals(85.60f / 53.98f, CARD_ASPECT_RATIO, 0.001f)
+    fun `константа пропорций совпадает с размером карты в макете`() {
+        // 365 × 218 dp — ровно то, в чём карта нарисована. Внешним стандартом эту константу
+        // подменять нельзя: от формата ISO/IEC 7810 (1.586) карта вырастала на 12dp
+        assertEquals(
+            CARD_REFERENCE_WIDTH_DP / CARD_REFERENCE_HEIGHT_DP, CARD_ASPECT_RATIO, 1e-6f
+        )
+        assertEquals(365f, CARD_REFERENCE_WIDTH_DP, 1e-6f)
+        assertEquals(218f, CARD_REFERENCE_HEIGHT_DP, 1e-6f)
+    }
+
+    @Test
+    fun `карта занимает ровно размер из макета`() {
+        compose.setContent { Screen() }
+        val root = compose.onRoot().fetchSemanticsNode().size
+        val sidePad = with(compose.density) { 28.dp.roundToPx() }
+        val vertPad = with(compose.density) { 20.dp.roundToPx() }
+        val expectedW = with(compose.density) { CARD_REFERENCE_WIDTH_DP.dp.roundToPx() }
+        val expectedH = with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.roundToPx() }
+        assertEquals("ширина карты", expectedW, root.width - sidePad)
+        assertEquals("высота карты", expectedH.toDouble(), (root.height - vertPad).toDouble(), 1.0)
     }
 
     @Test
