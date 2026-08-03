@@ -1215,6 +1215,10 @@ private fun CardWithActivation(
     }
 }
 
+/**
+ * Карта: владелец состояния надбавки за тап. Рисование вынесено в [CardFace] —
+ * так вёрстку карты можно снять скриншотом в любом состоянии, не подделывая нажатия.
+ */
 @Composable
 internal fun CreditCard(
     money: Double, incomePerDay: Double, reward: Double, currency: Currency,
@@ -1224,6 +1228,32 @@ internal fun CreditCard(
     var popTick by remember { mutableStateOf(0) }
     val rewardNow by rememberUpdatedState(reward)
 
+    CardFace(
+        money = money, incomePerDay = incomePerDay, currency = currency,
+        playerName = playerName, tier = tier,
+        popAccum = popAccum, popTick = popTick,
+        onPopExpire = { popAccum = 0.0 },
+        modifier = Modifier.pointerInput(Unit) {
+            detectTapGestures {
+                onTap()
+                popAccum += rewardNow
+                popTick++
+            }
+        }
+    )
+}
+
+/**
+ * Внешний вид карты. Чистая функция от данных: надбавка за тап приходит параметрами,
+ * поэтому состояние «с надбавкой» снимается скриншотом напрямую.
+ */
+@Composable
+internal fun CardFace(
+    money: Double, incomePerDay: Double, currency: Currency,
+    playerName: String, tier: CardTier,
+    popAccum: Double = 0.0, popTick: Int = 0, onPopExpire: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val accent = Color(tier.accent)
     val txt = Color(tier.textColor)
     val gradient = tier.gradient.map { Color(it) }
@@ -1246,13 +1276,7 @@ internal fun CreditCard(
             .background(Brush.linearGradient(gradient))
             .then(if (kant != null) Modifier.border(1.dp, kant, RoundedCornerShape(18.dp)) else Modifier)
             .drawBehind { drawCardPattern(tier.pattern, Color(tier.patternColor)) }
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    onTap()
-                    popAccum += rewardNow
-                    popTick++
-                }
-            }
+            .then(modifier)
     ) {
         Column(
             Modifier.fillMaxWidth().padding(16.dp),
@@ -1274,7 +1298,7 @@ internal fun CreditCard(
                     money = money, accum = popAccum, tick = popTick, currency = currency,
                     moneyColor = if (money < 0) RedAccent else txt,
                     scale = textScale,
-                    onExpire = { popAccum = 0.0 }
+                    onExpire = onPopExpire
                 )
                 Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
                     color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = sp(12f), maxLines = 1, softWrap = false)

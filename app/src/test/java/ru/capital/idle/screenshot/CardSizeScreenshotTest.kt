@@ -11,13 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,7 +31,7 @@ import org.robolectric.annotation.GraphicsMode
 import ru.capital.idle.core.game.CardTier
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.ui.CARD_ASPECT_RATIO
-import ru.capital.idle.ui.CreditCard
+import ru.capital.idle.ui.CardFace
 import ru.capital.idle.ui.PressureSlot
 import ru.capital.idle.ui.theme.Bg
 
@@ -63,6 +62,7 @@ class CardSizeScreenshotTest {
 
     private val money = mutableDoubleStateOf(999_999_999.0)
     private val reward = mutableDoubleStateOf(0.0)
+    private val popTick = mutableIntStateOf(0)
     private val fontScale = mutableFloatStateOf(1f)
     private val pressure = mutableDoubleStateOf(0.0)
     private val reserved = mutableStateOf(true)
@@ -77,10 +77,11 @@ class CardSizeScreenshotTest {
             // тот же отступ по краям, что и на главном экране
             Box(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 14.dp, vertical = 10.dp)) {
                 Column(Modifier.fillMaxWidth()) {
-                    CreditCard(
+                    CardFace(
                         money = money.doubleValue, incomePerDay = 413_000_000.0,
-                        reward = reward.doubleValue, currency = Currency.USD,
-                        playerName = "Владимир", tier = CardTier.entries.last(), onTap = {}
+                        currency = Currency.USD, playerName = "Владимир",
+                        tier = CardTier.entries.last(),
+                        popAccum = reward.doubleValue, popTick = popTick.intValue
                     )
                     if (withPressureSlot.value) {
                         Spacer(Modifier.height(8.dp))
@@ -222,28 +223,24 @@ class CardSizeScreenshotTest {
     }
 
     /**
-     * Надбавка появляется только от настоящего нажатия на карту — она копится во внутреннем
-     * состоянии `CreditCard`. Поэтому здесь останавливаются часы, делается тап и снимок берётся,
-     * пока надбавка не растаяла.
+     * Надбавка живёт ограниченное время и тает к концу, поэтому часы останавливаются,
+     * а снимок берётся на середине показа.
      */
     @Test
     fun `карта с надбавкой за тап`() {
         compose.mainClock.autoAdvance = false
         reward.doubleValue = 999_999_999.0
+        popTick.intValue = 1
         compose.setContent { Screen() }
         listOf(1f to "", Screenshots.LARGE_FONT to "_large_font").forEach { (fs, tail) ->
             fontScale.floatValue = fs
             balances.forEach { (name, v) ->
                 money.doubleValue = v
-                compose.mainClock.advanceTimeBy(50)
-                compose.onRoot().performTouchInput { click() }
                 compose.mainClock.advanceTimeBy(300)
                 compose.onRoot().captureRoboImage(
                     filePath = "${Screenshots.DIR}/card_${name}_pop$tail.png",
                     roborazziOptions = Screenshots.OPTIONS
                 )
-                // дать надбавке истечь, чтобы следующий снимок начинался с чистого листа
-                compose.mainClock.advanceTimeBy(4_000)
             }
         }
     }
