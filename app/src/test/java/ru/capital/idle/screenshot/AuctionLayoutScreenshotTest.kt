@@ -55,7 +55,8 @@ class AuctionLayoutScreenshotTest {
         money: Double = 999_999_999.0,
         reputation: Double = 41.0,
         status: Int = 138,
-        nextInH: Double = 88.0
+        nextInH: Double = 88.0,
+        hasLotsLeft: Boolean = true
     ) = AuctionView(
         item = item, tier = tier, unlocked = unlocked,
         reputation = reputation, status = status,
@@ -64,7 +65,8 @@ class AuctionLayoutScreenshotTest {
         minBid = kotlin.math.ceil(bid * 1.05), boldBid = kotlin.math.ceil(bid * 1.05 * 1.25),
         money = money,
         catalogPrice = Collectibles.priceAt(item ?: canvas, 400),
-        nextInH = nextInH
+        nextInH = nextInH,
+        hasLotsLeft = hasLotsLeft
     )
 
     private fun shot(name: String, v: AuctionView, cur: Currency = Currency.RUB, fontScale: Float = 1f) {
@@ -83,6 +85,21 @@ class AuctionLayoutScreenshotTest {
     @Test
     fun `торгов нет при крупном шрифте`() {
         shot("auction_idle_large_font", view(item = null), fontScale = Screenshots.LARGE_FONT)
+    }
+
+    /**
+     * Вся коллекция собрана: лота не будет никогда, поэтому таймера в карточке быть не должно.
+     * Это отдельное состояние, а не «зал пуст» — иначе интерфейс обещает время, которое не придёт.
+     */
+    @Test
+    fun `коллекция собрана — торги закрыты`() {
+        shot("auction_all_collected", view(item = null, hasLotsLeft = false))
+    }
+
+    @Test
+    fun `коллекция собрана — торги закрыты, крупный шрифт`() {
+        shot("auction_all_collected_large_font", view(item = null, hasLotsLeft = false),
+            fontScale = Screenshots.LARGE_FONT)
     }
 
     // ===================== идут торги =====================

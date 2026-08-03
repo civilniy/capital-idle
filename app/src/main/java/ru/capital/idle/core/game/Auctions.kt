@@ -138,6 +138,13 @@ object Auctions {
     fun lotPool(state: GameState, tier: AuctionTier): List<Collectible> =
         Collectibles.all.filter { tierOf(it.id) == tier && !Collectibles.owns(state, it.id) }
 
+    /**
+     * Осталось ли что выставлять на торги. Когда собрано всё, следующего лота не будет
+     * никогда — ждать нечего, и интерфейс не должен обещать таймер.
+     */
+    fun hasLotsLeft(state: GameState): Boolean =
+        Collectibles.all.any { !Collectibles.owns(state, it.id) }
+
     // ===================== ставки =====================
 
     /** Наименьшая допустимая ставка: стартовая цена, если никто ещё не ставил. */

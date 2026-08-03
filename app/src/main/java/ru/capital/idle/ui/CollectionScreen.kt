@@ -83,6 +83,7 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
  * @param item лот или null, если торгов сейчас нет
  * @param unlocked есть ли у игрока доступ к этому уровню торгов
  * @param nextInH через сколько игровых часов начнутся следующие торги (когда лота нет)
+ * @param hasLotsLeft осталось ли что выставлять; когда собрано всё, следующего лота не будет
  */
 internal data class AuctionView(
     val item: Collectible?,
@@ -100,7 +101,8 @@ internal data class AuctionView(
     val boldBid: Double,
     val money: Double,
     val catalogPrice: Double,
-    val nextInH: Double
+    val nextInH: Double,
+    val hasLotsLeft: Boolean
 ) {
     companion object {
         fun of(state: GameState): AuctionView {
@@ -123,7 +125,8 @@ internal data class AuctionView(
                 boldBid = a?.let { Auctions.boldBid(it) } ?: 0.0,
                 money = state.money,
                 catalogPrice = item?.let { Collectibles.priceIn(it, state) } ?: 0.0,
-                nextInH = (state.auctionNextGameH - state.gameHours).coerceAtLeast(0.0)
+                nextInH = (state.auctionNextGameH - state.gameHours).coerceAtLeast(0.0),
+                hasLotsLeft = Auctions.hasLotsLeft(state)
             )
         }
     }
@@ -192,25 +195,44 @@ internal fun AuctionBlock(view: AuctionView, cur: Currency, onBid: (Double) -> U
     Spacer(Modifier.height(6.dp))
 
     when {
-        view.item == null -> AuctionIdleCard(view.nextInH)
+        view.item == null -> AuctionIdleCard(view.nextInH, view.hasLotsLeft)
         !view.unlocked -> AuctionLockedCard(view)
         else -> AuctionLiveCard(view, cur, onBid)
     }
 }
 
-/** Торгов нет: когда ждать следующие. */
+/**
+ * Торгов нет — два разных случая, и путать их нельзя.
+ *
+ * Пока в коллекции есть незакрытые предметы, лот будет, и таймер честный. Когда собрано
+ * всё, выставлять нечего и следующего лота не будет никогда — обещать время в этом случае
+ * значило бы врать, поэтому таймер убирается совсем.
+ */
 @Composable
-private fun AuctionIdleCard(nextInH: Double) {
+private fun AuctionIdleCard(nextInH: Double, hasLotsLeft: Boolean) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GlassFill)
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(if (hasLotsLeft) GlassFill else GlassAccent)
+            .then(
+                if (hasLotsLeft) Modifier
+                else Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+            )
             .padding(horizontal = 12.dp, vertical = 13.dp)
     ) {
-        Text("Зал пуст", color = TextMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(
+            if (hasLotsLeft) "Зал пуст" else "✓ Все предметы собраны",
+            color = if (hasLotsLeft) TextMain else Gold,
+            fontWeight = FontWeight.Bold, fontSize = 13.sp
+        )
         Spacer(Modifier.height(3.dp))
         Text(
-            "Следующий лот выставят через ${Auctions.formatLeft(nextInH)}. " +
-                "Самые редкие предметы в каталоге не продаются — только здесь.",
-            color = Mute, fontSize = 10.sp, lineHeight = 14.sp
+            if (hasLotsLeft)
+                "Следующий лот выставят через ${Auctions.formatLeft(nextInH)}. " +
+                    "Самые редкие предметы в каталоге не продаются — только здесь."
+            else
+                "Торги закрыты: выставлять больше нечего. Если продать предмет из коллекции, " +
+                    "он снова сможет попасть на торги.",
+            color = if (hasLotsLeft) Mute else GoldDim, fontSize = 10.sp, lineHeight = 14.sp
         )
     }
 }
