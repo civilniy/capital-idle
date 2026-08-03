@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -259,21 +260,25 @@ private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
  * что и плитки сводки, иначе «Имущество» уезжает на вторую строку.
  */
 @Composable
+/** Кегль подписи вкладки при обычном шрифте и наименьший её размер на экране. */
+private const val TAB_MAX_SP = 11.5f
+private const val TAB_MIN_DP = 8.5f
+
 internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val density = LocalDensity.current
-        // ширина одного сегмента ≈ (полная ширина − отступы ряда) / число вкладок − отступы вкладки
-        val cellWidthSp = with(density) {
-            ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
+        // ширина одного сегмента: (полная ширина − отступы ряда) / число вкладок − отступы вкладки
+        val cellWidthPx = with(density) {
+            ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()).toInt()
         }
-        val longest = tabs.maxOf { it.first.length }
-        // нижняя граница задана в экранных единицах, а не в sp: при системном шрифте 1.5
-        // те же 8.5sp рисуются как 12.75dp, порог не срабатывал, и «Имущество» обрезалось
-        val minSp = 8.5f / density.fontScale
-        val tabFont = remember(cellWidthSp, longest, minSp) {
-            (cellWidthSp / (longest * 0.62f)).coerceIn(minOf(minSp, 11.5f), 11.5f).sp
-        }
+        val longest = tabs.maxByOrNull { it.first.length }!!.first
+        // кегль подбирается настоящим замером самой длинной подписи; нижняя граница задана
+        // в экранных единицах, а не в sp — при системном шрифте 1.5 те же sp рисуются
+        // в полтора раза крупнее, и общий для всех масштабов порог обрезал «Имущество»
+        val tabFont = fitFontSp(
+            longest, TextStyle(fontSize = TAB_MAX_SP.sp), cellWidthPx, TAB_MAX_SP, TAB_MIN_DP
+        ).sp
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
         ) {

@@ -755,29 +755,6 @@ private const val HEADER_COMPACT_FONT_SCALE = 1.15f
 private const val SUMMARY_LABEL_SP = 7.5f
 private const val SUMMARY_LABEL_MIN_DP = 6f
 
-/**
- * Подобрать кегль так, чтобы текст влез в заданную ширину.
- *
- * Ширина измеряется настоящим замерщиком, а не прикидкой «символ ≈ 0.62 кегля»: именно такая
- * прикидка и промахивалась на широких прописных кириллических буквах. Ширина строки линейна
- * по кеглю (letterSpacing тоже задан в sp), поэтому одного замера достаточно.
- *
- * @param maxSp кегль при обычном шрифте — больше него не увеличиваем никогда
- * @param minDp нижняя граница в *экранных* единицах: при системном шрифте 1.5 те же sp
- *   рисуются в полтора раза крупнее, и общий для всех масштабов порог в sp был бы слишком щедрым
- */
-@Composable
-private fun fitFontSp(
-    text: String, style: TextStyle, maxWidthPx: Int, maxSp: Float, minDp: Float
-): Float {
-    val measurer = rememberTextMeasurer()
-    val density = LocalDensity.current
-    val ref = measurer.measure(text, style).size.width
-    if (ref <= 0 || maxWidthPx <= 0) return maxSp
-    val minSp = minDp / density.fontScale
-    return (maxSp * maxWidthPx / ref).coerceIn(minOf(minSp, maxSp), maxSp)
-}
-
 /** Подписи третьей строки распорядка: часы бизнеса слева, учёба и транспорт справа. */
 @Composable
 internal fun DayPlanLabels(bizH: Int, studyH: Int, carBonus: Int) {
