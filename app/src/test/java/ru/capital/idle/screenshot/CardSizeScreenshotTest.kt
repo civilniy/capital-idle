@@ -149,11 +149,28 @@ class CardSizeScreenshotTest {
      */
     private fun cardBottomPx() = rootHeight() - with(compose.density) { 10.dp.toPx() }
 
+    /**
+     * Верх опорного прямоугольника содержимого в корневых координатах.
+     *
+     * Содержимое карты размечается в опорном размере и лишь потом масштабируется под
+     * фактический — `Modifier.scale` меняет рисование, но не разметку. Поэтому координаты
+     * узлов приходят в опорной системе, и сверять их надо с опорным прямоугольником:
+     * он центрирован в карте, а масштаб переносит его на карту один в один.
+     */
+    private fun refTopPx(): Float {
+        val top = cardTopPx()
+        val refH = with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+        return top + ((cardBottomPx() - top) - refH) / 2f
+    }
+
+    private fun refBottomPx() =
+        refTopPx() + with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+
     /** Внутреннее поле карты — под ним содержимому уже нельзя. */
-    private fun contentBottomLimitPx() = cardBottomPx() - with(compose.density) { 16.dp.toPx() }
+    private fun contentBottomLimitPx() = refBottomPx() - with(compose.density) { 16.dp.toPx() }
 
     /** Верх фирменного знака: 49×32dp, прижат к низу карты с отступом 16dp. */
-    private fun logoTopPx() = cardBottomPx() - with(compose.density) { (16 + 32).dp.toPx() }
+    private fun logoTopPx() = refBottomPx() - with(compose.density) { (16 + 32).dp.toPx() }
 
     private fun px2dp(v: Float) = v / compose.density.density
 
@@ -322,23 +339,23 @@ class CardSizeScreenshotTest {
                 balances.forEach { (balKind, v) ->
                     money.doubleValue = v
                     val key = "$nameKind/$balKind/шрифт=$fs"
-                    val cardH = px2dp(cardBottomPx() - cardTopPx())
 
                     val (nameTop, nameH) = textBox(name.uppercase(java.util.Locale.ROOT))
                     if (px2dp(nameH.toFloat()) < MIN_LINE_DP) {
-                        bad["имя сжато: $key"] = "строка %.1fdp при карте %.1fdp".format(
-                            java.util.Locale.ROOT, px2dp(nameH.toFloat()), cardH
+                        bad["имя сжато: $key"] = "строка %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(nameH.toFloat())
                         )
                     } else if (nameTop + nameH > contentBottomLimitPx()) {
-                        bad["имя за краем: $key"] = "карта %.1fdp, нужно %.1fdp".format(
-                            java.util.Locale.ROOT, cardH, px2dp(nameTop + nameH - cardTopPx()) + 16f
+                        bad["имя за краем: $key"] = "опора %.0fdp, нужно %.1fdp".format(
+                            java.util.Locale.ROOT, CARD_REFERENCE_HEIGHT_DP,
+                            px2dp(nameTop + nameH - refTopPx()) + 16f
                         )
                     }
 
                     val (tierTop, tierH) = textBox(CardTier.entries.last().title)
                     if (px2dp(tierH.toFloat()) < MIN_LINE_DP) {
-                        bad["тир сжат: $key"] = "строка %.1fdp при карте %.1fdp".format(
-                            java.util.Locale.ROOT, px2dp(tierH.toFloat()), cardH
+                        bad["тир сжат: $key"] = "строка %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierH.toFloat())
                         )
                     } else if (tierTop + tierH > logoTopPx()) {
                         bad["тир на знаке: $key"] = "заходит на %.1fdp".format(
@@ -365,8 +382,8 @@ class CardSizeScreenshotTest {
 
     /**
      * Ширина экрана в dp меняется и от модели телефона, и от системной настройки размера
-     * экрана. Высота карты считается от ширины, а содержимое внутри задано в dp и от
-     * ширины не зависит — значит на узком экране карта может стать ниже содержимого.
+     * экрана. Высота карты считается от ширины, поэтому на узком экране карта ниже опорной —
+     * и содержимое обязано уезжать вместе с ней, а не обрезаться её краем.
      */
     @Test
     @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
