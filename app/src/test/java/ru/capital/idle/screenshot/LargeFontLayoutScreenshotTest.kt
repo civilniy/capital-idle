@@ -60,6 +60,21 @@ class LargeFontLayoutScreenshotTest {
     @Test
     fun `карта высшего тира при крупном шрифте`() = card(Screenshots.LARGE_FONT)
 
+    /**
+     * Имя игрока задаёт ширину левой колонки, когда оно длиннее номера: в диалоге
+     * разрешено 18 знаков. Подпись тира не должна из-за этого обрезаться.
+     */
+    @Test
+    fun `карта с самым длинным именем игрока`() {
+        compose.captureOnBackground("main_card_long_name") {
+            CreditCard(
+                money = 251_000_000_000_000.0, incomePerDay = 413_000_000_000.0,
+                reward = 1_000_000.0, currency = Currency.RUB,
+                playerName = "Мстислав-Радомир", tier = CardTier.entries.last(), onTap = {}
+            )
+        }
+    }
+
     // ===================== находка 2: дата в шапке рвётся =====================
 
     private fun header(fontScale: Float) {
@@ -76,6 +91,17 @@ class LargeFontLayoutScreenshotTest {
 
     @Test
     fun `шапка главного экрана при крупном шрифте`() = header(Screenshots.LARGE_FONT)
+
+    /**
+     * Ближайший системный шаг увеличения после обычного. Запаса ширины у даты около 10dp,
+     * поэтому уже здесь она должна уходить на свою строку, а не обрезаться.
+     */
+    @Test
+    fun `шапка главного экрана на ближайшем шаге увеличения`() {
+        compose.captureOnBackground("main_header_font_115", fontScale = 1.15f) {
+            CapitalHeader(dateText = "28.02.36 · 19:00", currencyCode = "RUB", bullionText = "13 228")
+        }
+    }
 
     // ===================== находка 3: «РЕПУТАЦИЯ» переносит букву =====================
 
