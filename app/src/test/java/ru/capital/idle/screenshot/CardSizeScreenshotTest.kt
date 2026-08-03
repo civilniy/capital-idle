@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -62,6 +63,16 @@ class CardSizeScreenshotTest {
         "mid" to 25_963_353.0
     )
 
+    /**
+     * Имена: обычное, длинное с дефисом и предельное. Предел — 18 знаков,
+     * `GameViewModel` режет ввод именно по нему (`name.trim().take(18)`).
+     */
+    private val names = listOf(
+        "обычное" to "Владимир",
+        "длинное" to "Мстислав-Радомир",
+        "предельное" to "Владислав-Мстислав"
+    )
+
     private val money = mutableDoubleStateOf(999_999_999.0)
     private val reward = mutableDoubleStateOf(0.0)
     private val popTick = mutableIntStateOf(0)
@@ -69,6 +80,7 @@ class CardSizeScreenshotTest {
     private val pressure = mutableDoubleStateOf(0.0)
     private val reserved = mutableStateOf(true)
     private val withPressureSlot = mutableStateOf(false)
+    private val playerName = mutableStateOf("Владимир")
 
     @Composable
     private fun Screen() {
@@ -81,7 +93,7 @@ class CardSizeScreenshotTest {
                 Column(Modifier.fillMaxWidth()) {
                     CardFace(
                         money = money.doubleValue, incomePerDay = 413_000_000.0,
-                        currency = Currency.USD, playerName = "Владимир",
+                        currency = Currency.USD, playerName = playerName.value,
                         tier = CardTier.entries.last(),
                         popAccum = reward.doubleValue, popTick = popTick.intValue
                     )
@@ -120,6 +132,34 @@ class CardSizeScreenshotTest {
             filePath = "${Screenshots.DIR}/$name.png",
             roborazziOptions = Screenshots.OPTIONS
         )
+    }
+
+    // ===================== геометрия карты в корневых координатах =====================
+
+    /** Верх карты: снимок добавляет свой вертикальный отступ, карта начинается под ним. */
+    private fun cardTopPx() = with(compose.density) { 10.dp.toPx() }
+
+    private fun cardBottomPx() =
+        cardTopPx() + with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+
+    /** Внутреннее поле карты — под ним содержимому уже нельзя. */
+    private fun contentBottomLimitPx() = cardBottomPx() - with(compose.density) { 16.dp.toPx() }
+
+    /** Верх фирменного знака: 49×32dp, прижат к низу карты с отступом 16dp. */
+    private fun logoTopPx() = cardBottomPx() - with(compose.density) { (16 + 32).dp.toPx() }
+
+    private fun px2dp(v: Float) = v / compose.density.density
+
+    /**
+     * Нижний край узла с таким текстом, в пикселях от верха корня.
+     *
+     * Берётся `positionInRoot` + `size`, а не `boundsInRoot`: второй обрезан родителями,
+     * и у вылезшего за карту текста он показал бы край карты вместо настоящего края текста.
+     */
+    private fun textBottomPx(text: String): Float {
+        compose.waitForIdle()
+        val node = compose.onNodeWithText(text).fetchSemanticsNode()
+        return node.positionInRoot.y + node.size.height
     }
 
     // ===================== пропорции =====================
@@ -200,6 +240,61 @@ class CardSizeScreenshotTest {
         assertEquals("высота задана шириной, а ширина от шрифта не зависит", normal, large)
     }
 
+    // ===================== содержимое помещается в карту =====================
+
+    /**
+     * Строка с именем владельца — последняя в потоке карты, поэтому она пропадает первой,
+     * если содержимое перестало помещаться: карта обрезает всё, что вылезло за её край.
+     * Ни один тест этого не ловил — имя исчезло молча.
+     */
+    @Test
+    fun `имя владельца есть на карте и не обрезано`() {
+        compose.setContent { Screen() }
+        val overflow = LinkedHashMap<String, String>()
+        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
+            fontScale.floatValue = fs
+            names.forEach { (nameKind, name) ->
+                playerName.value = name
+                balances.forEach { (balKind, v) ->
+                    money.doubleValue = v
+                    val upper = name.uppercase(java.util.Locale.ROOT)
+                    val bottom = textBottomPx(upper)
+                    if (bottom > contentBottomLimitPx()) {
+                        overflow["$nameKind/$balKind/шрифт=$fs"] =
+                            "нужно ${"%.1f".format(java.util.Locale.ROOT,
+                                px2dp(bottom - cardTopPx()) + 16f)}dp"
+                    }
+                }
+            }
+        }
+        assertTrue(
+            "имя владельца вылезло за карту (высота карты ${CARD_REFERENCE_HEIGHT_DP}dp): $overflow",
+            overflow.isEmpty()
+        )
+    }
+
+    /**
+     * Подпись тира прижата вправо, фирменный знак — тоже. Если подпись опускается до знака,
+     * они печатаются друг поверх друга.
+     */
+    @Test
+    fun `подпись тира не доходит до фирменного знака`() {
+        compose.setContent { Screen() }
+        val hits = LinkedHashMap<String, String>()
+        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
+            fontScale.floatValue = fs
+            names.forEach { (nameKind, name) ->
+                playerName.value = name
+                val bottom = textBottomPx(CardTier.entries.last().title)
+                if (bottom > logoTopPx()) {
+                    hits["$nameKind/шрифт=$fs"] =
+                        "заходит на ${"%.1f".format(java.util.Locale.ROOT, px2dp(bottom - logoTopPx()))}dp"
+                }
+            }
+        }
+        assertTrue("подпись тира наезжает на фирменный знак: $hits", hits.isEmpty())
+    }
+
     // ===================== плашка давления не двигает разметку =====================
 
     @Test
@@ -266,6 +361,17 @@ class CardSizeScreenshotTest {
                 )
             }
         }
+    }
+
+    /** Предельное имя в 18 знаков: левая колонка шире всего, подписи тира теснее всего. */
+    @Test
+    fun `карта с предельно длинным именем владельца`() {
+        compose.setContent { Screen() }
+        playerName.value = names.last().second
+        money.doubleValue = 25_963_353.0
+        capture("card_longest_name")
+        fontScale.floatValue = Screenshots.LARGE_FONT
+        capture("card_longest_name_large_font")
     }
 
     @Test
