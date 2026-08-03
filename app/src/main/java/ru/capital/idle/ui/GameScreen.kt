@@ -161,28 +161,13 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
         Spacer(Modifier.height(8.dp))
 
         // давление элит — отдельной плашкой под картой (после $1 млрд)
-        val pressure = GameMath.pressureShown(state)
-        if (pressure > 0.0) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0x26D9694F))
-                    .padding(horizontal = 12.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Давление элит: доход -${(pressure * 100).toInt()}%",
-                    color = RedAccent, fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f)
-                )
-                Text(
-                    if (state.reputation > 10) "репутация смягчает" else "поднимайте репутацию",
-                    color = Mute, fontSize = 10.sp
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-        }
+        PressureSlot(
+            pressure = GameMath.pressureShown(state),
+            reputation = state.reputation,
+            // место под плашку держится по капиталу, а не по наличным: наличные скачут
+            // через порог при каждой крупной покупке, капитал — нет
+            reserved = GameMath.netWorth(state) >= PRESSURE_SLOT_WORTH
+        )
 
         Text(
             // та же награда, что и во всплывашке: разовая сумма, символ валюты впереди
@@ -741,6 +726,17 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
  */
 private val TIER_TITLE_LIFT = (-6.33).dp
 
+/**
+ * Пропорции карты — формат ISO/IEC 7810 ID-1, как у настоящей банковской карты:
+ * 85.60 × 53.98 мм, то есть 1.586 : 1.
+ *
+ * Высота считается от ширины и **не зависит от содержимого**: любой баланс, есть надбавка
+ * за тап или нет, обычный системный шрифт или увеличенный — карта одна и та же, и разметка
+ * под ней не прыгает. Раньше здесь стояло `heightIn(min = 218.dp)`, и карта росла вместе
+ * с текстом. Содержимое подстраивается под карту, а не наоборот (см. `textScale` в `CreditCard`).
+ */
+internal const val CARD_ASPECT_RATIO = 1.586f
+
 /** Декоративный номер на карте. Строка постоянная, поэтому её ширину можно измерить заранее. */
 private const val CARD_NUMBER = "\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 4040"
 
@@ -758,6 +754,49 @@ private const val HEADER_COMPACT_FONT_SCALE = 1f
 /** Кегль подписи под числом в сводке и наименьший её размер на экране. */
 private const val SUMMARY_LABEL_SP = 7.5f
 private const val SUMMARY_LABEL_MIN_DP = 6f
+
+/**
+ * С какого капитала под плашку давления держится место. Совпадает с порогом самого давления
+ * (`Pressure.value`), но считается по капиталу, а не по наличным.
+ */
+private const val PRESSURE_SLOT_WORTH = 1e9
+
+/**
+ * Плашка «Давление элит» и место под неё.
+ *
+ * Давление включается с $1 млрд **наличных**, а наличные проскакивают этот порог при каждой
+ * крупной покупке — плашка то появлялась, то исчезала, и весь экран под ней дёргался.
+ * Поэтому решение разделено надвое: **место** держится по капиталу (`reserved`), который от
+ * трат почти не меняется, а **содержимое** внутри этого места показывается по текущему давлению.
+ *
+ * Пустое место не занимает высоту заранее — до порога капитала блока нет вовсе, и у новичка
+ * на экране не висит дыра. Когда место уже отведено, плашка не убирается из разметки, а гасится
+ * прозрачностью: высота при этом совпадает по построению, а не «примерно».
+ */
+@Composable
+internal fun PressureSlot(pressure: Double, reputation: Double, reserved: Boolean) {
+    if (!reserved && pressure <= 0.0) return
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .alpha(if (pressure > 0.0) 1f else 0f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0x26D9694F))
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Давление элит: доход -${(pressure * 100).toInt()}%",
+            color = RedAccent, fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f)
+        )
+        Text(
+            if (reputation > 10) "репутация смягчает" else "поднимайте репутацию",
+            color = Mute, fontSize = 10.sp
+        )
+    }
+    Spacer(Modifier.height(8.dp))
+}
 
 /** Подписи третьей строки распорядка: часы бизнеса слева, учёба и транспорт справа. */
 @Composable
@@ -1191,10 +1230,16 @@ internal fun CreditCard(
     val kant = if (tier.kant != 0L) Color(tier.kant) else null
     val glow = if (tier.glow != 0L) Color(tier.glow) else null
 
+    // Карта постоянных пропорций не может расти вместе с системным шрифтом — содержимое
+    // перестало бы в неё помещаться. Поэтому кегли внутри карты держатся в постоянном
+    // экранном размере: системный шрифт увеличивает интерфейс вокруг, но не растягивает карту.
+    val textScale = minOf(1f, 1f / LocalDensity.current.fontScale)
+    fun sp(v: Float) = (v * textScale).sp
+
     Box(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 218.dp)
+            .aspectRatio(CARD_ASPECT_RATIO)
             .then(if (glow != null) Modifier.shadow(18.dp, RoundedCornerShape(18.dp),
                 ambientColor = glow, spotColor = glow) else Modifier)
             .clip(RoundedCornerShape(18.dp))
@@ -1218,20 +1263,21 @@ internal fun CreditCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Text("AURUM BANK", color = accent, fontSize = 15.sp, letterSpacing = 2.sp)
+                Text("AURUM BANK", color = accent, fontSize = sp(15f), letterSpacing = sp(2f))
             }
 
             CardChip(accent)
 
             Column {
-                Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = 9.sp, letterSpacing = 2.sp)
+                Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = sp(9f), letterSpacing = sp(2f))
                 BalanceWithTapPop(
                     money = money, accum = popAccum, tick = popTick, currency = currency,
                     moneyColor = if (money < 0) RedAccent else txt,
+                    scale = textScale,
                     onExpire = { popAccum = 0.0 }
                 )
                 Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
-                    color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = sp(12f), maxLines = 1, softWrap = false)
             }
 
             // \u041f\u043e\u0434\u043f\u0438\u0441\u044c \u0442\u0438\u0440\u0430 \u0441\u0442\u043e\u0438\u0442 \u0432 \u043f\u043e\u0442\u043e\u043a\u0435, \u0430 \u043d\u0435 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043d\u0430 \u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0439 \u0432\u044b\u0441\u043e\u0442\u0435: \u043f\u0440\u0438 \u043a\u0440\u0443\u043f\u043d\u043e\u043c
@@ -1241,10 +1287,10 @@ internal fun CreditCard(
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val measurer = rememberTextMeasurer()
                 val numberStyle = TextStyle(fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp, letterSpacing = 2.sp)
+                    fontSize = sp(12f), letterSpacing = sp(2f))
                 val tierStyle = TextStyle(fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold)
-                val nameStyle = TextStyle(fontSize = 15.sp, letterSpacing = 1.sp)
+                    fontSize = sp(11f), letterSpacing = sp(3f), fontWeight = FontWeight.Bold)
+                val nameStyle = TextStyle(fontSize = sp(15f), letterSpacing = sp(1f))
                 val gapPx = with(LocalDensity.current) { 10.dp.toPx() }
                 // левая колонка шире номера, если имя игрока длиннее: в диалоге до 18 знаков,
                 // и по такому имени она и меряется. Считать только по номеру значило бы
@@ -1261,7 +1307,7 @@ internal fun CreditCard(
                     if (!sameLine) {
                         Text(
                             tier.title, color = accent, fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 3.sp,
+                            fontWeight = FontWeight.Bold, fontSize = sp(11f), letterSpacing = sp(3f),
                             maxLines = 1, softWrap = false,
                             modifier = Modifier.align(Alignment.End).padding(end = 2.dp)
                         )
@@ -1275,17 +1321,17 @@ internal fun CreditCard(
                         Column {
                             Text(CARD_NUMBER,
                                 color = accent.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp, letterSpacing = 2.sp, maxLines = 1, softWrap = false)
+                                fontSize = sp(12f), letterSpacing = sp(2f), maxLines = 1, softWrap = false)
                             Spacer(Modifier.height(3.dp))
                             if (playerName.isNotBlank()) {
-                                Text(playerName.uppercase(java.util.Locale.ROOT), color = txt, fontSize = 15.sp, letterSpacing = 1.sp,
-                                    maxLines = 1, lineHeight = 18.sp)
+                                Text(playerName.uppercase(java.util.Locale.ROOT), color = txt, fontSize = sp(15f),
+                                    letterSpacing = sp(1f), maxLines = 1, softWrap = false, lineHeight = sp(18f))
                             }
                         }
                         if (sameLine) {
                             Text(
                                 tier.title, color = accent, fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 3.sp,
+                                fontWeight = FontWeight.Bold, fontSize = sp(11f), letterSpacing = sp(3f),
                                 maxLines = 1, softWrap = false,
                                 modifier = Modifier
                                     .align(Alignment.Top)
@@ -1492,7 +1538,12 @@ internal fun BalanceWithTapPop(
     tick: Int,
     currency: Currency,
     moneyColor: Color,
-    onExpire: () -> Unit
+    onExpire: () -> Unit,
+    /**
+     * Во сколько раз ужать кегль относительно обычного. Карта задаёт здесь `1/fontScale`,
+     * чтобы баланс не выталкивал содержимое из карты постоянной высоты; вне карты — 1.
+     */
+    scale: Float = 1f
 ) {
     val balanceText = GameMath.formatMoney(money, currency)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -1504,9 +1555,12 @@ internal fun BalanceWithTapPop(
         // остаться мелочь, а накопленный тап дать девятизначную сумму, и она бы обрезалась.
         // Знак «+» добавляется к длине баланса на случай отрицательного баланса при долге.
         val popLen = maxOf(balanceText.length + 1, MAX_TAP_POP_LEN)
-        val balanceSp = remember(widthSp, balanceText.length) {
+        // Границы кегля умножаются на scale: на карте они заданы в экранных единицах,
+        // иначе при системном шрифте 1.5 короткий баланс упирался бы в потолок 30sp
+        // и рисовался бы в 45dp — карта постоянной высоты этого уже не вмещает
+        val balanceSp = remember(widthSp, balanceText.length, scale) {
             (widthSp / (0.62f * (balanceText.length + popLen * TAP_POP_RATIO)))
-                .coerceIn(13f, 30f)
+                .coerceIn(13f * scale, 30f * scale)
         }
         Row(verticalAlignment = Alignment.Top) {
             Text(
@@ -1519,7 +1573,7 @@ internal fun BalanceWithTapPop(
                 // не крупнее строки дохода на этой же карте: надбавка — индекс к балансу,
                 // а не второе главное число. Пропорция к балансу тоже сохраняется,
                 // поэтому при крупном системном шрифте надбавка мельчает вместе с ним.
-                fontSize = minOf(TAP_POP_MAX_SP, balanceSp * TAP_POP_RATIO).sp,
+                fontSize = minOf(TAP_POP_MAX_SP * scale, balanceSp * TAP_POP_RATIO).sp,
                 onExpire = onExpire
             )
         }
