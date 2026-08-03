@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -138,10 +139,13 @@ internal fun PrestigeButton(canPrestige: Boolean, gain: Long, onClick: () -> Uni
         contentAlignment = Alignment.Center
     ) {
         Text(
-            if (canPrestige) "Начать жизнь заново   +${GameMath.formatFull(gain)} слитков"
+            // неразрывный пробел перед «слитков»: при крупном системном шрифте строка
+            // переносится, и слово отрывалось от числа награды
+            if (canPrestige) "Начать жизнь заново   +${GameMath.formatFull(gain)}\u00A0слитков"
             else "Заработайте больше для слитков",
             color = if (canPrestige) CoinText else GlassBtnOffText,
-            fontWeight = FontWeight.ExtraBold, fontSize = 14.sp
+            fontWeight = FontWeight.ExtraBold, fontSize = 14.sp,
+            textAlign = TextAlign.Center
         )
     }
 }

@@ -268,8 +268,11 @@ internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
             ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
         }
         val longest = tabs.maxOf { it.first.length }
-        val tabFont = remember(cellWidthSp, longest) {
-            (cellWidthSp / (longest * 0.62f)).coerceIn(8.5f, 11.5f).sp
+        // нижняя граница задана в экранных единицах, а не в sp: при системном шрифте 1.5
+        // те же 8.5sp рисуются как 12.75dp, порог не срабатывал, и «Имущество» обрезалось
+        val minSp = 8.5f / density.fontScale
+        val tabFont = remember(cellWidthSp, longest, minSp) {
+            (cellWidthSp / (longest * 0.62f)).coerceIn(minOf(minSp, 11.5f), 11.5f).sp
         }
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)

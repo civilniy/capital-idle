@@ -35,6 +35,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -732,6 +734,37 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
     }
 }
 
+/** Кегль даты в шапке при обычном шрифте и наименьший размер, до которого её можно ужать. */
+private const val HEADER_DATE_SP = 12f
+private const val HEADER_DATE_MIN_DP = 8f
+
+/** Кегль подписи под числом в сводке и наименьший её размер на экране. */
+private const val SUMMARY_LABEL_SP = 7.5f
+private const val SUMMARY_LABEL_MIN_DP = 6f
+
+/**
+ * Подобрать кегль так, чтобы текст влез в заданную ширину.
+ *
+ * Ширина измеряется настоящим замерщиком, а не прикидкой «символ ≈ 0.62 кегля»: именно такая
+ * прикидка и промахивалась на широких прописных кириллических буквах. Ширина строки линейна
+ * по кеглю (letterSpacing тоже задан в sp), поэтому одного замера достаточно.
+ *
+ * @param maxSp кегль при обычном шрифте — больше него не увеличиваем никогда
+ * @param minDp нижняя граница в *экранных* единицах: при системном шрифте 1.5 те же sp
+ *   рисуются в полтора раза крупнее, и общий для всех масштабов порог в sp был бы слишком щедрым
+ */
+@Composable
+private fun fitFontSp(
+    text: String, style: TextStyle, maxWidthPx: Int, maxSp: Float, minDp: Float
+): Float {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val ref = measurer.measure(text, style).size.width
+    if (ref <= 0 || maxWidthPx <= 0) return maxSp
+    val minSp = minDp / density.fontScale
+    return (maxSp * maxWidthPx / ref).coerceIn(minOf(minSp, maxSp), maxSp)
+}
+
 /** Подписи третьей строки распорядка: часы бизнеса слева, учёба и транспорт справа. */
 @Composable
 internal fun DayPlanLabels(bizH: Int, studyH: Int, carBonus: Int) {
@@ -762,9 +795,15 @@ internal fun CapitalHeader(
             modifier = Modifier.pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onTitleLongPress() })
             })
-        Text(dateText, color = Mute,
-            fontFamily = FontFamily.Monospace, fontSize = 12.sp,
-            modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        // дата ужимается под оставшуюся ширину: при крупном системном шрифте она рвалась
+        // на три строки посреди числа — «28.02» / «.36 ·» / «19:00»
+        BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            val style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = HEADER_DATE_SP.sp)
+            val sp = fitFontSp(dateText, style, constraints.maxWidth, HEADER_DATE_SP, HEADER_DATE_MIN_DP)
+            Text(dateText, color = Mute,
+                fontFamily = FontFamily.Monospace, fontSize = sp.sp,
+                maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             CurrencyChip(code = currencyCode, onClick = onCurrency, onLongPress = onCurrencyLong)
             Spacer(Modifier.width(8.dp))
@@ -808,8 +847,17 @@ private fun SummaryCell(value: String, label: String, color: Color, modifier: Mo
         Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
             fontSize = 14.sp, maxLines = 1)
         Spacer(Modifier.height(3.dp))
-        Text(label, color = Mute, fontSize = 7.5.sp, letterSpacing = 0.5.sp, lineHeight = 9.sp,
-            textAlign = TextAlign.Center, maxLines = 2)
+        // подпись ужимается по самому длинному слову: «РЕПУТАЦИЯ» при крупном системном
+        // шрифте переносила последнюю букву на вторую строку — перенос посреди слова.
+        // Многословные подписи («ЗАРПЛАТЫ /ДЕНЬ») по-прежнему могут занять две строки
+        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val style = TextStyle(fontSize = SUMMARY_LABEL_SP.sp, letterSpacing = 0.5.sp)
+            val longestWord = label.split(' ').maxByOrNull { it.length }.orEmpty()
+            val sp = fitFontSp(longestWord, style, constraints.maxWidth,
+                SUMMARY_LABEL_SP, SUMMARY_LABEL_MIN_DP)
+            Text(label, color = Mute, fontSize = sp.sp, letterSpacing = 0.5.sp,
+                lineHeight = (sp + 1.5f).sp, textAlign = TextAlign.Center, maxLines = 2)
+        }
     }
 }
 
@@ -1177,6 +1225,17 @@ internal fun CreditCard(
                             maxLines = 1, lineHeight = 18.sp)
                     }
                 }
+                // \u043f\u043e\u0434\u043f\u0438\u0441\u044c \u0442\u0438\u0440\u0430 \u0441\u0442\u043e\u0438\u0442 \u0432 \u043f\u043e\u0442\u043e\u043a\u0435, \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u043d\u043e\u043c\u0435\u0440\u043e\u043c \u043a\u0430\u0440\u0442\u044b, \u0430 \u043d\u0435 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043d\u0430
+                // \u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0439 \u0432\u044b\u0441\u043e\u0442\u0435: \u043f\u0440\u0438 \u043a\u0440\u0443\u043f\u043d\u043e\u043c \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435 \u043a\u0430\u0440\u0442\u044b \u0443\u0435\u0437\u0436\u0430\u0435\u0442
+                // \u0432\u043d\u0438\u0437, \u0438 \u043e\u0432\u0435\u0440\u043b\u0435\u0439 \u043f\u0435\u0447\u0430\u0442\u0430\u043b\u0441\u044f \u043f\u0440\u044f\u043c\u043e \u043f\u043e\u0432\u0435\u0440\u0445 \u043d\u043e\u043c\u0435\u0440\u0430
+                Text(
+                    tier.title, color = accent, fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 3.sp,
+                    maxLines = 1,
+                    // 2dp \u043a \u043e\u0442\u0441\u0442\u0443\u043f\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0438: \u0433\u0430\u0441\u0438\u0442 \u0445\u0432\u043e\u0441\u0442 letterSpacing \u0441\u043f\u0440\u0430\u0432\u0430, \u0447\u0442\u043e\u0431\u044b \u0432\u0438\u0434\u0438\u043c\u044b\u0439
+                    // \u043a\u0440\u0430\u0439 \u0431\u0443\u043a\u0432 \u0432\u0441\u0442\u0430\u043b \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u0438\u043a\u043e\u043d\u043a\u043e\u0439 \u0438 \u0440\u043e\u043c\u0431\u0430\u043c\u0438
+                    modifier = Modifier.align(Alignment.Top).padding(end = 2.dp)
+                )
             }
         }
 
@@ -1187,14 +1246,6 @@ internal fun CreditCard(
         Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 22.dp, bottom = 16.dp)) {
             PaySymbol()
         }
-
-        // подпись тира — оверлей. end чуть меньше (компенсация хвоста letterSpacing справа),
-        // чтобы видимый край букв встал вровень с иконкой и ромбами.
-        Text(
-            tier.title, color = accent, fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 3.sp,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 56.dp)
-        )
     }
 }
 
