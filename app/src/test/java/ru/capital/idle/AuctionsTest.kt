@@ -95,6 +95,32 @@ class AuctionsTest {
     }
 
     @Test
+    fun `пока хоть один предмет не собран, выставлять есть что`() {
+        assertTrue(Auctions.hasLotsLeft(GameState()))
+
+        // не хватает одного предмета — лот ещё будет
+        val almost = GameState(
+            collectibles = (Collectibles.all.map { it.id } - "litho").associateWith { 1.0 }
+        )
+        assertTrue(Auctions.hasLotsLeft(almost))
+
+        // собрано всё: следующего лота не будет никогда
+        val everything = GameState(collectibles = Collectibles.all.associate { it.id to 1.0 })
+        assertFalse(Auctions.hasLotsLeft(everything))
+        assertTrue(Auctions.lotPool(everything, AuctionTier.OPEN).isEmpty())
+        assertTrue(Auctions.lotPool(everything, AuctionTier.CLOSED).isEmpty())
+        assertNull("и открыть торги действительно нечем", Auctions.start(everything, 100.0))
+
+        // продали предмет — торги снова возможны
+        val sold = Collectibles.sell(everything.copy(gameHours = 100.0), "litho")!!
+        assertTrue(Auctions.hasLotsLeft(sold))
+
+        // предметы вне каталога на подсчёт не влияют
+        val withJunk = everything.copy(collectibles = everything.collectibles + ("исчез" to 1.0))
+        assertFalse(Auctions.hasLotsLeft(withJunk))
+    }
+
+    @Test
     fun `имена соперников влезают в ячейку «ведёт»`() {
         // ячейка однострочная: имя длиннее лимита обрежется без многоточия
         Auctions.rivalNames.forEach { n ->
