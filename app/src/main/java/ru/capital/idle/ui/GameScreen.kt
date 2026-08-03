@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -726,21 +727,25 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
  */
 private val TIER_TITLE_LIFT = (-6.33).dp
 
-/** Размер карты в макете, от которого взята пропорция. Менять нельзя — см. CLAUDE.md. */
+/**
+ * Опорный размер карты: **365 × 218 dp** — ровно тот, в котором она нарисована в макете
+ * и в котором размечается её содержимое. Взят замером: на опорной раскладке (ширина экрана
+ * 393dp, поля 14dp) отрисованная карта занимала именно столько при любом балансе, с надбавкой
+ * за тап и без, с любым именем владельца. Менять нельзя — см. CLAUDE.md.
+ */
 internal const val CARD_REFERENCE_WIDTH_DP = 365f
 internal const val CARD_REFERENCE_HEIGHT_DP = 218f
 
 /**
- * Пропорции карты — константа проекта. Это ровно тот размер, в котором карта нарисована
- * в макете: на опорной раскладке (ширина экрана 393dp, поля 14dp) она занимала
- * **365 × 218 dp**, отсюда и отношение. Никакого внешнего стандарта здесь нет и не должно
- * быть: пробовали взять формат банковской карты ISO/IEC 7810 ID-1 (1.586) — карта выросла
- * на 12dp, и нижняя графика отъехала от содержимого.
+ * Пропорции карты — константа проекта, отношение сторон опорного размера. Никакого внешнего
+ * стандарта здесь нет и не должно быть: пробовали взять формат банковской карты
+ * ISO/IEC 7810 ID-1 (1.586) — карта выросла на 12dp, и нижняя графика отъехала от содержимого.
  *
  * Высота считается от ширины и **не зависит от содержимого**: любой баланс, есть надбавка
  * за тап или нет, обычный системный шрифт или увеличенный — карта одна и та же, и разметка
- * под ней не прыгает. Содержимое подстраивается под карту, а не наоборот
- * (см. `textScale` в `CardFace`).
+ * под ней не прыгает. Содержимое подстраивается под карту, а не наоборот: кегли внутри карты
+ * держатся в постоянном экранном размере (`textScale`), а вся карта целиком масштабируется
+ * под фактическую ширину экрана (`fit` в [CardFace]).
  */
 internal const val CARD_ASPECT_RATIO = CARD_REFERENCE_WIDTH_DP / CARD_REFERENCE_HEIGHT_DP
 
@@ -1273,7 +1278,7 @@ internal fun CardFace(
     val textScale = minOf(1f, 1f / LocalDensity.current.fontScale)
     fun sp(v: Float) = (v * textScale).sp
 
-    Box(
+    BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .aspectRatio(CARD_ASPECT_RATIO)
@@ -1285,106 +1290,120 @@ internal fun CardFace(
             .drawBehind { drawCardPattern(tier.pattern, Color(tier.patternColor)) }
             .then(modifier)
     ) {
-        Column(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Содержимое размечается в опорном размере карты (365 × 218 dp) и целиком
+        // масштабируется под фактический. Ширина карты зависит от ширины экрана, а высота
+        // считается от ширины — значит на экране уже опорного карта ниже опорной, тогда как
+        // содержимое задано в dp и само не уменьшается. Без этого на 360dp низ карты
+        // срезает строку с именем владельца, а подпись тира садится на фирменный знак.
+        // Одним множителем на всё: карта остаётся той же картинкой, просто меньше.
+        val fit = maxWidth / CARD_REFERENCE_WIDTH_DP.dp
+        Box(
+            Modifier
+                .align(Alignment.Center)
+                .requiredSize(CARD_REFERENCE_WIDTH_DP.dp, CARD_REFERENCE_HEIGHT_DP.dp)
+                .scale(fit)
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            Column(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("AURUM BANK", color = accent, fontSize = sp(15f), letterSpacing = sp(2f))
-            }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text("AURUM BANK", color = accent, fontSize = sp(15f), letterSpacing = sp(2f))
+                }
 
-            CardChip(accent)
+                CardChip(accent)
 
-            Column {
-                Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = sp(9f), letterSpacing = sp(2f))
-                BalanceWithTapPop(
-                    money = money, accum = popAccum, tick = popTick, currency = currency,
-                    moneyColor = if (money < 0) RedAccent else txt,
-                    scale = textScale,
-                    onExpire = onPopExpire
-                )
-                Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
-                    color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = sp(12f), maxLines = 1, softWrap = false)
-            }
+                Column {
+                    Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = sp(9f), letterSpacing = sp(2f))
+                    BalanceWithTapPop(
+                        money = money, accum = popAccum, tick = popTick, currency = currency,
+                        moneyColor = if (money < 0) RedAccent else txt,
+                        scale = textScale,
+                        onExpire = onPopExpire
+                    )
+                    Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
+                        color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = sp(12f), maxLines = 1, softWrap = false)
+                }
 
-            // \u041f\u043e\u0434\u043f\u0438\u0441\u044c \u0442\u0438\u0440\u0430 \u0441\u0442\u043e\u0438\u0442 \u0432 \u043f\u043e\u0442\u043e\u043a\u0435, \u0430 \u043d\u0435 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043d\u0430 \u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0439 \u0432\u044b\u0441\u043e\u0442\u0435: \u043f\u0440\u0438 \u043a\u0440\u0443\u043f\u043d\u043e\u043c
-            // \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435 \u043a\u0430\u0440\u0442\u044b \u0443\u0435\u0437\u0436\u0430\u043b\u043e \u0432\u043d\u0438\u0437, \u0438 \u043e\u0432\u0435\u0440\u043b\u0435\u0439 \u043f\u0435\u0447\u0430\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0432\u0435\u0440\u0445 \u043d\u043e\u043c\u0435\u0440\u0430.
-            // \u0415\u0441\u043b\u0438 \u0440\u044f\u0434\u043e\u043c \u0441 \u043d\u043e\u043c\u0435\u0440\u043e\u043c \u0435\u0439 \u0443\u0436\u0435 \u043d\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u0448\u0438\u0440\u0438\u043d\u044b \u2014 \u0443\u0445\u043e\u0434\u0438\u0442 \u043d\u0430 \u0441\u0432\u043e\u044e \u0441\u0442\u0440\u043e\u043a\u0443 \u0432\u044b\u0448\u0435:
-            // \u0443\u0436\u0438\u043c\u0430\u0442\u044c \u0435\u0451 \u043d\u0435\u043a\u0443\u0434\u0430, \u0440\u0430\u0437\u0440\u044f\u0434\u043a\u0430 \u0432 3sp \u0441\u044a\u0435\u0434\u0430\u0435\u0442 \u0431\u043e\u043b\u044c\u0448\u0435, \u0447\u0435\u043c \u0441\u0430\u043c\u0438 \u0431\u0443\u043a\u0432\u044b.
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val measurer = rememberTextMeasurer()
-                val numberStyle = TextStyle(fontFamily = FontFamily.Monospace,
-                    fontSize = sp(12f), letterSpacing = sp(2f))
-                val tierStyle = TextStyle(fontFamily = FontFamily.Monospace,
-                    fontSize = sp(11f), letterSpacing = sp(3f), fontWeight = FontWeight.Bold)
-                val nameStyle = TextStyle(fontSize = sp(15f), letterSpacing = sp(1f))
-                val gapPx = with(LocalDensity.current) { 10.dp.toPx() }
-                // левая колонка шире номера, если имя игрока длиннее: в диалоге до 18 знаков,
-                // и по такому имени она и меряется. Считать только по номеру значило бы
-                // оставить подпись тира в строке, где ей уже не хватает места
-                val leftWidth = maxOf(
-                    measurer.measure(CARD_NUMBER, numberStyle).size.width,
-                    if (playerName.isBlank()) 0
-                    else measurer.measure(playerName.uppercase(java.util.Locale.ROOT), nameStyle).size.width
-                )
-                val sameLine = leftWidth +
-                    measurer.measure(tier.title, tierStyle).size.width + gapPx <= constraints.maxWidth
+                // \u041f\u043e\u0434\u043f\u0438\u0441\u044c \u0442\u0438\u0440\u0430 \u0441\u0442\u043e\u0438\u0442 \u0432 \u043f\u043e\u0442\u043e\u043a\u0435, \u0430 \u043d\u0435 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043d\u0430 \u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u043e\u0439 \u0432\u044b\u0441\u043e\u0442\u0435: \u043f\u0440\u0438 \u043a\u0440\u0443\u043f\u043d\u043e\u043c
+                // \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435 \u043a\u0430\u0440\u0442\u044b \u0443\u0435\u0437\u0436\u0430\u043b\u043e \u0432\u043d\u0438\u0437, \u0438 \u043e\u0432\u0435\u0440\u043b\u0435\u0439 \u043f\u0435\u0447\u0430\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0432\u0435\u0440\u0445 \u043d\u043e\u043c\u0435\u0440\u0430.
+                // \u0415\u0441\u043b\u0438 \u0440\u044f\u0434\u043e\u043c \u0441 \u043d\u043e\u043c\u0435\u0440\u043e\u043c \u0435\u0439 \u0443\u0436\u0435 \u043d\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u0448\u0438\u0440\u0438\u043d\u044b \u2014 \u0443\u0445\u043e\u0434\u0438\u0442 \u043d\u0430 \u0441\u0432\u043e\u044e \u0441\u0442\u0440\u043e\u043a\u0443 \u0432\u044b\u0448\u0435:
+                // \u0443\u0436\u0438\u043c\u0430\u0442\u044c \u0435\u0451 \u043d\u0435\u043a\u0443\u0434\u0430, \u0440\u0430\u0437\u0440\u044f\u0434\u043a\u0430 \u0432 3sp \u0441\u044a\u0435\u0434\u0430\u0435\u0442 \u0431\u043e\u043b\u044c\u0448\u0435, \u0447\u0435\u043c \u0441\u0430\u043c\u0438 \u0431\u0443\u043a\u0432\u044b.
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val measurer = rememberTextMeasurer()
+                    val numberStyle = TextStyle(fontFamily = FontFamily.Monospace,
+                        fontSize = sp(12f), letterSpacing = sp(2f))
+                    val tierStyle = TextStyle(fontFamily = FontFamily.Monospace,
+                        fontSize = sp(11f), letterSpacing = sp(3f), fontWeight = FontWeight.Bold)
+                    val nameStyle = TextStyle(fontSize = sp(15f), letterSpacing = sp(1f))
+                    val gapPx = with(LocalDensity.current) { 10.dp.toPx() }
+                    // левая колонка шире номера, если имя игрока длиннее: в диалоге до 18 знаков,
+                    // и по такому имени она и меряется. Считать только по номеру значило бы
+                    // оставить подпись тира в строке, где ей уже не хватает места
+                    val leftWidth = maxOf(
+                        measurer.measure(CARD_NUMBER, numberStyle).size.width,
+                        if (playerName.isBlank()) 0
+                        else measurer.measure(playerName.uppercase(java.util.Locale.ROOT), nameStyle).size.width
+                    )
+                    val sameLine = leftWidth +
+                        measurer.measure(tier.title, tierStyle).size.width + gapPx <= constraints.maxWidth
 
-                Column(Modifier.fillMaxWidth()) {
-                    if (!sameLine) {
-                        Text(
-                            tier.title, color = accent, fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold, fontSize = sp(11f), letterSpacing = sp(3f),
-                            maxLines = 1, softWrap = false,
-                            modifier = Modifier.align(Alignment.End).padding(end = 2.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                    }
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column {
-                            Text(CARD_NUMBER,
-                                color = accent.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace,
-                                fontSize = sp(12f), letterSpacing = sp(2f), maxLines = 1, softWrap = false)
-                            Spacer(Modifier.height(3.dp))
-                            if (playerName.isNotBlank()) {
-                                Text(playerName.uppercase(java.util.Locale.ROOT), color = txt, fontSize = sp(15f),
-                                    letterSpacing = sp(1f), maxLines = 1, softWrap = false, lineHeight = sp(18f))
-                            }
-                        }
-                        if (sameLine) {
+                    Column(Modifier.fillMaxWidth()) {
+                        if (!sameLine) {
                             Text(
                                 tier.title, color = accent, fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold, fontSize = sp(11f), letterSpacing = sp(3f),
                                 maxLines = 1, softWrap = false,
-                                modifier = Modifier
-                                    .align(Alignment.Top)
-                                    // \u043f\u043e\u0434\u044a\u0451\u043c \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u0440\u043e\u0432\u043d\u043e \u0442\u043e \u043f\u043e\u043b\u043e\u0436\u0435\u043d\u0438\u0435, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u043c \u043f\u043e\u0434\u043f\u0438\u0441\u044c
-                                    // \u0441\u0442\u043e\u044f\u043b\u0430 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043f\u0440\u0438 \u043e\u0431\u044b\u0447\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435 \u2014 \u0447\u0443\u0442\u044c \u0432\u044b\u0448\u0435 \u0441\u0442\u0440\u043e\u043a\u0438 \u043d\u043e\u043c\u0435\u0440\u0430
-                                    .offset(y = TIER_TITLE_LIFT)
-                                    // 2dp \u043a \u043e\u0442\u0441\u0442\u0443\u043f\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0438: \u0433\u0430\u0441\u0438\u0442 \u0445\u0432\u043e\u0441\u0442 letterSpacing \u0441\u043f\u0440\u0430\u0432\u0430,
-                                    // \u0447\u0442\u043e\u0431\u044b \u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u043a\u0440\u0430\u0439 \u0431\u0443\u043a\u0432 \u0432\u0441\u0442\u0430\u043b \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u0438\u043a\u043e\u043d\u043a\u043e\u0439 \u0438 \u0440\u043e\u043c\u0431\u0430\u043c\u0438
-                                    .padding(end = 2.dp)
+                                modifier = Modifier.align(Alignment.End).padding(end = 2.dp)
                             )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column {
+                                Text(CARD_NUMBER,
+                                    color = accent.copy(alpha = 0.85f), fontFamily = FontFamily.Monospace,
+                                    fontSize = sp(12f), letterSpacing = sp(2f), maxLines = 1, softWrap = false)
+                                Spacer(Modifier.height(3.dp))
+                                if (playerName.isNotBlank()) {
+                                    Text(playerName.uppercase(java.util.Locale.ROOT), color = txt, fontSize = sp(15f),
+                                        letterSpacing = sp(1f), maxLines = 1, softWrap = false, lineHeight = sp(18f))
+                                }
+                            }
+                            if (sameLine) {
+                                Text(
+                                    tier.title, color = accent, fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold, fontSize = sp(11f), letterSpacing = sp(3f),
+                                    maxLines = 1, softWrap = false,
+                                    modifier = Modifier
+                                        .align(Alignment.Top)
+                                        // \u043f\u043e\u0434\u044a\u0451\u043c \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u0440\u043e\u0432\u043d\u043e \u0442\u043e \u043f\u043e\u043b\u043e\u0436\u0435\u043d\u0438\u0435, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u043c \u043f\u043e\u0434\u043f\u0438\u0441\u044c
+                                        // \u0441\u0442\u043e\u044f\u043b\u0430 \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043f\u0440\u0438 \u043e\u0431\u044b\u0447\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435 \u2014 \u0447\u0443\u0442\u044c \u0432\u044b\u0448\u0435 \u0441\u0442\u0440\u043e\u043a\u0438 \u043d\u043e\u043c\u0435\u0440\u0430
+                                        .offset(y = TIER_TITLE_LIFT)
+                                        // 2dp \u043a \u043e\u0442\u0441\u0442\u0443\u043f\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0438: \u0433\u0430\u0441\u0438\u0442 \u0445\u0432\u043e\u0441\u0442 letterSpacing \u0441\u043f\u0440\u0430\u0432\u0430,
+                                        // \u0447\u0442\u043e\u0431\u044b \u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u043a\u0440\u0430\u0439 \u0431\u0443\u043a\u0432 \u0432\u0441\u0442\u0430\u043b \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u0438\u043a\u043e\u043d\u043a\u043e\u0439 \u0438 \u0440\u043e\u043c\u0431\u0430\u043c\u0438
+                                        .padding(end = 2.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // правые элементы — оверлеи с общим правым отступом (end = 16dp), стоят по одной вертикали.
-        // Вертикаль каждого регулируется своим top/bottom.
-        ContactlessIcon(accent,
-            modifier = Modifier.align(Alignment.TopEnd).padding(end = 22.dp, top = 16.dp))
-        Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 22.dp, bottom = 16.dp)) {
-            PaySymbol()
+            // правые элементы — оверлеи с общим правым отступом (end = 16dp), стоят по одной вертикали.
+            // Вертикаль каждого регулируется своим top/bottom.
+            ContactlessIcon(accent,
+                modifier = Modifier.align(Alignment.TopEnd).padding(end = 22.dp, top = 16.dp))
+            Box(modifier = Modifier.align(Alignment.BottomEnd).padding(end = 22.dp, bottom = 16.dp)) {
+                PaySymbol()
+            }
         }
     }
 }

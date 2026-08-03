@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -42,8 +43,11 @@ import ru.capital.idle.ui.theme.Bg
  * Карта на главном экране: постоянные пропорции и высота, не зависящая от содержимого.
  *
  * Раньше высоту карты определял текст — длинный баланс делал её выше короткого, и всё под
- * картой прыгало. Теперь высота считается от ширины по константе проекта (размер карты
- * в макете, 365 × 218 dp), а содержимое подстраивается под карту.
+ * картой прыгало. Теперь высота считается от ширины по константе проекта (опорный размер
+ * карты, 365 × 218 dp), а содержимое подстраивается под карту.
+ *
+ * Отсюда же и проверки на узких экранах: раз высота считается от ширины, на экране уже
+ * опорного карта ниже опорной — и содержимое обязано уменьшаться вместе с ней.
  *
  * Правило теста Compose: `setContent` вызывается один раз, поэтому варианты гоняются
  * через состояние, а не повторной установкой содержимого.
@@ -256,6 +260,51 @@ class CardSizeScreenshotTest {
     }
 
     // ===================== содержимое помещается в карту =====================
+
+    /**
+     * Отдельная проверка на саму строку с именем владельца: она есть на карте и нарисована.
+     *
+     * Её исчезновение не поймал ни один тест — снимки карты были сняты только на опорной
+     * ширине экрана, а размер и пропорции карты сходились и без этой строки.
+     *
+     * Проверяется на всех трёх ширинах экрана, потому что именно ширина и определяет,
+     * хватит ли карте высоты: строка имени в потоке последняя и обрезается первой.
+     */
+    @Test
+    fun `строка с именем владельца есть на карте`() {
+        compose.setContent { Screen() }
+        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
+            fontScale.floatValue = fs
+            names.forEach { (kind, name) ->
+                playerName.value = name
+                val (_, h) = textBox(name.uppercase(java.util.Locale.ROOT))
+                assertTrue(
+                    "имя владельца ($kind, шрифт $fs) нарисовано высотой ${px2dp(h.toFloat())}dp",
+                    px2dp(h.toFloat()) >= MIN_LINE_DP
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `строка с именем владельца есть на карте и на узком экране`() {
+        compose.setContent { Screen() }
+        assertScreenWidth(360f)
+        playerName.value = names.last().second
+        val (_, h) = textBox(names.last().second.uppercase(java.util.Locale.ROOT))
+        assertTrue("имя владельца нарисовано высотой ${px2dp(h.toFloat())}dp",
+            px2dp(h.toFloat()) >= MIN_LINE_DP)
+    }
+
+    /** Пустое имя строкой на карте не показывается — это не потеря, а отсутствие данных. */
+    @Test
+    fun `без имени строки нет`() {
+        compose.setContent { Screen() }
+        playerName.value = ""
+        compose.waitForIdle()
+        compose.onNodeWithText("ВЛАДИМИР").assertDoesNotExist()
+    }
 
     /**
      * Прогнать все состояния карты и собрать те, где содержимому не хватило места.
