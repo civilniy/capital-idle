@@ -252,6 +252,10 @@ private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
     }
 }
 
+/** Кегль подписи вкладки при обычном шрифте и наименьший её размер на экране. */
+private const val TAB_MAX_SP = 11.5f
+private const val TAB_MIN_DP = 8.5f
+
 /**
  * Ряд вкладок профиля. Вынесен из ProfileScreen отдельной функцией, чтобы его можно было
  * снимать скриншот-тестом: пять подписей в один ряд — самое хрупкое место этого экрана.
@@ -260,10 +264,6 @@ private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
  * что и плитки сводки, иначе «Имущество» уезжает на вторую строку.
  */
 @Composable
-/** Кегль подписи вкладки при обычном шрифте и наименьший её размер на экране. */
-private const val TAB_MAX_SP = 11.5f
-private const val TAB_MIN_DP = 8.5f
-
 internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
