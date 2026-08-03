@@ -71,22 +71,7 @@ fun PrestigeScreen(vm: GameViewModel) {
                 Text(GameMath.formatFull(state.bullion), color = Gold,
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp)
                 Spacer(Modifier.height(12.dp))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(if (canPrestige) Gold else GlassBtnOff)
-                        .clickable(enabled = canPrestige) { vm.prestige() }
-                        .padding(vertical = 13.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (canPrestige) "Начать жизнь заново   +${GameMath.formatFull(gain)} слитков"
-                        else "Заработайте больше для слитков",
-                        color = if (canPrestige) CoinText else GlassBtnOffText,
-                        fontWeight = FontWeight.ExtraBold, fontSize = 14.sp
-                    )
-                }
+                PrestigeButton(canPrestige = canPrestige, gain = gain) { vm.prestige() }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Сброс: деньги, работа, отрасли, инвестиции, календарь. Остаются навсегда: слитки, покупки престижа, дипломы, репутация и окружение.",
@@ -134,5 +119,29 @@ fun PrestigeScreen(vm: GameViewModel) {
             }
             Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+/**
+ * Кнопка перерождения. Вынесена отдельно, чтобы её вёрстку можно было снять скриншотом
+ * без ViewModel: именно здесь при крупном системном шрифте рвалась строка с наградой.
+ */
+@Composable
+internal fun PrestigeButton(canPrestige: Boolean, gain: Long, onClick: () -> Unit = {}) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(13.dp))
+            .background(if (canPrestige) Gold else GlassBtnOff)
+            .clickable(enabled = canPrestige, onClick = onClick)
+            .padding(vertical = 13.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            if (canPrestige) "Начать жизнь заново   +${GameMath.formatFull(gain)} слитков"
+            else "Заработайте больше для слитков",
+            color = if (canPrestige) CoinText else GlassBtnOffText,
+            fontWeight = FontWeight.ExtraBold, fontSize = 14.sp
+        )
     }
 }

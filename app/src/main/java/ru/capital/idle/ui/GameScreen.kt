@@ -85,47 +85,23 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
             .padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 16.dp)
     ) {
         // шапка: логотип · дата по центру · валюта и слитки
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
-                modifier = Modifier.pointerInput(Unit) {
-                    detectTapGestures(onLongPress = { vm.hardReset() })   // DEV-сброс (убрать перед релизом)
-                })
-            Text(GameMath.gameDateTime(state), color = Mute,
-                fontFamily = FontFamily.Monospace, fontSize = 12.sp,
-                modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CurrencyChip(code = cur.code, onClick = { vm.cycleCurrency() }, onLongPress = { vm.devAddMoney() })
-                Spacer(Modifier.width(8.dp))
-                Row(
-                    Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(GlassFill)
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GoldBar(size = 13.dp)
-                    Spacer(Modifier.width(5.dp))
-                    Text(GameMath.format(state.bullion.toDouble()), color = Gold,
-                        fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-            }
-        }
+        CapitalHeader(
+            dateText = GameMath.gameDateTime(state),
+            currencyCode = cur.code,
+            bullionText = GameMath.format(state.bullion.toDouble()),
+            onTitleLongPress = { vm.hardReset() },   // DEV-сброс (убрать перед релизом)
+            onCurrency = { vm.cycleCurrency() },
+            onCurrencyLong = { vm.devAddMoney() }
+        )
 
         Spacer(Modifier.height(8.dp))
 
-        // сводка: статус и репутация узкие, капитал широкий (полное число до миллиарда)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            SummaryCell("${Lifestyle.socialStatus(state)}", "СТАТУС", TextMain, Modifier.weight(0.9f),
-                onClick = { onNavigate("profile") })
-            SummaryCell("${state.reputation.toInt()}", "РЕПУТАЦИЯ", GreenAccent, Modifier.weight(0.9f),
-                onClick = { onNavigate("network") })
-            SummaryCell("${cur.symbol} ${GameMath.format(displayedWorth * cur.ratePerUsd)}",
-                "КАПИТАЛ", Gold, Modifier.weight(1.7f),
-                onClick = { onNavigate("rank") })
-        }
+        SummaryCellsRow(
+            status = Lifestyle.socialStatus(state),
+            reputation = state.reputation.toInt(),
+            worthText = "${cur.symbol} ${GameMath.format(displayedWorth * cur.ratePerUsd)}",
+            onNavigate = onNavigate
+        )
 
         Spacer(Modifier.height(8.dp))
 
@@ -519,13 +495,7 @@ private fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) {
         }
 
         val maxBiz = (state.dayBudget - state.workH).coerceAtLeast(1)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Свой бизнес: ${state.bizH}ч", color = Gold, fontSize = 10.sp)
-            Text(
-                "Учёба: ${state.studyHCalc}ч" + if (carBonus > 0) " · транспорт +${carBonus}ч" else "",
-                color = Color(0xFF6A9BD8), fontSize = 10.sp
-            )
-        }
+        DayPlanLabels(bizH = state.bizH, studyH = state.studyHCalc, carBonus = carBonus)
         GoldSlider(state.bizH.toFloat(), 0f..maxBiz.toFloat(), (maxBiz - 1).coerceAtLeast(0)) {
             onChange(state.sleepH, state.workH, it.toInt())
         }
@@ -759,6 +729,73 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             onDismiss = { mgrSheetFor = null }
         )
     }
+    }
+}
+
+/** Подписи третьей строки распорядка: часы бизнеса слева, учёба и транспорт справа. */
+@Composable
+internal fun DayPlanLabels(bizH: Int, studyH: Int, carBonus: Int) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Свой бизнес: ${bizH}ч", color = Gold, fontSize = 10.sp)
+        Text(
+            "Учёба: ${studyH}ч" + if (carBonus > 0) " · транспорт +${carBonus}ч" else "",
+            color = Color(0xFF6A9BD8), fontSize = 10.sp
+        )
+    }
+}
+
+/**
+ * Шапка экрана «Капитал»: заголовок, игровая дата, валюта и слитки.
+ * Вынесена отдельно, чтобы вёрстку шапки можно было снять скриншотом без ViewModel.
+ */
+@Composable
+internal fun CapitalHeader(
+    dateText: String,
+    currencyCode: String,
+    bullionText: String,
+    onTitleLongPress: () -> Unit = {},
+    onCurrency: () -> Unit = {},
+    onCurrencyLong: () -> Unit = {}
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
+            modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures(onLongPress = { onTitleLongPress() })
+            })
+        Text(dateText, color = Mute,
+            fontFamily = FontFamily.Monospace, fontSize = 12.sp,
+            modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CurrencyChip(code = currencyCode, onClick = onCurrency, onLongPress = onCurrencyLong)
+            Spacer(Modifier.width(8.dp))
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(GlassFill)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoldBar(size = 13.dp)
+                Spacer(Modifier.width(5.dp))
+                Text(bullionText, color = Gold,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+/** Сводка под шапкой: статус и репутация узкие, капитал широкий (полное число до миллиарда). */
+@Composable
+internal fun SummaryCellsRow(
+    status: Int, reputation: Int, worthText: String, onNavigate: (String) -> Unit = {}
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
+            onClick = { onNavigate("profile") })
+        SummaryCell("$reputation", "РЕПУТАЦИЯ", GreenAccent, Modifier.weight(0.9f),
+            onClick = { onNavigate("network") })
+        SummaryCell(worthText, "КАПИТАЛ", Gold, Modifier.weight(1.7f),
+            onClick = { onNavigate("rank") })
     }
 }
 
@@ -1069,7 +1106,7 @@ private fun CardWithActivation(
 }
 
 @Composable
-private fun CreditCard(
+internal fun CreditCard(
     money: Double, incomePerDay: Double, reward: Double, currency: Currency,
     playerName: String, tier: CardTier, onTap: () -> Unit
 ) {
