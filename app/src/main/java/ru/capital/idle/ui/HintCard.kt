@@ -37,6 +37,9 @@ fun HintCard(state: GameState, hintId: String, onDismiss: (String) -> Unit) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Text(hint.title, color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp,
                 modifier = Modifier.weight(1f))
+            // зазор до крестика: при крупном системном шрифте заголовок занимает две строки
+            // и упирался в кнопку вплотную
+            Spacer(Modifier.width(10.dp))
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))

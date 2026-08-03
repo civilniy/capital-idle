@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -251,6 +252,10 @@ private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
     }
 }
 
+/** Кегль подписи вкладки при обычном шрифте и наименьший её размер на экране. */
+private const val TAB_MAX_SP = 11.5f
+private const val TAB_MIN_DP = 8.5f
+
 /**
  * Ряд вкладок профиля. Вынесен из ProfileScreen отдельной функцией, чтобы его можно было
  * снимать скриншот-тестом: пять подписей в один ряд — самое хрупкое место этого экрана.
@@ -263,14 +268,20 @@ internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
     val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val density = LocalDensity.current
-        // ширина одного сегмента ≈ (полная ширина − отступы ряда) / число вкладок − отступы вкладки
-        val cellWidthSp = with(density) {
-            ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()) / fontScale / density.density
+        // ширина одного сегмента: (полная ширина − отступы ряда) / число вкладок − отступы вкладки
+        val cellWidthPx = with(density) {
+            ((maxWidth.toPx() - 8.dp.toPx()) / tabs.size - 4.dp.toPx()).toInt()
         }
-        val longest = tabs.maxOf { it.first.length }
-        val tabFont = remember(cellWidthSp, longest) {
-            (cellWidthSp / (longest * 0.62f)).coerceIn(8.5f, 11.5f).sp
-        }
+        val longest = tabs.maxByOrNull { it.first.length }!!.first
+        // Кегль подбирается настоящим замером самой длинной подписи — и обязательно жирным
+        // начертанием: выбранная вкладка рисуется ExtraBold и шире остальных, замер обычным
+        // начертанием обрезал именно её. Нижняя граница задана в экранных единицах, а не в sp:
+        // при системном шрифте 1.5 те же sp рисуются в полтора раза крупнее
+        val tabFont = fitFontSp(
+            longest,
+            TextStyle(fontSize = TAB_MAX_SP.sp, fontWeight = FontWeight.ExtraBold),
+            cellWidthPx, TAB_MAX_SP, TAB_MIN_DP
+        ).sp
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
         ) {
