@@ -139,8 +139,11 @@ class CardSizeScreenshotTest {
     /** Верх карты: снимок добавляет свой вертикальный отступ, карта начинается под ним. */
     private fun cardTopPx() = with(compose.density) { 10.dp.toPx() }
 
-    private fun cardBottomPx() =
-        cardTopPx() + with(compose.density) { CARD_REFERENCE_HEIGHT_DP.dp.toPx() }
+    /**
+     * Низ карты берётся из настоящего размера корня, а не из [CARD_REFERENCE_HEIGHT_DP]:
+     * высота считается от ширины экрана, и на узком экране карта ниже опорной.
+     */
+    private fun cardBottomPx() = rootHeight() - with(compose.density) { 10.dp.toPx() }
 
     /** Внутреннее поле карты — под ним содержимому уже нельзя. */
     private fun contentBottomLimitPx() = cardBottomPx() - with(compose.density) { 16.dp.toPx() }
@@ -247,52 +250,69 @@ class CardSizeScreenshotTest {
      * если содержимое перестало помещаться: карта обрезает всё, что вылезло за её край.
      * Ни один тест этого не ловил — имя исчезло молча.
      */
-    @Test
-    fun `имя владельца есть на карте и не обрезано`() {
-        compose.setContent { Screen() }
-        val overflow = LinkedHashMap<String, String>()
+    /**
+     * Прогнать все состояния карты и собрать те, где содержимое вышло за её край.
+     * Значение — сколько dp высоты карте не хватило.
+     */
+    private fun overflowReport(): Map<String, String> {
+        val bad = LinkedHashMap<String, String>()
         listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
             fontScale.floatValue = fs
             names.forEach { (nameKind, name) ->
                 playerName.value = name
                 balances.forEach { (balKind, v) ->
                     money.doubleValue = v
-                    val upper = name.uppercase(java.util.Locale.ROOT)
-                    val bottom = textBottomPx(upper)
-                    if (bottom > contentBottomLimitPx()) {
-                        overflow["$nameKind/$balKind/шрифт=$fs"] =
-                            "нужно ${"%.1f".format(java.util.Locale.ROOT,
-                                px2dp(bottom - cardTopPx()) + 16f)}dp"
+                    val key = "$nameKind/$balKind/шрифт=$fs"
+                    val nameBottom = textBottomPx(name.uppercase(java.util.Locale.ROOT))
+                    val cardH = px2dp(cardBottomPx() - cardTopPx())
+                    if (nameBottom > contentBottomLimitPx()) {
+                        bad["имя: $key"] = "карта %.1fdp, нужно %.1fdp".format(
+                            java.util.Locale.ROOT, cardH, px2dp(nameBottom - cardTopPx()) + 16f
+                        )
+                    }
+                    val tierBottom = textBottomPx(CardTier.entries.last().title)
+                    if (tierBottom > logoTopPx()) {
+                        bad["тир: $key"] = "заходит на знак на %.1fdp".format(
+                            java.util.Locale.ROOT, px2dp(tierBottom - logoTopPx())
+                        )
                     }
                 }
             }
         }
-        assertTrue(
-            "имя владельца вылезло за карту (высота карты ${CARD_REFERENCE_HEIGHT_DP}dp): $overflow",
-            overflow.isEmpty()
-        )
+        return bad
     }
 
     /**
-     * Подпись тира прижата вправо, фирменный знак — тоже. Если подпись опускается до знака,
-     * они печатаются друг поверх друга.
+     * Строка с именем владельца — последняя в потоке карты, а подпись тира стоит над
+     * фирменным знаком. Оба пропадают первыми, если содержимое перестало помещаться:
+     * карта обрезает всё, что вышло за её край. Ни один тест этого не ловил.
      */
     @Test
-    fun `подпись тира не доходит до фирменного знака`() {
+    fun `содержимое помещается в карту на опорном экране`() {
         compose.setContent { Screen() }
-        val hits = LinkedHashMap<String, String>()
-        listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
-            fontScale.floatValue = fs
-            names.forEach { (nameKind, name) ->
-                playerName.value = name
-                val bottom = textBottomPx(CardTier.entries.last().title)
-                if (bottom > logoTopPx()) {
-                    hits["$nameKind/шрифт=$fs"] =
-                        "заходит на ${"%.1f".format(java.util.Locale.ROOT, px2dp(bottom - logoTopPx()))}dp"
-                }
-            }
-        }
-        assertTrue("подпись тира наезжает на фирменный знак: $hits", hits.isEmpty())
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    /**
+     * Ширина экрана в dp меняется и от модели телефона, и от системной настройки размера
+     * экрана. Высота карты считается от ширины, а содержимое внутри задано в dp и от
+     * ширины не зависит — значит на узком экране карта может стать ниже содержимого.
+     */
+    @Test
+    @Config(qualifiers = "ru-rRU-w360dp-h800dp-xxhdpi")
+    fun `содержимое помещается в карту на узком экране`() {
+        compose.setContent { Screen() }
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
+    }
+
+    @Test
+    @Config(qualifiers = "ru-rRU-w320dp-h640dp-xxhdpi")
+    fun `содержимое помещается в карту на самом узком экране`() {
+        compose.setContent { Screen() }
+        val bad = overflowReport()
+        assertTrue("содержимое не помещается в карту: $bad", bad.isEmpty())
     }
 
     // ===================== плашка давления не двигает разметку =====================
