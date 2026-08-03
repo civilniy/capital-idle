@@ -734,6 +734,13 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
     }
 }
 
+/**
+ * На сколько подпись тира приподнята над строкой номера карты. Ровно столько,
+ * сколько давал прежний оверлей с отступом 56dp от низа карты, — правка вёрстки
+ * не должна менять вид при обычном шрифте.
+ */
+private val TIER_TITLE_LIFT = (-6.33).dp
+
 /** Кегль даты в шапке при обычном шрифте и наименьший размер, до которого её можно ужать. */
 private const val HEADER_DATE_SP = 12f
 private const val HEADER_DATE_MIN_DP = 8f
@@ -1232,9 +1239,15 @@ internal fun CreditCard(
                     tier.title, color = accent, fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 3.sp,
                     maxLines = 1,
-                    // 2dp \u043a \u043e\u0442\u0441\u0442\u0443\u043f\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0438: \u0433\u0430\u0441\u0438\u0442 \u0445\u0432\u043e\u0441\u0442 letterSpacing \u0441\u043f\u0440\u0430\u0432\u0430, \u0447\u0442\u043e\u0431\u044b \u0432\u0438\u0434\u0438\u043c\u044b\u0439
-                    // \u043a\u0440\u0430\u0439 \u0431\u0443\u043a\u0432 \u0432\u0441\u0442\u0430\u043b \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u0438\u043a\u043e\u043d\u043a\u043e\u0439 \u0438 \u0440\u043e\u043c\u0431\u0430\u043c\u0438
-                    modifier = Modifier.align(Alignment.Top).padding(end = 2.dp)
+                    modifier = Modifier
+                        .align(Alignment.Top)
+                        // \u043f\u043e\u0434\u044a\u0451\u043c \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u0440\u043e\u0432\u043d\u043e \u0442\u043e \u043f\u043e\u043b\u043e\u0436\u0435\u043d\u0438\u0435, \u0432 \u043a\u043e\u0442\u043e\u0440\u043e\u043c \u043f\u043e\u0434\u043f\u0438\u0441\u044c \u0441\u0442\u043e\u044f\u043b\u0430
+                        // \u043e\u0432\u0435\u0440\u043b\u0435\u0435\u043c \u043f\u0440\u0438 \u043e\u0431\u044b\u0447\u043d\u043e\u043c \u0448\u0440\u0438\u0444\u0442\u0435: \u043e\u043d\u0430 \u0431\u044b\u043b\u0430 \u0447\u0443\u0442\u044c \u0432\u044b\u0448\u0435 \u0441\u0442\u0440\u043e\u043a\u0438 \u043d\u043e\u043c\u0435\u0440\u0430.
+                        // \u0423\u0431\u0440\u0430\u0442\u044c \u044d\u0442\u043e\u0442 \u0441\u0434\u0432\u0438\u0433 \u2014 \u0437\u043d\u0430\u0447\u0438\u0442 \u0432\u044b\u0440\u043e\u0432\u043d\u044f\u0442\u044c \u0435\u0451 \u043f\u043e \u043d\u043e\u043c\u0435\u0440\u0443; \u044d\u0442\u043e \u0434\u0440\u0443\u0433\u043e\u0439 \u0432\u0438\u0434
+                        .offset(y = TIER_TITLE_LIFT)
+                        // 2dp \u043a \u043e\u0442\u0441\u0442\u0443\u043f\u0443 \u043a\u043e\u043b\u043e\u043d\u043a\u0438: \u0433\u0430\u0441\u0438\u0442 \u0445\u0432\u043e\u0441\u0442 letterSpacing \u0441\u043f\u0440\u0430\u0432\u0430, \u0447\u0442\u043e\u0431\u044b \u0432\u0438\u0434\u0438\u043c\u044b\u0439
+                        // \u043a\u0440\u0430\u0439 \u0431\u0443\u043a\u0432 \u0432\u0441\u0442\u0430\u043b \u0432\u0440\u043e\u0432\u0435\u043d\u044c \u0441 \u0438\u043a\u043e\u043d\u043a\u043e\u0439 \u0438 \u0440\u043e\u043c\u0431\u0430\u043c\u0438
+                        .padding(end = 2.dp)
                 )
             }
         }
