@@ -943,8 +943,76 @@ private fun EnterpriseNameDialog(
     }
 }
 
+/**
+ * Склонение слова «день» по числу: 1 день, 2 дня, 5 дней.
+ *
+ * Через 11–14 — «дней», хотя последняя цифра 1–4: это исключение, из-за которого
+ * простой `when (n % 10)` даёт «11 день».
+ */
+private fun daysWord(n: Long): String {
+    val h = n % 100
+    if (h in 11..14) return "дней"
+    return when (n % 10) {
+        1L -> "день"
+        2L, 3L, 4L -> "дня"
+        else -> "дней"
+    }
+}
+
+/**
+ * Срок окупаемости словами. Меньше суток — «меньше дня»: «через 0 дней» звучит как «уже».
+ * Большие сроки идут через общее сокращение чисел, иначе строка не влезает в карточку.
+ */
+private fun paybackDaysText(days: Double): String {
+    if (days < 1.0) return "окупится меньше чем за день"
+    val whole = kotlin.math.ceil(days).toLong()
+    if (whole > 999L) return "окупится через ${GameMath.format(whole.toDouble())} дней"
+    return "окупится через $whole ${daysWord(whole)}"
+}
+
+/**
+ * Окупаемость предприятия: сколько вложено, сколько заработано и когда вернётся.
+ *
+ * Отдельной функцией, а не куском карточки: так её можно снять скриншотом во всех
+ * состояниях, не собирая вокруг весь экран с `GameViewModel`.
+ *
+ * @param sinceDay день, с которого ведётся учёт, если он неполный — иначе `null`.
+ *   Пометка нужна: у предприятий из старых сохранений истории нет, накопление начато
+ *   с нуля, и «вложено» у них заведомо занижено
+ */
 @Composable
-private fun EnterpriseCard(
+internal fun EnterprisePayback(p: GameMath.Payback, cur: Currency, sinceDay: Int? = null) {
+    Spacer(Modifier.height(9.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0x14FFFFFF)))
+    Spacer(Modifier.height(7.dp))
+    Text(
+        "вложено ${GameMath.formatMoney(p.invested, cur)} · " +
+            "заработано ${GameMath.formatMoney(p.earned, cur)}",
+        color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.sp
+    )
+    Text(
+        when {
+            p.paidOff -> "окупилось · вернулось ${GameMath.decimal(p.returnedPct, 0)}%"
+            p.stalled -> "не окупается: управляющий съедает всю выручку"
+            else -> paybackDaysText(p.daysLeft ?: 0.0)
+        },
+        color = when {
+            p.paidOff -> GreenAccent
+            p.stalled -> RedAccent
+            else -> Gold
+        },
+        fontFamily = FontFamily.Monospace, fontSize = 10.sp
+    )
+    if (sinceDay != null) {
+        Text(
+            "учёт с ${sinceDay}-го дня · прежние вложения не сохранились",
+            color = GlassBtnOffText, fontFamily = FontFamily.Monospace, fontSize = 9.sp
+        )
+    }
+}
+
+@Composable
+internal fun EnterpriseCard(
     state: GameState, ind: Industry, index: Int, entIndex: Int, e: Enterprise, cur: Currency,
     onUpgrade: () -> Unit, onManager: () -> Unit, onRename: () -> Unit
 ) {
@@ -1030,6 +1098,10 @@ private fun EnterpriseCard(
                     fontSize = 10.sp, maxLines = 1)
             }
         }
+        EnterprisePayback(
+            p = GameMath.payback(state, ind, e), cur = cur,
+            sinceDay = if (e.statsPartial) e.statsSinceDay else null
+        )
     }
 }
 

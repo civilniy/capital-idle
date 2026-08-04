@@ -158,6 +158,12 @@ class EnterpriseNamesTest {
 
         // и подлинный старый формат записи — «уровень:управляющий» вообще без поля имени
         val legacy = GameState().toEntity().copy(enterprisesRaw = "1:0|3:-1;;;;;").toState()
-        assertEquals(listOf(Enterprise(1, 0, ""), Enterprise(3, -1, "")), legacy.enterprises[0])
+        assertEquals(
+            listOf(1 to 0, 3 to -1),
+            legacy.enterprises[0].map { it.level to it.managerOrdinal }
+        )
+        assertEquals(listOf("", ""), legacy.enterprises[0].map { it.name })
+        // накопителей окупаемости в таком сейве нет — учёт помечается как неполный
+        assertEquals(listOf(true, true), legacy.enterprises[0].map { it.statsPartial })
     }
 }

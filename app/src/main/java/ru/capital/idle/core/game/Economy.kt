@@ -203,11 +203,42 @@ enum class Manager(val title: String, val eff: Double, val salaryPerDay: Double)
     }
 }
 
-/** Одно предприятие игрока: название, какой уровень (ступень лестницы) и кто управляет (null = лично). */
-data class Enterprise(val level: Int = 0, val managerOrdinal: Int = -1, val name: String = "") {
+/**
+ * Одно предприятие игрока: название, какой уровень (ступень лестницы) и кто управляет
+ * (null = лично). Плюс накопители для окупаемости.
+ *
+ * Копить приходится: вычислить задним числом ничего нельзя. Цена открытия зависит от того,
+ * сколько предприятий уже было в отрасли, от фазы рынка и от скидок за образование **в момент
+ * покупки** — по уровню и индексу её не восстановить. То же с ценой улучшений и с зарплатой:
+ * управляющего меняют и снимают, а сколько дней кто проработал, из текущего состояния не видно.
+ *
+ * @param earned суммарная выручка за всё время, до вычета зарплаты
+ * @param salaryPaid суммарно выплачено управляющим за всё время
+ * @param invested суммарно вложено деньгами: цена открытия + все улучшения (зарплата отдельно)
+ * @param statsSinceDay игровой день, с которого ведётся учёт. [STATS_FROM_START] — учёт полный,
+ *   ведётся с открытия. Иначе предприятие досталось из сохранения, сделанного до появления
+ *   учёта: истории в нём нет, и числа заведомо неполные
+ */
+data class Enterprise(
+    val level: Int = 0,
+    val managerOrdinal: Int = -1,
+    val name: String = "",
+    val earned: Double = 0.0,
+    val salaryPaid: Double = 0.0,
+    val invested: Double = 0.0,
+    val statsSinceDay: Int = STATS_FROM_START
+) {
     val manager: Manager? get() = if (managerOrdinal < 0) null else Manager.byOrdinalOrNull(managerOrdinal)
     val isManual: Boolean get() = managerOrdinal < 0
     val efficiency: Double get() = manager?.eff ?: 1.0   // лично = 100%
+
+    /** Учёт неполный: предприятие старше своих накопителей. */
+    val statsPartial: Boolean get() = statsSinceDay != STATS_FROM_START
+
+    companion object {
+        /** Учёт ведётся с самого открытия — накопители полные. */
+        const val STATS_FROM_START = -1
+    }
 }
 
 object BusinessConfig {

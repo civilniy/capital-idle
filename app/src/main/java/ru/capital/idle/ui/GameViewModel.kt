@@ -139,7 +139,15 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 val (gain, missed) = GameMath.offlineEarnings(st, elapsedSec)
                 if (gain > 0.5) {
                     _offlineGain.value = Triple(gain, missed, elapsedSec)
-                    st = st.copy(money = st.money + gain, totalEarned = st.totalEarned + gain)
+                    // Оффлайн-доход начисляется одной суммой и с пониженной отдачей. Чтобы
+                    // накопители предприятий не разошлись с реальностью, переводим эту сумму
+                    // в «сколько дней дохода она стоит» и начисляем предприятиям столько же.
+                    val perDay = GameMath.incomePerDay(st)
+                    val creditedDays = if (perDay > 0.0) gain / perDay else 0.0
+                    st = st.copy(
+                        money = st.money + gain, totalEarned = st.totalEarned + gain,
+                        enterprises = GameMath.accrueEnterpriseStats(st, creditedDays)
+                    )
                 }
                 // торги шли и без вас: зал перебивал по своим правилам, лот мог закрыться
                 val adv = Auctions.skipOffline(st, hoursAway)
@@ -233,6 +241,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     money -= pay; debt -= pay
                 }
             }
+
+            // накопители окупаемости: у каждого предприятия своя выручка и своя зарплата
+            s = s.copy(enterprises = GameMath.accrueEnterpriseStats(s, dtDays))
 
             val newEvents = mutableListOf<Pair<String, String>>()
 
@@ -485,8 +496,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             val finalName = name.trim().ifEmpty { EnterpriseNames.random(ind.id) }
             val lists = st.enterprises.toMutableList()
             // новое предприятие — в НАЧАЛО списка (показывается сверху, удобно сразу настроить)
-            val newList = listOf(Enterprise(level = 0, managerOrdinal = -1, name = finalName)) +
-                lists.getOrElse(index) { emptyList() }
+            // цена открытия сразу ложится в накопитель вложений: восстановить её потом
+            // нельзя — она зависит от фазы рынка, скидок и числа предприятий на тот момент
+            val newList = listOf(
+                Enterprise(level = 0, managerOrdinal = -1, name = finalName, invested = cost)
+            ) + lists.getOrElse(index) { emptyList() }
             lists[index] = newList
             st.copy(money = st.money - cost, enterprises = lists,
                 statBizLevels = st.statBizLevels + 1)
@@ -523,7 +537,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             val cost = GameMath.upgradeEnterpriseCost(st, index, entIndex)
             if (st.money < cost) return@update st
             val lists = st.enterprises.toMutableList()
-            val newList = list.toMutableList().also { it[entIndex] = e.copy(level = nextLv) }
+            val newList = list.toMutableList().also {
+                it[entIndex] = e.copy(level = nextLv, invested = e.invested + cost)
+            }
             lists[index] = newList
             st.copy(money = st.money - cost, enterprises = lists,
                 statBizLevels = st.statBizLevels + 1)
