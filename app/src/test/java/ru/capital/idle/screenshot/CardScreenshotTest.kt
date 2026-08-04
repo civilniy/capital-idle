@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -75,7 +74,6 @@ class CardScreenshotTest {
     private val popTick = mutableIntStateOf(0)
     private val fontScale = mutableFloatStateOf(1f)
     private val pressure = mutableDoubleStateOf(0.0)
-    private val reserved = mutableStateOf(true)
     private val withPressureSlot = mutableStateOf(false)
     private val playerName = mutableStateOf("Владимир")
 
@@ -96,10 +94,7 @@ class CardScreenshotTest {
                     )
                     if (withPressureSlot.value) {
                         Spacer(Modifier.height(8.dp))
-                        PressureSlot(
-                            pressure = pressure.doubleValue, reputation = 42.0,
-                            reserved = reserved.value
-                        )
+                        PressureSlot(pressure = pressure.doubleValue, reputation = 42.0)
                     }
                 }
             }
@@ -111,9 +106,7 @@ class CardScreenshotTest {
     private fun SlotOnly() {
         Box(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 14.dp, vertical = 10.dp)) {
             Column(Modifier.fillMaxWidth()) {
-                PressureSlot(
-                    pressure = pressure.doubleValue, reputation = 42.0, reserved = reserved.value
-                )
+                PressureSlot(pressure = pressure.doubleValue, reputation = 42.0)
             }
         }
     }
@@ -238,31 +231,21 @@ class CardScreenshotTest {
         }
     }
 
-    // ===================== плашка давления не двигает разметку =====================
+    // ===================== плашка давления =====================
 
+    /**
+     * Нет давления — нет и места под плашку. Резерв места пробовали в PR #15 и убрали:
+     * под картой оставалась видимая пустота, а это хуже, чем скачок разметки при переходе
+     * через порог.
+     */
     @Test
-    fun `появление и исчезновение давления не меняет высоту отведённого места`() {
+    fun `без давления место под плашку не занимается`() {
         compose.setContent { SlotOnly() }
-        reserved.value = true
         pressure.doubleValue = 0.31
         val shown = rootHeight()
         pressure.doubleValue = 0.0
         val hidden = rootHeight()
-        assertEquals(
-            "место под плашку обязано быть одинаковым: иначе экран под ней прыгает",
-            shown, hidden
-        )
-    }
-
-    @Test
-    fun `до порога капитала место под плашку не занимается`() {
-        compose.setContent { SlotOnly() }
-        pressure.doubleValue = 0.0
-        reserved.value = true
-        val withSlot = rootHeight()
-        reserved.value = false
-        val withoutSlot = rootHeight()
-        assertTrue("у новичка на экране не должно висеть пустое место", withoutSlot < withSlot)
+        assertTrue("пустого места под картой быть не должно", hidden < shown)
     }
 
     // ===================== снимки =====================
@@ -318,19 +301,15 @@ class CardScreenshotTest {
     }
 
     @Test
-    fun `карта с плашкой давления и с пустым местом под неё`() {
+    fun `карта с плашкой давления`() {
         compose.setContent { Screen() }
         withPressureSlot.value = true
-        reserved.value = true
         money.doubleValue = 25_963_353.0
 
         pressure.doubleValue = 0.31
         capture("card_with_pressure")
-        pressure.doubleValue = 0.0
-        capture("card_pressure_reserved")
 
         fontScale.floatValue = Screenshots.LARGE_FONT
-        pressure.doubleValue = 0.31
         capture("card_with_pressure_large_font")
     }
 }
