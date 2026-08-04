@@ -84,6 +84,12 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
+    // Настоящая реализация org.json для JVM-тестов. В подставном android.jar классы
+    // org.json есть, но каждый метод бросает исключение, поэтому `SaveFile` без этой
+    // зависимости в обычном юнит-тесте не проверить. Robolectric-тестам она не мешает:
+    // там своя рабочая реализация, а порядок classpath отдаёт предпочтение настоящей.
+    testImplementation("org.json:json:20240303")
+
     // скриншот-тесты вёрстки: Compose рендерится на обычной JVM, без устройства и эмулятора
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test.ext:junit:1.2.1")

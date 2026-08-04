@@ -27,6 +27,20 @@ data class GameEntity(
     val bizH: Int,
     val jobId: String,
     val enterprisesRaw: String,
+    /**
+     * Накопители окупаемости предприятий, по одной записи на предприятие в том же порядке,
+     * что и в [enterprisesRaw]: `вложено:выручка:зарплата:деньУчёта`.
+     *
+     * Отдельной колонкой, а не полями внутри `enterprisesRaw`: там последним полем идёт
+     * название, и читается оно с `limit`, чтобы двоеточие внутри названия не ломало разбор.
+     * Дописать что-то после названия нельзя, а менять формат старой колонки — чинить то,
+     * что не ломалось.
+     *
+     * **Пустая строка означает сохранение, сделанное до появления учёта.** Именно поэтому
+     * при отсутствии предприятий колонка всё равно непустая (разделители на месте): иначе
+     * «нет предприятий» было бы не отличить от «истории нет».
+     */
+    val enterpriseStatsRaw: String,
     val eduDoneCsv: String,
     val studyingId: String,
     val studyProgress: Double,
@@ -103,6 +117,37 @@ private fun String.unescName(): String =
 
 private fun List<List<Enterprise>>.entCsv(): String =
     joinToString(";") { ind -> ind.joinToString("|") { "${it.level}:${it.managerOrdinal}:${it.name.escName()}" } }
+
+private fun List<List<Enterprise>>.entStatsCsv(): String =
+    joinToString(";") { ind ->
+        ind.joinToString("|") { "${it.invested}:${it.earned}:${it.salaryPaid}:${it.statsSinceDay}" }
+    }
+
+/**
+ * Наложить накопители из отдельной колонки на уже разобранный список предприятий.
+ *
+ * Пустая строка — сохранение до появления учёта: истории в нём нет и взять её неоткуда.
+ * Восстанавливать её оценкой «уровень × цена» нельзя — это были бы выдуманные числа.
+ * Поэтому накопители начинаются с нуля, а предприятие помечается днём, с которого учёт
+ * пошёл: карточка честно скажет, что числа неполные.
+ */
+private fun List<List<Enterprise>>.withEntStats(raw: String, todayDay: Int): List<List<Enterprise>> {
+    if (raw.isEmpty()) return map { ind -> ind.map { it.copy(statsSinceDay = todayDay) } }
+    val parts = raw.split(";")
+    return mapIndexed { i, ind ->
+        val chunk = parts.getOrNull(i) ?: ""
+        val recs = if (chunk.isEmpty()) emptyList() else chunk.split("|")
+        ind.mapIndexed { j, e ->
+            val f = recs.getOrNull(j)?.split(":") ?: return@mapIndexed e.copy(statsSinceDay = todayDay)
+            e.copy(
+                invested = f.getOrNull(0)?.toDoubleOrNull() ?: 0.0,
+                earned = f.getOrNull(1)?.toDoubleOrNull() ?: 0.0,
+                salaryPaid = f.getOrNull(2)?.toDoubleOrNull() ?: 0.0,
+                statsSinceDay = f.getOrNull(3)?.toIntOrNull() ?: Enterprise.STATS_FROM_START
+            )
+        }
+    }
+}
 
 private fun String.toEnterprises(nIndustries: Int): List<List<Enterprise>> {
     val parts = if (isEmpty()) emptyList() else split(";")
@@ -216,6 +261,7 @@ fun GameState.toEntity() = GameEntity(
     sleepH = sleepH, workH = workH, bizH = bizH,
     jobId = jobId,
     enterprisesRaw = enterprises.entCsv(),
+    enterpriseStatsRaw = enterprises.entStatsCsv(),
     eduDoneCsv = eduDone.sCsv(),
     studyingId = studyingId, studyProgress = studyProgress,
     investValuesCsv = investValues.dCsv(), investCostsCsv = investCosts.dCsv(),
@@ -260,7 +306,8 @@ fun GameEntity.toState() = GameState(
     pIncome = pIncome, pNegotiator = pNegotiator, pStart = pStart, pStudy = pStudy, pSafe = pSafe,
     sleepH = sleepH, workH = workH, bizH = bizH,
     jobId = jobId,
-    enterprises = enterprisesRaw.toEnterprises(Industries.count),
+    enterprises = enterprisesRaw.toEnterprises(Industries.count)
+        .withEntStats(enterpriseStatsRaw, (gameHours / 24.0).toInt() + 1),
     eduDone = eduDoneCsv.toSet(),
     studyingId = studyingId, studyProgress = studyProgress,
     investValues = investValuesCsv.toDoubles(Investments.COUNT),

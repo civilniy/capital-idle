@@ -28,6 +28,7 @@ object SaveFile {
         o.put("bizH", e.bizH)
         o.put("jobId", e.jobId)
         o.put("enterprisesRaw", e.enterprisesRaw)
+        o.put("enterpriseStatsRaw", e.enterpriseStatsRaw)
         o.put("eduDoneCsv", e.eduDoneCsv)
         o.put("studyingId", e.studyingId)
         o.put("studyProgress", e.studyProgress)
@@ -108,6 +109,9 @@ object SaveFile {
         bizH = o.optInt("bizH", d.bizH),
         jobId = o.optString("jobId", d.jobId),
         enterprisesRaw = o.optString("enterprisesRaw", d.enterprisesRaw),
+        // пустышка, а не d.enterpriseStatsRaw: пустая строка — признак файла,
+        // записанного до появления учёта, и по ней срабатывает миграция
+        enterpriseStatsRaw = o.optString("enterpriseStatsRaw", ""),
         eduDoneCsv = o.optString("eduDoneCsv", d.eduDoneCsv),
         studyingId = o.optString("studyingId", d.studyingId),
         studyProgress = o.optDouble("studyProgress", d.studyProgress),
