@@ -134,4 +134,11 @@ class EnterprisePaybackScreenshotTest {
     @Test
     fun `учёт с текущего дня при крупном шрифте`() =
         shot("biz_payback_partial_large_font", migrated, fontScale = Screenshots.LARGE_FONT)
+
+    /** То же предприятие после улучшения: вложения появились, окупаемость снова считается. */
+    @Test
+    fun `учёт неполный, но вложения уже есть`() = shot(
+        "biz_payback_partial_upgraded",
+        migrated.copy(level = 6, invested = 15_083_778.0, earned = 2_400_000.0)
+    )
 }

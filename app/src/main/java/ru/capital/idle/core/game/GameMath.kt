@@ -138,15 +138,19 @@ object GameMath {
      *   но показывать имеет смысл после окупаемости
      * @param stalled чистый доход не положителен: при таком управляющем предприятие
      *   не окупится никогда, и делить на него нельзя
+     * @param unknown вложений не записано вовсе. Так выглядит предприятие из сохранения,
+     *   сделанного до появления учёта: сказать про окупаемость нечего, и «окупилось» здесь
+     *   было бы неправдой — не окупилось, а просто не с чем сравнивать
      */
     data class Payback(
         val invested: Double,
         val earned: Double,
         val daysLeft: Double?,
         val returnedPct: Double,
-        val stalled: Boolean
+        val stalled: Boolean,
+        val unknown: Boolean
     ) {
-        val paidOff: Boolean get() = earned >= invested
+        val paidOff: Boolean get() = !unknown && earned >= invested
     }
 
     /**
@@ -162,9 +166,14 @@ object GameMath {
         val netPerDay = enterpriseNetPerDay(state, ind, e)
         val returnedPct = if (invested > 0.0) earned / invested * 100.0 else 0.0
         return when {
-            left <= 0.0 -> Payback(invested, earned, null, returnedPct, stalled = false)
-            netPerDay <= 0.0 -> Payback(invested, earned, null, returnedPct, stalled = true)
-            else -> Payback(invested, earned, left / netPerDay, returnedPct, stalled = false)
+            invested <= 0.0 ->
+                Payback(invested, earned, null, 0.0, stalled = false, unknown = true)
+            left <= 0.0 ->
+                Payback(invested, earned, null, returnedPct, stalled = false, unknown = false)
+            netPerDay <= 0.0 ->
+                Payback(invested, earned, null, returnedPct, stalled = true, unknown = false)
+            else ->
+                Payback(invested, earned, left / netPerDay, returnedPct, stalled = false, unknown = false)
         }
     }
 

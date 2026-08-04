@@ -992,11 +992,13 @@ internal fun EnterprisePayback(p: GameMath.Payback, cur: Currency, sinceDay: Int
     )
     Text(
         when {
+            p.unknown -> "окупаемость не посчитать: вложения не сохранились"
             p.paidOff -> "окупилось · вернулось ${GameMath.decimal(p.returnedPct, 0)}%"
             p.stalled -> "не окупается: управляющий съедает всю выручку"
             else -> paybackDaysText(p.daysLeft ?: 0.0)
         },
         color = when {
+            p.unknown -> GlassBtnOffText
             p.paidOff -> GreenAccent
             p.stalled -> RedAccent
             else -> Gold
@@ -1005,7 +1007,7 @@ internal fun EnterprisePayback(p: GameMath.Payback, cur: Currency, sinceDay: Int
     )
     if (sinceDay != null) {
         Text(
-            "учёт с ${sinceDay}-го дня · прежние вложения не сохранились",
+            "учёт с ${sinceDay}-го дня",
             color = GlassBtnOffText, fontFamily = FontFamily.Monospace, fontSize = 9.sp
         )
     }

@@ -117,13 +117,33 @@ class EnterprisePaybackTest {
         assertNotNull("лоток что-то приносит, срок посчитать можно", p.daysLeft)
     }
 
+    /**
+     * Предприятие из старого сохранения: вложений не записано. Считать окупаемость не из
+     * чего, и «окупилось» тут было бы неправдой — не окупилось, а сравнивать не с чем.
+     */
     @Test
-    fun `ничего не вложено и ничего не заработано — считается окупившимся, без деления`() {
-        // так выглядит предприятие из старого сохранения в первый миг после загрузки
+    fun `вложений не записано — окупаемость неизвестна, а не достигнута`() {
         val p = payback(Enterprise(level = 0))
-        assertTrue(p.paidOff)
+        assertTrue(p.unknown)
+        assertFalse("нельзя объявлять окупившимся то, чего не считали", p.paidOff)
         assertNull(p.daysLeft)
         assertEquals("процент от нуля не считаем", 0.0, p.returnedPct, EPS)
+    }
+
+    @Test
+    fun `вложений не записано, но выручка уже пошла — всё равно неизвестна`() {
+        val p = payback(Enterprise(level = 0, earned = 10_000.0))
+        assertTrue(p.unknown)
+        assertFalse(p.paidOff)
+        assertEquals(0.0, p.returnedPct, EPS)
+    }
+
+    @Test
+    fun `после первого улучшения окупаемость снова считается`() {
+        // у предприятия из старого сейва вложения появляются с первой же покупки
+        val p = payback(Enterprise(level = 1, invested = 1_300.0, earned = 200.0))
+        assertFalse(p.unknown)
+        assertNotNull(p.daysLeft)
     }
 
     // ===================== накопление =====================
