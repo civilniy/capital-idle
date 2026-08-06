@@ -90,19 +90,23 @@ class HistoryTabScreenshotTest {
     }
 
     @Test
-    fun `лента свёрнута`() = section("history_chronicle_collapsed", 40, expanded = false)
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
+    fun `лента свёрнута`() = section("history_chronicle_collapsed", 28, expanded = false)
 
     @Test
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
     fun `лента свёрнута при крупном шрифте`() =
-        section("history_chronicle_collapsed_large_font", 40, expanded = false,
+        section("history_chronicle_collapsed_large_font", 28, expanded = false,
             fontScale = Screenshots.LARGE_FONT)
 
     @Test
-    fun `лента развёрнута`() = section("history_chronicle_expanded", 40, expanded = true)
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
+    fun `лента развёрнута`() = section("history_chronicle_expanded", 28, expanded = true)
 
     @Test
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
     fun `лента развёрнута при крупном шрифте`() =
-        section("history_chronicle_expanded_large_font", 40, expanded = true,
+        section("history_chronicle_expanded_large_font", 28, expanded = true,
             fontScale = Screenshots.LARGE_FONT)
 
     /** Новая игра: событий ещё нет, кнопки разворота тоже быть не должно. */
@@ -127,6 +131,7 @@ class HistoryTabScreenshotTest {
 
     /** Ровно столько записей, сколько показывается: кнопка не нужна. */
     @Test
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
     fun `лента ровно в предел без кнопки`() =
         section("history_chronicle_exact", CHRONICLE_PREVIEW, expanded = false)
 
@@ -143,10 +148,11 @@ class HistoryTabScreenshotTest {
     // ===================== вкладка целиком =====================
 
     @Test
+    @Config(qualifiers = Screenshots.DEVICE_TALL)
     fun `вкладка целиком — статистика, под ней хроника`() {
         compose.captureOnBackground("history_tab") {
             Column(Modifier.fillMaxWidth()) {
-                HistoryTab(stateWith(40), Currency.USD)
+                HistoryTab(stateWith(28), Currency.USD)
             }
         }
     }
