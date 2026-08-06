@@ -9,6 +9,7 @@ import ru.capital.idle.core.game.Exchange
 import ru.capital.idle.core.game.Investments
 import ru.capital.idle.core.game.Auction
 import ru.capital.idle.core.game.Collectibles
+import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.Lifestyle
 
 @Entity(tableName = "game_state")
@@ -345,6 +346,9 @@ fun GameEntity.toState() = GameState(
     hintsSeen = hintsSeenCsv.toSet(),
     seenTabs = seenTabsCsv.toSet().ifEmpty { setOf("main") },
     announced = announcedCsv.toSet(),
-    currencyCode = currencyCode, playerName = playerName, onboarded = onboarded,
+    // код валюты приводим к существующему: в старом сейве может лежать удалённый EUR или CNY,
+    // и без этого он молча дожил бы до следующей записи файла
+    currencyCode = Currency.fromCode(currencyCode).code,
+    playerName = playerName, onboarded = onboarded,
     lastSeenMillis = lastSeenMillis
 )

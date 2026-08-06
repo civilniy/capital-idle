@@ -12,14 +12,18 @@ package ru.capital.idle.core.game
  * На экономику курс не влияет вообще: цены, доходы и все балансовые расчёты ведутся
  * в долларах, а курс применяется только в `GameMath.formatMoney` / `formatAmount`
  * в самый последний момент, при выводе на экран.
+ *
+ * Валют ровно две, так что фишка в шапке переключает доллар и рубль туда-обратно.
+ * Раньше в списке были ещё евро и юань; в сохранениях тех, кто на них переключился,
+ * лежат коды `EUR` и `CNY` — [fromCode] отдаёт на них доллар, а `GameEntity.toState`
+ * приводит код к существующему, чтобы устаревший не пережил следующее сохранение.
  */
 enum class Currency(val code: String, val symbol: String, val ratePerUsd: Double) {
     USD("USD", "$", 1.0),
-    RUB("RUB", "\u20BD", 100.0),
-    EUR("EUR", "\u20AC", 0.92),
-    CNY("CNY", "\u00A5", 7.2);
+    RUB("RUB", "\u20BD", 100.0);
 
     companion object {
+        /** Неизвестный код — в том числе оставшийся от удалённой валюты — это доллар. */
         fun fromCode(code: String): Currency = entries.firstOrNull { it.code == code } ?: USD
         fun next(code: String): Currency {
             val cur = fromCode(code)
