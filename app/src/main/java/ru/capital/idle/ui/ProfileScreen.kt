@@ -442,8 +442,11 @@ internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () 
     val shown = if (expanded) all else all.take(CHRONICLE_PREVIEW)
     shown.forEach { (day, text) ->
         Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
+            // ширина колонки дня — нижняя граница, а не жёсткий размер: при системном
+            // шрифте 1.5 «день 60» занимает все 64dp и прилипает вплотную к тексту записи.
+            // Отступ справа держит зазор при любом шрифте
             Text("день $day", color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.sp,
-                modifier = Modifier.width(64.dp).padding(top = 2.dp))
+                modifier = Modifier.widthIn(min = 64.dp).padding(top = 2.dp, end = 8.dp))
             Text(text, color = TextMain, fontSize = 12.5.sp, lineHeight = 17.sp)
         }
     }
