@@ -162,24 +162,44 @@ object Lifestyle {
 object Chronicle {
     const val MAX = 60
 
-    /** Запись: "день|код|параметр". */
-    fun entry(gameDay: Int, code: String, param: String = "") = "$gameDay|$code|$param"
+    /**
+     * Запись: "день|код|параметр".
+     *
+     * Параметр экранируется: в него попадает название предприятия, которое игрок вписывает
+     * сам, а `|` разделяет поля записи и `;` — записи между собой в сохранении. Экранируются
+     * только эти два знака и сама обратная косая; двоеточие внутри параметра осмысленно
+     * (им разделены подполя) и остаётся как есть. Старые записи проходят через снятие
+     * экранирования без изменений: ни `\\p`, ни `\\s` в них встретиться не могло.
+     */
+    fun entry(gameDay: Int, code: String, param: String = "") =
+        "$gameDay|$code|${param.escParam()}"
+
+    private fun String.escParam(): String =
+        replace("\\", "\\b").replace("|", "\\p").replace(";", "\\s")
+
+    private fun String.unescParam(): String =
+        replace("\\s", ";").replace("\\p", "|").replace("\\b", "\\")
 
     fun render(record: String): Pair<Int, String>? {
-        val p = record.split("|")
+        // limit = 3: всё после второго разделителя — параметр целиком
+        val p = record.split("|", limit = 3)
         if (p.size < 2) return null
         val day = p[0].toIntOrNull() ?: return null
-        val param = p.getOrElse(2) { "" }
+        val param = p.getOrElse(2) { "" }.unescParam()
         val text = when (p[1]) {
             "start" -> "Вы начали свой путь: комната в общежитии, обычные часы"
             "job" -> "Устроились: ${Jobs.byIdOrNull(param)?.title ?: param}"
             "quit" -> "Уволились с работы"
+            // параметр: "отрасль:ступень:название". Название идёт последним и читается
+            // с limit — двоеточие внутри него не должно ломать разбор. У записей из старых
+            // сохранений названия нет, и строка остаётся прежней, без него
             "biz" -> {
-                val parts = param.split(":")
+                val parts = param.split(":", limit = 3)
                 val ind = Industries.all.firstOrNull { it.id == parts.getOrNull(0) }
                 val lvl = parts.getOrNull(1)?.toIntOrNull() ?: 1
-                val name = ind?.levels?.getOrNull(lvl - 1)?.name ?: param
-                "Бизнес: открыто «$name»"
+                val type = ind?.levels?.getOrNull(lvl - 1)?.name ?: param
+                val own = parts.getOrNull(2).orEmpty()
+                if (own.isEmpty()) "Бизнес: открыто «$type»" else "Бизнес: $type «$own»"
             }
             "edu" -> "Диплом: ${Education.byId(param)?.title ?: param}"
             "own" -> {

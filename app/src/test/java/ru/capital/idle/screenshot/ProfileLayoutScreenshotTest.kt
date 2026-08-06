@@ -30,7 +30,7 @@ class ProfileLayoutScreenshotTest {
     // ===================== ряд вкладок =====================
 
     @Test
-    fun `вкладки профиля — все пять в одну строку`() {
+    fun `вкладки профиля — все четыре в одну строку`() {
         compose.captureOnBackground("profile_tabs") {
             ProfileTabsRow(selected = 0, onSelect = {})
         }
