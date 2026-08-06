@@ -504,7 +504,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             lists[index] = newList
             st.copy(money = st.money - cost, enterprises = lists,
                 statBizLevels = st.statBizLevels + 1)
-                .withChronicle("biz", "${ind.id}:open")
+                // ступень всегда первая (открывают с нуля), название — чтобы записи
+                // об открытии не выглядели восемью одинаковыми строками подряд
+                .withChronicle("biz", "${ind.id}:1:$finalName")
         }
         persistSoon()
     }

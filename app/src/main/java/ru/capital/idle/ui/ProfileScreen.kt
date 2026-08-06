@@ -30,7 +30,7 @@ import ru.capital.idle.ui.theme.*
 fun ProfileScreen(vm: GameViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val cur = Currency.fromCode(state.currencyCode)
-    var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 светская жизнь · 2 хроника · 3 цифры · 4 коллекция
+    var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 отдых · 3 история · 4 коллекция
     var showRename by remember { mutableStateOf(false) }   // диалог смены имени
 
     val inDebt = state.debt > 0.0
@@ -164,9 +164,8 @@ fun ProfileScreen(vm: GameViewModel) {
                     Spacer(Modifier.height(6.dp))
                 }
             }
-            2 -> ChronicleBlock(state)
             4 -> CollectionSection(vm = vm, state = state, cur = cur)
-            else -> StatsBlock(state, cur)
+            else -> HistoryTab(state, cur)
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -258,14 +257,14 @@ private const val TAB_MIN_DP = 8.5f
 
 /**
  * Ряд вкладок профиля. Вынесен из ProfileScreen отдельной функцией, чтобы его можно было
- * снимать скриншот-тестом: пять подписей в один ряд — самое хрупкое место этого экрана.
+ * снимать скриншот-тестом: подписи в один ряд — самое хрупкое место этого экрана.
  *
  * Кегль подгоняется под ширину сегмента по самой длинной подписи — тем же приёмом,
  * что и плитки сводки, иначе «Имущество» уезжает на вторую строку.
  */
 @Composable
 internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
-    val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "Хроника" to 2, "Цифры" to 3)
+    val tabs = listOf("Имущество" to 0, "Отдых" to 1, "Коллекция" to 4, "История" to 3)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val density = LocalDensity.current
         // ширина одного сегмента: (полная ширина − отступы ряда) / число вкладок − отступы вкладки
@@ -390,8 +389,37 @@ private fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Boo
     }
 }
 
+/** Сколько записей хроники видно, пока лента свёрнута. */
+internal const val CHRONICLE_PREVIEW = 20
+
+/**
+ * Вкладка «История»: цифры за все жизни, под ними — хроника событий.
+ *
+ * Хроника раньше занимала отдельную вкладку, но смотрят её редко и из любопытства,
+ * поэтому она ушла вниз этой вкладки и по умолчанию свёрнута: главное здесь — статистика.
+ */
 @Composable
-private fun ChronicleBlock(state: GameState) {
+internal fun HistoryTab(state: GameState, cur: Currency) {
+    var chronicleExpanded by remember { mutableStateOf(false) }
+    StatsBlock(state, cur)
+    ChronicleSection(
+        state = state,
+        expanded = chronicleExpanded,
+        onToggle = { chronicleExpanded = !chronicleExpanded }
+    )
+}
+
+/**
+ * Хроника: музей прошлых жизней и лента событий текущей.
+ *
+ * Состояние «развёрнуто» приходит параметром, а не живёт внутри: так секцию можно снять
+ * скриншотом в обоих видах, не нажимая кнопку.
+ */
+@Composable
+internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () -> Unit) {
+    Text("ХРОНИКА", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp,
+        fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp, bottom = 7.dp))
+
     // музей прошлых жизней
     state.museum.mapNotNull { Museum.parse(it) }.forEach { life ->
         Column(
@@ -405,14 +433,33 @@ private fun ChronicleBlock(state: GameState) {
         }
         Spacer(Modifier.height(8.dp))
     }
+
     Text("ТЕКУЩАЯ ЖИЗНЬ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(4.dp))
     if (state.chronicle.isEmpty()) Text("Пока тихо. Всё впереди.", color = Mute, fontSize = 12.sp)
-    state.chronicle.mapNotNull { Chronicle.render(it) }.forEach { (day, text) ->
+
+    val all = state.chronicle.mapNotNull { Chronicle.render(it) }
+    val shown = if (expanded) all else all.take(CHRONICLE_PREVIEW)
+    shown.forEach { (day, text) ->
         Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
             Text("день $day", color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.sp,
                 modifier = Modifier.width(64.dp).padding(top = 2.dp))
             Text(text, color = TextMain, fontSize = 12.5.sp, lineHeight = 17.sp)
+        }
+    }
+
+    if (all.size > CHRONICLE_PREVIEW) {
+        Spacer(Modifier.height(6.dp))
+        Box(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(GlassBtn)
+                .clickable(onClick = onToggle).padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                if (expanded) "Свернуть" else "Показать всё · ещё ${all.size - CHRONICLE_PREVIEW}",
+                color = Gold, fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1
+            )
         }
     }
 }
