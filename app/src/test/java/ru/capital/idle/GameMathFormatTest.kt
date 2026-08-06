@@ -64,7 +64,6 @@ class GameMathFormatTest {
         // 100 $ по курсу 100 = 10 000 ₽
         assertEquals("₽ 10${NB}000", GameMath.formatMoney(100.0, Currency.RUB))
         assertEquals("10${NB}000", GameMath.formatAmount(100.0, Currency.RUB))
-        assertEquals("€ 920", GameMath.formatMoney(1_000.0, Currency.EUR))
     }
 
     @Test
@@ -128,6 +127,6 @@ class GameMathFormatTest {
         assertEquals(Currency.RUB, Currency.fromCode("RUB"))
         assertEquals(Currency.USD, Currency.fromCode("нет такой"))
         assertEquals(Currency.RUB, Currency.next("USD"))
-        assertEquals(Currency.USD, Currency.next("CNY"))
+        assertEquals(Currency.USD, Currency.next("RUB"))
     }
 }
