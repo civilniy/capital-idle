@@ -63,7 +63,7 @@ class CollectiblesTest {
             assertTrue("$c: строка «$s» длиннее 10 знаков (${s.length})", s.length <= 10)
         }
         assertEquals("$ 400B", GameMath.formatMoney(capped, Currency.USD))
-        assertEquals("₽ 29,5T", GameMath.formatMoney(capped, Currency.RUB))
+        assertEquals("₽ 40,0T", GameMath.formatMoney(capped, Currency.RUB))
 
         // и максимально возможная прибыль тоже короткая
         val maxProfit = capped - top.basePrice

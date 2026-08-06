@@ -61,9 +61,9 @@ class GameMathFormatTest {
         assertEquals("0", GameMath.formatFull(0L))
 
         assertEquals("$ 1${NB}000", GameMath.formatMoney(1_000.0, Currency.USD))
-        // 100 $ по курсу 73.7 = 7 370 ₽
-        assertEquals("₽ 7${NB}370", GameMath.formatMoney(100.0, Currency.RUB))
-        assertEquals("7${NB}370", GameMath.formatAmount(100.0, Currency.RUB))
+        // 100 $ по курсу 100 = 10 000 ₽
+        assertEquals("₽ 10${NB}000", GameMath.formatMoney(100.0, Currency.RUB))
+        assertEquals("10${NB}000", GameMath.formatAmount(100.0, Currency.RUB))
         assertEquals("€ 920", GameMath.formatMoney(1_000.0, Currency.EUR))
     }
 
