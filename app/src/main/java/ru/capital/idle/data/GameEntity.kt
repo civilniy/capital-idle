@@ -10,6 +10,7 @@ import ru.capital.idle.core.game.Investments
 import ru.capital.idle.core.game.Auction
 import ru.capital.idle.core.game.Collectibles
 import ru.capital.idle.core.game.Currency
+import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.Lifestyle
 
 @Entity(tableName = "game_state")
@@ -62,6 +63,9 @@ data class GameEntity(
     val nextNewsDay: Int,
     val netOwnedCsv: String,
     val reputation: Double,
+    // давление элит: хранимая величина дня, а не расчёт на лету
+    val pressure: Double,
+    val pressureDay: Int,
     // множества купленных предметов — источник истины
     val ownedHomesCsv: String,
     val ownedCarsCsv: String,
@@ -276,6 +280,7 @@ fun GameState.toEntity() = GameEntity(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwnedCsv = netOwned.sCsv(),
     reputation = reputation,
+    pressure = pressure, pressureDay = pressureDay,
     ownedHomesCsv = ownedHomes.iSetCsv(),
     ownedCarsCsv = ownedCars.iSetCsv(),
     ownedTechsCsv = ownedTechs.iSetCsv(),
@@ -325,6 +330,7 @@ fun GameEntity.toState() = GameState(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwned = netOwnedCsv.toSet(),
     reputation = reputation,
+    pressure = pressure, pressureDay = pressureDay,
     ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
     ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
     ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
@@ -351,4 +357,8 @@ fun GameEntity.toState() = GameState(
     currencyCode = Currency.fromCode(currencyCode).code,
     playerName = playerName, onboarded = onboarded,
     lastSeenMillis = lastSeenMillis
-)
+).let { st ->
+    // сохранение, сделанное до того, как давление стало храниться: считаем его здесь,
+    // иначе до первой смены игрового дня доход бизнесов был бы завышен
+    if (st.pressureDay > 0) st else GameMath.withPressure(st)
+}

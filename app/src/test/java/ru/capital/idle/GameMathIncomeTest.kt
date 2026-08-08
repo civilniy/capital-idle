@@ -190,13 +190,15 @@ class GameMathIncomeTest {
      * Поздняя игра: все отрасли развиты, капитал такой, что давление элит уже работает.
      * Доход здесь огромный — именно в этом режиме прирост за тик заметен и цифры дрожали.
      */
-    private fun richState(money: Double) = GameState(
-        money = money, bizH = 6, reputation = 41.4, pIncome = 9,
-        enterprises = List(Industries.count) { i ->
-            List(BusinessConfig.MAX_ENTERPRISES_PER_INDUSTRY) {
-                Enterprise(Industries.all[i].levels.lastIndex, Manager.TOP.ordinal)
+    private fun richState(money: Double) = GameMath.withPressure(
+        GameState(
+            money = money, bizH = 6, reputation = 41.4, pIncome = 9,
+            enterprises = List(Industries.count) { i ->
+                List(BusinessConfig.MAX_ENTERPRISES_PER_INDUSTRY) {
+                    Enterprise(Industries.all[i].levels.lastIndex, Manager.TOP.ordinal)
+                }
             }
-        }
+        )
     )
 
     @Test
@@ -232,23 +234,13 @@ class GameMathIncomeTest {
     }
 
     @Test
-    fun `огрубление денег почти не меняет само давление`() {
-        // сглаживание визуальное: отклонение от давления по точной сумме должно быть мизерным
+    fun `сохранённое давление считается по точной сумме, без огрубления`() {
+        // огрубление денег до трёх значащих цифр (PR #8) убрано вместе с расчётом на лету:
+        // давление берётся из состояния, и считается оно по настоящему капиталу
         listOf(1.5e9, 4.7e10, 1.0e12, 3.9e13).forEach { money ->
             val exact = Pressure.value(money, 41.0)
-            val shown = GameMath.pressureShown(richState(money))
-            assertEquals("капитал $money", exact, shown, 0.001)
+            assertEquals("капитал $money", exact, GameMath.pressureShown(richState(money)), EPS)
         }
-    }
-
-    @Test
-    fun `огрубление денег идёт ступенями по три значащих цифры`() {
-        assertEquals(1_000_000_000.0, GameMath.pressureMoney(1_009_999_999.0), EPS)
-        assertEquals(1_010_000_000.0, GameMath.pressureMoney(1_010_000_001.0), EPS)
-        assertEquals(3_450_000_000_000.0, GameMath.pressureMoney(3_456_789_000_000.0), EPS)
-        // ноль и отрицательные проходят насквозь — давления там нет
-        assertEquals(0.0, GameMath.pressureMoney(0.0), EPS)
-        assertEquals(-5.0, GameMath.pressureMoney(-5.0), EPS)
     }
 
     // ===================== пассив и итог =====================
