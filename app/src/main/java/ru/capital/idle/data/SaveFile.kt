@@ -49,6 +49,8 @@ object SaveFile {
         o.put("nextNewsDay", e.nextNewsDay)
         o.put("netOwnedCsv", e.netOwnedCsv)
         o.put("reputation", e.reputation)
+        o.put("pressure", e.pressure)
+        o.put("pressureDay", e.pressureDay)
         o.put("ownedHomesCsv", e.ownedHomesCsv)
         o.put("ownedCarsCsv", e.ownedCarsCsv)
         o.put("ownedTechsCsv", e.ownedTechsCsv)
@@ -132,6 +134,10 @@ object SaveFile {
         nextNewsDay = o.optInt("nextNewsDay", d.nextNewsDay),
         netOwnedCsv = o.optString("netOwnedCsv", d.netOwnedCsv),
         reputation = o.optDouble("reputation", d.reputation),
+        // отметка дня по умолчанию нулевая: отсутствие ключа должно быть отличимо
+        // от честно записанного значения, иначе старый сейв не пересчитать
+        pressure = o.optDouble("pressure", 0.0),
+        pressureDay = o.optInt("pressureDay", 0),
         // ВАЖНО: дефолт здесь — пустая строка, а НЕ значение из DEFAULT.
         // Отсутствие ключа означает сейв старого формата, и множество должно
         // достроиться из legacy-индекса ниже (toOwnedSet), а не стать стартовым {0}.
