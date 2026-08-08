@@ -30,14 +30,21 @@ class EnterprisePaybackTest {
      * Часы на бизнес заданы с запасом: предприятие, которым игрок занимается лично, без
      * выделенных часов не приносит ничего (`mgmtEff` = 0), и проверять на нём было бы нечего.
      */
-    private fun stateWith(e: Enterprise) = withEnterprises(GameState(bizH = 12), 0, e)
+    private fun stateWith(e: Enterprise) =
+        GameMath.withProfitShown(withEnterprises(GameState(bizH = 12), 0, e))
 
-    private fun payback(e: Enterprise) = GameMath.payback(stateWith(e), trade, e)
+    /** Карточка читает снятую прибыль, поэтому предприятие берётся из состояния со снимком. */
+    private fun payback(e: Enterprise) =
+        stateWith(e).let { GameMath.payback(it, trade, it.enterprises[0][0]) }
 
     @Test
-    fun `вложено складывается из покупок и выплаченной зарплаты`() {
+    fun `вложено — только покупки, зарплата в него не входит`() {
         val e = Enterprise(level = 0, invested = 1_000.0, salaryPaid = 250.0, earned = 0.0)
-        assertEquals(1_250.0, payback(e).invested, EPS)
+        val p = payback(e)
+        assertEquals("разовые затраты и ничего кроме", 1_000.0, p.invested, EPS)
+        assertEquals("зарплата ушла в минус прибыли", -250.0, p.earned, EPS)
+        // остаток до окупаемости тот же, что давала прежняя формула
+        assertEquals(1_250.0, p.invested - p.earned, EPS)
     }
 
     @Test

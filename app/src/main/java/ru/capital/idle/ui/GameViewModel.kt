@@ -159,9 +159,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     st = st.withChronicle(e.chronicleCode, e.chronicleParam)
                 }
                 // деньги за оффлайн приходят одной суммой, а игровые часы, пока игра закрыта,
-                // стоят — смены дня не будет. Давление считаем здесь, иначе оно осталось бы
-                // от прошлой сессии и не соответствовало бы новому капиталу
-                st = GameMath.withPressure(st)
+                // стоят — смены дня не будет. Величины дня считаем здесь, иначе они остались бы
+                // от прошлой сессии и не соответствовали бы ни капиталу, ни накопителям
+                st = GameMath.withProfitShown(GameMath.withPressure(st))
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st
@@ -409,9 +409,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 announced = announced,
                 tutorialStep = tut
             ).let { next ->
-                // давление элит — величина дня: на границе игровых суток считаем заново
-                // от текущих денег, внутри суток держим прежнее (см. GameMath.pressureOnNewDay)
-                GameMath.pressureOnNewDay(next)
+                // величины дня: на границе игровых суток считаем заново, внутри суток держим
+                // прежние. Давление — от текущих денег, показанная прибыль предприятий —
+                // с их накопителей (см. GameMath.pressureOnNewDay и profitShownOnNewDay)
+                GameMath.profitShownOnNewDay(GameMath.pressureOnNewDay(next))
             }.let { next ->
                 // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
                 val adv = Auctions.advance(next, gameH)
@@ -680,8 +681,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 stockQty = List(Exchange.COUNT) { 0.0 },
                 stockAvg = List(Exchange.COUNT) { 0.0 },
                 studyingId = "", studyProgress = 0.0,
-                // капитал обнулён — давление с ним, считать заново будет уже новая жизнь
-                pressure = 0.0, pressureDay = 0,
+                // капитал обнулён — давление с ним, считать заново будет уже новая жизнь.
+                // Предприятия прошлой жизни закрыты, снимать прибыль тоже не с чего
+                pressure = 0.0, pressureDay = 0, statsShownDay = 0,
                 gameHours = 8.0,
                 startDateMillis = System.currentTimeMillis(),
                 phaseIndex = 0, phaseEndGameH = 0.0,

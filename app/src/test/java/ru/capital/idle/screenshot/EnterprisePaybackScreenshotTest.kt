@@ -43,18 +43,24 @@ class EnterprisePaybackScreenshotTest {
     private fun stateWith(e: Enterprise): GameState {
         val lists = MutableList(Industries.count) { emptyList<Enterprise>() }
         lists[0] = listOf(e)
-        // давление элит хранится в состоянии, а не считается на лету: без withPressure
-        // у капитала в триллион его бы не было, и выручка на карточке вышла бы завышенной
-        return GameMath.withPressure(
-            GameState(money = 1e12, bizH = 12, gameHours = 24.0 * 200, enterprises = lists)
+        // величины дня хранятся в состоянии, а не считаются на лету:
+        // без withPressure у капитала в триллион не было бы давления и выручка вышла бы
+        // завышенной, без withProfitShown карточка показала бы нулевую прибыль
+        return GameMath.withProfitShown(
+            GameMath.withPressure(
+                GameState(money = 1e12, bizH = 12, gameHours = 24.0 * 200, enterprises = lists)
+            )
         )
     }
 
     private fun shot(name: String, e: Enterprise, cur: Currency = Currency.USD, fontScale: Float = 1f) {
+        val st = stateWith(e)
+        // предприятие берём из состояния: там у него уже снята показываемая прибыль
+        val shown = st.enterprises[0][0]
         compose.captureOnBackground(name, fontScale = fontScale) {
             Column(Modifier.fillMaxWidth()) {
                 EnterpriseCard(
-                    state = stateWith(e), ind = trade, index = 0, entIndex = 0, e = e, cur = cur,
+                    state = st, ind = trade, index = 0, entIndex = 0, e = shown, cur = cur,
                     onUpgrade = {}, onManager = {}, onRename = {}
                 )
             }

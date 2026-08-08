@@ -226,7 +226,13 @@ data class Enterprise(
     val earned: Double = 0.0,
     val salaryPaid: Double = 0.0,
     val invested: Double = 0.0,
-    val statsSinceDay: Int = STATS_FROM_START
+    val statsSinceDay: Int = STATS_FROM_START,
+    /**
+     * Чистая прибыль (`earned - salaryPaid`) на момент последней смены игрового дня —
+     * то, что показывает карточка. Сами накопители растут каждый тик, и без этого снимка
+     * строка окупаемости бежала бы на глазах. Обновляется в [GameMath.profitShownOnNewDay].
+     */
+    val profitShown: Double = 0.0
 ) {
     val manager: Manager? get() = if (managerOrdinal < 0) null else Manager.byOrdinalOrNull(managerOrdinal)
     val isManual: Boolean get() = managerOrdinal < 0

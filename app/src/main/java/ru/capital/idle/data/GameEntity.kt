@@ -31,7 +31,7 @@ data class GameEntity(
     val enterprisesRaw: String,
     /**
      * Накопители окупаемости предприятий, по одной записи на предприятие в том же порядке,
-     * что и в [enterprisesRaw]: `вложено:выручка:зарплата:деньУчёта`.
+     * что и в [enterprisesRaw]: `вложено:выручка:зарплата:деньУчёта:показаннаяПрибыль`.
      *
      * Отдельной колонкой, а не полями внутри `enterprisesRaw`: там последним полем идёт
      * название, и читается оно с `limit`, чтобы двоеточие внутри названия не ломало разбор.
@@ -66,6 +66,7 @@ data class GameEntity(
     // давление элит: хранимая величина дня, а не расчёт на лету
     val pressure: Double,
     val pressureDay: Int,
+    val statsShownDay: Int,
     // множества купленных предметов — источник истины
     val ownedHomesCsv: String,
     val ownedCarsCsv: String,
@@ -125,7 +126,9 @@ private fun List<List<Enterprise>>.entCsv(): String =
 
 private fun List<List<Enterprise>>.entStatsCsv(): String =
     joinToString(";") { ind ->
-        ind.joinToString("|") { "${it.invested}:${it.earned}:${it.salaryPaid}:${it.statsSinceDay}" }
+        ind.joinToString("|") {
+            "${it.invested}:${it.earned}:${it.salaryPaid}:${it.statsSinceDay}:${it.profitShown}"
+        }
     }
 
 /**
@@ -144,11 +147,16 @@ private fun List<List<Enterprise>>.withEntStats(raw: String, todayDay: Int): Lis
         val recs = if (chunk.isEmpty()) emptyList() else chunk.split("|")
         ind.mapIndexed { j, e ->
             val f = recs.getOrNull(j)?.split(":") ?: return@mapIndexed e.copy(statsSinceDay = todayDay)
+            val earned = f.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+            val salaryPaid = f.getOrNull(2)?.toDoubleOrNull() ?: 0.0
             e.copy(
                 invested = f.getOrNull(0)?.toDoubleOrNull() ?: 0.0,
-                earned = f.getOrNull(1)?.toDoubleOrNull() ?: 0.0,
-                salaryPaid = f.getOrNull(2)?.toDoubleOrNull() ?: 0.0,
-                statsSinceDay = f.getOrNull(3)?.toIntOrNull() ?: Enterprise.STATS_FROM_START
+                earned = earned,
+                salaryPaid = salaryPaid,
+                statsSinceDay = f.getOrNull(3)?.toIntOrNull() ?: Enterprise.STATS_FROM_START,
+                // пятого поля нет в сохранениях до появления снимка — берём прибыль как есть,
+                // иначе карточка до первой смены суток показывала бы ноль
+                profitShown = f.getOrNull(4)?.toDoubleOrNull() ?: (earned - salaryPaid)
             )
         }
     }
@@ -280,7 +288,7 @@ fun GameState.toEntity() = GameEntity(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwnedCsv = netOwned.sCsv(),
     reputation = reputation,
-    pressure = pressure, pressureDay = pressureDay,
+    pressure = pressure, pressureDay = pressureDay, statsShownDay = statsShownDay,
     ownedHomesCsv = ownedHomes.iSetCsv(),
     ownedCarsCsv = ownedCars.iSetCsv(),
     ownedTechsCsv = ownedTechs.iSetCsv(),
@@ -330,7 +338,7 @@ fun GameEntity.toState() = GameState(
     newsHoursLeft = newsHoursLeft, newsTotalHours = newsTotalHours, nextNewsDay = nextNewsDay,
     netOwned = netOwnedCsv.toSet(),
     reputation = reputation,
-    pressure = pressure, pressureDay = pressureDay,
+    pressure = pressure, pressureDay = pressureDay, statsShownDay = statsShownDay,
     ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
     ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
     ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
