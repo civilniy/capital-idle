@@ -51,6 +51,7 @@ object SaveFile {
         o.put("reputation", e.reputation)
         o.put("pressure", e.pressure)
         o.put("pressureDay", e.pressureDay)
+        o.put("statsShownDay", e.statsShownDay)
         o.put("ownedHomesCsv", e.ownedHomesCsv)
         o.put("ownedCarsCsv", e.ownedCarsCsv)
         o.put("ownedTechsCsv", e.ownedTechsCsv)
@@ -138,6 +139,7 @@ object SaveFile {
         // от честно записанного значения, иначе старый сейв не пересчитать
         pressure = o.optDouble("pressure", 0.0),
         pressureDay = o.optInt("pressureDay", 0),
+        statsShownDay = o.optInt("statsShownDay", 0),
         // ВАЖНО: дефолт здесь — пустая строка, а НЕ значение из DEFAULT.
         // Отсутствие ключа означает сейв старого формата, и множество должно
         // достроиться из legacy-индекса ниже (toOwnedSet), а не стать стартовым {0}.
