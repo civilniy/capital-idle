@@ -12,6 +12,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.Enterprise
+import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.core.game.Industries
 import ru.capital.idle.core.game.Manager
@@ -42,7 +43,11 @@ class EnterprisePaybackScreenshotTest {
     private fun stateWith(e: Enterprise): GameState {
         val lists = MutableList(Industries.count) { emptyList<Enterprise>() }
         lists[0] = listOf(e)
-        return GameState(money = 1e12, bizH = 12, gameHours = 24.0 * 200, enterprises = lists)
+        // давление элит хранится в состоянии, а не считается на лету: без withPressure
+        // у капитала в триллион его бы не было, и выручка на карточке вышла бы завышенной
+        return GameMath.withPressure(
+            GameState(money = 1e12, bizH = 12, gameHours = 24.0 * 200, enterprises = lists)
+        )
     }
 
     private fun shot(name: String, e: Enterprise, cur: Currency = Currency.USD, fontScale: Float = 1f) {
