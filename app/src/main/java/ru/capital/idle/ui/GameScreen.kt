@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.drawBehind
@@ -1567,14 +1568,34 @@ internal fun BalanceWithTapPop(
         val popLen = maxOf(balanceText.length + 1, MAX_TAP_POP_LEN)
         val balanceSp = remember(widthSp, balanceText.length) {
             (widthSp / (0.62f * (balanceText.length + popLen * TAP_POP_RATIO)))
-                .coerceIn(13f, 30f)
+                .coerceIn(MIN_BALANCE_SP, MAX_BALANCE_SP)
         }
         Row(verticalAlignment = Alignment.Top) {
-            Text(
-                balanceText, color = moneyColor,
-                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-                fontSize = balanceSp.sp, maxLines = 1, softWrap = false
-            )
+            Box {
+                // Мерка высоты строки. Кегль баланса подбирается под длину числа, и вместе
+                // с ним менялась высота строки: у короткого «$ 1,7B» она на 1dp больше, чем
+                // у длинного «$ 940 015 169», а карта тянется за содержимым (heightIn(min))
+                // и на глазах прыгала при переходе через миллиард.
+                //
+                // Невидимая строка максимального кегля задаёт высоту раз и навсегда. Числом
+                // её не выписать: это метрика шрифта, а не наша величина; здесь она берётся
+                // из того же шрифта тем же способом, что и раньше.
+                //
+                // Баланс лежит поверх мерки и прижат к её верху, так что сам он не двигается.
+                // Строка дохода под ним встаёт туда, где она и так стояла при крупном кегле:
+                // до этой правки она гуляла по вертикали на 10px вслед за длиной числа.
+                Text(
+                    "0", color = moneyColor,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    fontSize = MAX_BALANCE_SP.sp, maxLines = 1, softWrap = false,
+                    modifier = Modifier.alpha(0f).clearAndSetSemantics { }
+                )
+                Text(
+                    balanceText, color = moneyColor,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    fontSize = balanceSp.sp, maxLines = 1, softWrap = false
+                )
+            }
             TapPop(
                 accum = accum, tick = tick, currency = currency,
                 // не крупнее строки дохода на этой же карте: надбавка — индекс к балансу,
@@ -1586,6 +1607,14 @@ internal fun BalanceWithTapPop(
         }
     }
 }
+
+/** Границы кегля баланса: мельче не читается, крупнее не нужно. */
+private const val MIN_BALANCE_SP = 13f
+/**
+ * Самый крупный кегль баланса. По нему же задана высота строки — она одна на все кегли,
+ * иначе карта меняла бы высоту вслед за длиной числа.
+ */
+private const val MAX_BALANCE_SP = 30f
 
 /** Во сколько раз надбавка мельче баланса. */
 private const val TAP_POP_RATIO = 0.5f
@@ -1622,17 +1651,25 @@ internal fun TapPop(
         anim.value < 0.70f -> 1f                          // держим
         else -> 1f - (anim.value - 0.70f) / 0.30f         // тает
     }
-    Text(
-        "+" + GameMath.formatMoney(accum, currency),
-        color = GreenAccent, fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold, fontSize = fontSize,
-        // суммы до миллиарда показываются целиком, поэтому перенос запрещён структурно
-        maxLines = 1, softWrap = false,
-        modifier = Modifier
-            .padding(start = 4.dp)
-            .offset(y = -(anim.value * 6).dp)
-            .alpha(alpha)
-    )
+    Box(Modifier.padding(start = 4.dp)) {
+        // та же мерка, что и у баланса: кегль надбавки тоже плавающий, и высота её строки
+        // не должна зависеть от того, какой он вышел
+        Text(
+            "0", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+            fontSize = TAP_POP_MAX_SP.sp, maxLines = 1, softWrap = false,
+            modifier = Modifier.alpha(0f).clearAndSetSemantics { }
+        )
+        Text(
+            "+" + GameMath.formatMoney(accum, currency),
+            color = GreenAccent, fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold, fontSize = fontSize,
+            // суммы до миллиарда показываются целиком, поэтому перенос запрещён структурно
+            maxLines = 1, softWrap = false,
+            modifier = Modifier
+                .offset(y = -(anim.value * 6).dp)
+                .alpha(alpha)
+        )
+    }
 }
 
 private fun formatDuration(sec: Double): String {
