@@ -16,4 +16,9 @@ object GameConfig {
 
     // Долг растёт на 2% в игровой день, пока вы живёте не по средствам.
     const val DEBT_RATE_PER_DAY = 0.02
+
+    // Отдача тапа падает с ростом дохода. До порога тап работает в полную силу,
+    // выше — каждое удесятерение дохода режет отдачу вдвое (см. GameMath.tapEfficiency).
+    const val TAP_FULL_INCOME_PER_DAY = 10_000.0
+    const val TAP_DECAY_PER_DECADE = 2.0
 }

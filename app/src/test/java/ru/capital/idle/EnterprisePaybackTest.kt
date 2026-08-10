@@ -31,7 +31,7 @@ class EnterprisePaybackTest {
      * выделенных часов не приносит ничего (`mgmtEff` = 0), и проверять на нём было бы нечего.
      */
     private fun stateWith(e: Enterprise) =
-        GameMath.withProfitShown(withEnterprises(GameState(bizH = 12), 0, e))
+        GameMath.withDayShown(withEnterprises(GameState(bizH = 12), 0, e))
 
     /** Карточка читает снятую прибыль, поэтому предприятие берётся из состояния со снимком. */
     private fun payback(e: Enterprise) =

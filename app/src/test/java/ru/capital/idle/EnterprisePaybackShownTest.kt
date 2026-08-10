@@ -41,7 +41,7 @@ class EnterprisePaybackShownTest {
             enterprises = GameMath.accrueEnterpriseStats(st, dtGameH / 24.0),
             gameHours = st.gameHours + dtGameH
         )
-        return GameMath.profitShownOnNewDay(next)
+        return GameMath.dayShownOnNewDay(next)
     }
 
     // ===================== та же арифметика, что раньше =====================
@@ -66,7 +66,7 @@ class EnterprisePaybackShownTest {
             Enterprise(level = 2, invested = 40_000.0, earned = 0.0, salaryPaid = 0.0)
         )
         cases.forEach { e ->
-            val st = GameMath.withProfitShown(stateWith(e))
+            val st = GameMath.withDayShown(stateWith(e))
             val p = shown(st)
             assertNotNull("подготовка теста: срок должен считаться", p.daysLeft)
             assertEquals("предприятие ${e.level}", oldFormulaDays(st, e), p.daysLeft!!, EPS)
@@ -79,7 +79,7 @@ class EnterprisePaybackShownTest {
             level = 2, managerOrdinal = Manager.PRO.ordinal,
             invested = 80_000.0, earned = 31_000.0, salaryPaid = 7_500.0
         )
-        val p = shown(GameMath.withProfitShown(stateWith(e)))
+        val p = shown(GameMath.withDayShown(stateWith(e)))
         assertEquals((e.invested + e.salaryPaid) - e.earned, p.invested - p.earned, EPS)
     }
 
@@ -87,7 +87,7 @@ class EnterprisePaybackShownTest {
 
     @Test
     fun `вложено не меняется от течения времени`() {
-        var st = GameMath.withProfitShown(
+        var st = GameMath.withDayShown(
             stateWith(Enterprise(level = 1, managerOrdinal = Manager.TOP.ordinal, invested = 500_000.0))
         )
         val invested0 = shown(st).invested
@@ -105,10 +105,10 @@ class EnterprisePaybackShownTest {
     @Test
     fun `вложено меняется от покупки улучшения`() {
         val e = Enterprise(level = 0, invested = 1_000.0)
-        val before = shown(GameMath.withProfitShown(stateWith(e))).invested
+        val before = shown(GameMath.withDayShown(stateWith(e))).invested
         // так игра записывает покупку улучшения: цена прибавляется к вложенному
         val upgraded = e.copy(level = 1, invested = e.invested + 4_200.0)
-        val after = shown(GameMath.withProfitShown(stateWith(upgraded))).invested
+        val after = shown(GameMath.withDayShown(stateWith(upgraded))).invested
 
         assertEquals(1_000.0, before, EPS)
         assertEquals(5_200.0, after, EPS)
@@ -119,13 +119,13 @@ class EnterprisePaybackShownTest {
     @Test
     fun `заработано за игровой день равно выручке минус зарплате за тот же день`() {
         val e = Enterprise(level = 2, managerOrdinal = Manager.MANAGER.ordinal)
-        val start = GameMath.withProfitShown(stateWith(e, gameHours = 0.0))
+        val start = GameMath.withDayShown(stateWith(e, gameHours = 0.0))
         val gross = GameMath.enterpriseGrossPerDay(start, trade, start.enterprises[0][0])
         val salary = Manager.MANAGER.salaryPerDay
         assertEquals("подготовка теста: снимок начинается с нуля", 0.0, shown(start).earned, EPS)
 
         // ровно игровые сутки накопления, а следом смена дня
-        val afterDay = GameMath.profitShownOnNewDay(
+        val afterDay = GameMath.dayShownOnNewDay(
             start.copy(
                 enterprises = GameMath.accrueEnterpriseStats(start, 1.0),
                 gameHours = 24.0
@@ -135,7 +135,7 @@ class EnterprisePaybackShownTest {
         assertEquals(2, afterDay.statsShownDay)
 
         // и на вторые сутки — за две
-        val afterTwo = GameMath.profitShownOnNewDay(
+        val afterTwo = GameMath.dayShownOnNewDay(
             afterDay.copy(
                 enterprises = GameMath.accrueEnterpriseStats(afterDay, 1.0),
                 gameHours = 48.0
@@ -147,7 +147,7 @@ class EnterprisePaybackShownTest {
     @Test
     fun `заработано уходит в минус, если управляющий дороже выручки`() {
         val e = Enterprise(level = 0, managerOrdinal = Manager.TOP.ordinal, invested = 1_000.0)
-        val st = GameMath.withProfitShown(
+        val st = GameMath.withDayShown(
             stateWith(e, gameHours = 0.0)
                 .let { it.copy(enterprises = GameMath.accrueEnterpriseStats(it, 1.0), gameHours = 24.0) }
         )
@@ -161,7 +161,7 @@ class EnterprisePaybackShownTest {
     @Test
     fun `внутри одного игрового дня показанные числа не меняются`() {
         // ступень взята такая, чтобы управляющий окупался: иначе срока нет и сравнивать нечего
-        var st = GameMath.withProfitShown(
+        var st = GameMath.withDayShown(
             stateWith(
                 Enterprise(level = 6, managerOrdinal = Manager.PRO.ordinal, invested = 400_000_000.0),
                 gameHours = 1.0
@@ -186,7 +186,7 @@ class EnterprisePaybackShownTest {
 
     @Test
     fun `на границе суток показанные числа догоняют накопители`() {
-        var st = GameMath.withProfitShown(
+        var st = GameMath.withDayShown(
             stateWith(
                 Enterprise(level = 6, managerOrdinal = Manager.PRO.ordinal, invested = 400_000_000.0),
                 gameHours = 23.0
@@ -206,7 +206,7 @@ class EnterprisePaybackShownTest {
 
     @Test
     fun `срок окупаемости внутри суток стоит, а на границе укорачивается`() {
-        var st = GameMath.withProfitShown(
+        var st = GameMath.withDayShown(
             stateWith(Enterprise(level = 2, invested = 60_000.0), gameHours = 20.0)
         )
         val days0 = shown(st).daysLeft!!

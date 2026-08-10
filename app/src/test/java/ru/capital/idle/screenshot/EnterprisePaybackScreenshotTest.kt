@@ -45,8 +45,8 @@ class EnterprisePaybackScreenshotTest {
         lists[0] = listOf(e)
         // величины дня хранятся в состоянии, а не считаются на лету:
         // без withPressure у капитала в триллион не было бы давления и выручка вышла бы
-        // завышенной, без withProfitShown карточка показала бы нулевую прибыль
-        return GameMath.withProfitShown(
+        // завышенной, без withDayShown карточка показала бы нулевую прибыль
+        return GameMath.withDayShown(
             GameMath.withPressure(
                 GameState(money = 1e12, bizH = 12, gameHours = 24.0 * 200, enterprises = lists)
             )

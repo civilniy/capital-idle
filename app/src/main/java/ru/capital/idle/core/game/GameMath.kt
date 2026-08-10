@@ -143,23 +143,29 @@ object GameMath {
     // ===================== окупаемость предприятия =====================
 
     /**
-     * Снять показываемую прибыль со всех предприятий на текущий игровой день.
+     * Снять величины дня на текущий игровой день.
      *
-     * Накопители `earned` и `salaryPaid` растут каждый тик, поэтому карточка, читая их
-     * напрямую, показывала бегущее число: замеры с устройства давали прирост около
-     * 90 $/с — ровно зарплату управляющего, размазанную по 24 секундам игровых суток.
-     * Снимок берётся раз в игровой день, и внутри дня строка стоит неподвижно.
+     * Таких величин две, и обе — производные от того, что растёт каждый тик:
+     *
+     * - прибыль предприятий: накопители `earned` и `salaryPaid` растут непрерывно, и карточка,
+     *   читая их напрямую, показывала бегущее число — замеры с устройства давали прирост около
+     *   90 $/с, ровно зарплату управляющего, размазанную по 24 секундам игровых суток;
+     * - доход для награды за тап: без снимка награда плыла бы внутри суток вслед за репутацией
+     *   и капитализацией вкладов.
+     *
+     * Отметка дня общая: снимаются они в один и тот же момент, на границе игровых суток.
      */
-    fun withProfitShown(state: GameState): GameState = state.copy(
+    fun withDayShown(state: GameState): GameState = state.copy(
         enterprises = state.enterprises.map { ind ->
             ind.map { it.copy(profitShown = it.earned - it.salaryPaid) }
         },
+        tapIncome = incomePerDay(state),
         statsShownDay = gameDay(state.gameHours)
     )
 
-    /** Обновить показываемую прибыль, если наступил новый игровой день; иначе оставить как есть. */
-    fun profitShownOnNewDay(state: GameState): GameState =
-        if (gameDay(state.gameHours) == state.statsShownDay) state else withProfitShown(state)
+    /** Обновить величины дня, если наступил новый игровой день; иначе оставить как есть. */
+    fun dayShownOnNewDay(state: GameState): GameState =
+        if (gameDay(state.gameHours) == state.statsShownDay) state else withDayShown(state)
 
     /**
      * Окупаемость предприятия: сколько вложено, сколько заработано и что из этого следует.
@@ -253,9 +259,30 @@ object GameMath {
     fun netIncomePerDay(state: GameState): Double =
         (incomePerDay(state) - Lifestyle.dailyUpkeep(state) - managersSalaryPerDay(state)) * boostMult(state)
 
-    /** Тап — подработка: примерно полчаса дневного дохода, минимум $1. */
+    /**
+     * Насколько тап слабее своей базовой доли (1/48 дневного дохода) при таком доходе.
+     *
+     * До [GameConfig.TAP_FULL_INCOME_PER_DAY] — в полную силу, дальше каждое удесятерение
+     * дохода режет отдачу вдвое. Шкала непрерывная (в пороге ровно 1) и без нижнего предела:
+     * поставь ограничитель — и на больших числах тап снова обгонит экономику.
+     *
+     * Награда при этом всё равно растёт вместе с доходом, просто медленнее его:
+     * `доход^(1 − lg2)` ≈ `доход^0,7`. Стократный рост дохода поднимает клик в 25 раз.
+     */
+    fun tapEfficiency(incomePerDay: Double): Double {
+        if (incomePerDay <= GameConfig.TAP_FULL_INCOME_PER_DAY) return 1.0
+        val decades = log10(incomePerDay / GameConfig.TAP_FULL_INCOME_PER_DAY)
+        return 1.0 / GameConfig.TAP_DECAY_PER_DECADE.pow(decades)
+    }
+
+    /**
+     * Тап — подработка: доля дневного дохода, тем меньшая, чем больше доход. Минимум $1.
+     *
+     * Доход берётся снятым на игровой день ([GameState.tapIncome]), а не живым: иначе
+     * награда плыла бы внутри суток вслед за репутацией и капитализацией вкладов.
+     */
     fun tapReward(state: GameState): Double =
-        (incomePerDay(state) / 48.0).coerceAtLeast(1.0)
+        (state.tapIncome / 48.0 * tapEfficiency(state.tapIncome)).coerceAtLeast(1.0)
 
     /** Цена уровня отрасли с учётом фазы рынка и скидок образования. */
     /**
