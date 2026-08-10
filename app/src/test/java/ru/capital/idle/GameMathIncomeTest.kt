@@ -289,13 +289,15 @@ class GameMathIncomeTest {
 
     @Test
     fun `тап даёт полчаса дневного дохода, но не меньше доллара`() {
+        // тап считается по доходу, снятому на игровой день, — отсюда withDayShown
         // бедный игрок всё равно получает $1
-        assertEquals(1.0, GameMath.tapReward(GameState()), EPS)
-        assertEquals(1.0, GameMath.tapReward(GameState(jobId = "courier")), EPS)
+        assertEquals(1.0, GameMath.tapReward(GameMath.withDayShown(GameState())), EPS)
+        assertEquals(1.0,
+            GameMath.tapReward(GameMath.withDayShown(GameState(jobId = "courier"))), EPS)
 
         // недвижимость 48 000 под 1% в день = 480 $/день -> 480/48
-        val rich = GameState(investValues = listOf(0.0, 0.0, 48_000.0))
+        val rich = GameMath.withDayShown(GameState(investValues = listOf(0.0, 0.0, 48_000.0)))
         assertEquals(480.0, GameMath.incomePerDay(rich), EPS)
-        assertEquals(10.0, GameMath.tapReward(rich), EPS)
+        assertEquals("до порога отдача полная", 10.0, GameMath.tapReward(rich), EPS)
     }
 }

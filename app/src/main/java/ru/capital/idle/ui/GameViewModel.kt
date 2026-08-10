@@ -161,7 +161,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 // деньги за оффлайн приходят одной суммой, а игровые часы, пока игра закрыта,
                 // стоят — смены дня не будет. Величины дня считаем здесь, иначе они остались бы
                 // от прошлой сессии и не соответствовали бы ни капиталу, ни накопителям
-                st = GameMath.withProfitShown(GameMath.withPressure(st))
+                st = GameMath.withDayShown(GameMath.withPressure(st))
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st
@@ -411,8 +411,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             ).let { next ->
                 // величины дня: на границе игровых суток считаем заново, внутри суток держим
                 // прежние. Давление — от текущих денег, показанная прибыль предприятий —
-                // с их накопителей (см. GameMath.pressureOnNewDay и profitShownOnNewDay)
-                GameMath.profitShownOnNewDay(GameMath.pressureOnNewDay(next))
+                // с их накопителей (см. GameMath.pressureOnNewDay и dayShownOnNewDay)
+                GameMath.dayShownOnNewDay(GameMath.pressureOnNewDay(next))
             }.let { next ->
                 // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
                 val adv = Auctions.advance(next, gameH)
@@ -683,7 +683,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 studyingId = "", studyProgress = 0.0,
                 // капитал обнулён — давление с ним, считать заново будет уже новая жизнь.
                 // Предприятия прошлой жизни закрыты, снимать прибыль тоже не с чего
-                pressure = 0.0, pressureDay = 0, statsShownDay = 0,
+                pressure = 0.0, pressureDay = 0, statsShownDay = 0, tapIncome = 0.0,
                 gameHours = 8.0,
                 startDateMillis = System.currentTimeMillis(),
                 phaseIndex = 0, phaseEndGameH = 0.0,

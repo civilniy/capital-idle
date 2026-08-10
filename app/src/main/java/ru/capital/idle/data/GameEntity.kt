@@ -67,6 +67,8 @@ data class GameEntity(
     val pressure: Double,
     val pressureDay: Int,
     val statsShownDay: Int,
+    /** Доход в день на момент последнего снимка — вход для награды за тап. */
+    val tapIncome: Double,
     // множества купленных предметов — источник истины
     val ownedHomesCsv: String,
     val ownedCarsCsv: String,
@@ -289,6 +291,7 @@ fun GameState.toEntity() = GameEntity(
     netOwnedCsv = netOwned.sCsv(),
     reputation = reputation,
     pressure = pressure, pressureDay = pressureDay, statsShownDay = statsShownDay,
+    tapIncome = tapIncome,
     ownedHomesCsv = ownedHomes.iSetCsv(),
     ownedCarsCsv = ownedCars.iSetCsv(),
     ownedTechsCsv = ownedTechs.iSetCsv(),
@@ -339,6 +342,7 @@ fun GameEntity.toState() = GameState(
     netOwned = netOwnedCsv.toSet(),
     reputation = reputation,
     pressure = pressure, pressureDay = pressureDay, statsShownDay = statsShownDay,
+    tapIncome = tapIncome,
     ownedHomes = ownedHomesCsv.toOwnedSet(ownedHome, Lifestyle.home),
     ownedCars = ownedCarsCsv.toOwnedSet(ownedCar, Lifestyle.car),
     ownedTechs = ownedTechsCsv.toOwnedSet(ownedTech, Lifestyle.tech),
@@ -369,4 +373,8 @@ fun GameEntity.toState() = GameState(
     // сохранение, сделанное до того, как давление стало храниться: считаем его здесь,
     // иначе до первой смены игрового дня доход бизнесов был бы завышен
     if (st.pressureDay > 0) st else GameMath.withPressure(st)
+}.let { st ->
+    // сохранение, сделанное до того, как доход для тапа стал храниться: считаем его здесь,
+    // иначе до первой смены игрового дня тап давал бы минимальный доллар
+    if (st.tapIncome > 0.0) st else st.copy(tapIncome = GameMath.incomePerDay(st))
 }
