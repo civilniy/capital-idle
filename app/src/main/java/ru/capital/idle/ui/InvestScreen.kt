@@ -107,6 +107,20 @@ fun InvestScreen(vm: GameViewModel) {
         }
 
         Spacer(Modifier.height(16.dp))
+        AutoInvestCard(
+            on = state.autoInvestOn,
+            target = AutoInvest.target(state),
+            unlocked = AutoInvest.available(state),
+            reserve = state.autoInvestReserve,
+            amount = AutoInvest.amount(state),
+            blocked = AutoInvest.blockedReason(state),
+            cur = cur,
+            onToggle = { vm.toggleAutoInvest() },
+            onPick = { vm.setAutoInvestAsset(it) },
+            onReserve = { vm.stepAutoInvestReserve(it) }
+        )
+
+        Spacer(Modifier.height(16.dp))
         Text("НАКОПЛЕНИЯ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(8.dp))
         Asset.entries.forEach { a ->
@@ -164,6 +178,122 @@ fun InvestScreen(vm: GameViewModel) {
 }
 
 // ===================== накопления =====================
+
+/**
+ * Автовклад: раз в игровой день переносит с карты во вклад всё сверх резерва.
+ *
+ * Чистая функция от данных, без `GameViewModel`: так её можно снять скриншотом
+ * во всех состояниях (см. CLAUDE.md).
+ *
+ * Подписи намеренно разведены с капитализацией: там «доход остаётся во вкладе», здесь
+ * «деньги с карты уходят во вклад». Это разные механики, и они работают вместе.
+ */
+@Composable
+internal fun AutoInvestCard(
+    on: Boolean,
+    target: Asset?,
+    unlocked: List<Asset>,
+    reserve: Double,
+    amount: Double,
+    blocked: String?,
+    cur: Currency,
+    onToggle: () -> Unit = {},
+    onPick: (Asset) -> Unit = {},
+    onReserve: (Int) -> Unit = {}
+) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+        Row(
+            Modifier.fillMaxWidth().clickable { onToggle() },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("АВТОВКЛАД", color = if (on) Gold else Mute,
+                    fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, letterSpacing = 2.sp)
+                Spacer(Modifier.height(3.dp))
+                Text("раз в игровой день переносит деньги с карты во вклад",
+                    color = Mute, fontSize = 11.sp, lineHeight = 14.sp)
+            }
+            Spacer(Modifier.width(9.dp))
+            CapToggle(on)
+        }
+
+        if (!on) return@Column
+
+        if (unlocked.isEmpty()) {
+            Spacer(Modifier.height(11.dp))
+            Text("нет открытых инструментов — сначала пройдите «Бухгалтерию»",
+                color = RedAccent, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+            return@Column
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text("КУДА", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            unlocked.forEach { a ->
+                val picked = a == target
+                Box(
+                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                        .background(if (picked) Color(0x2EE8B54A) else BtnFill)
+                        .clickable { onPick(a) }
+                        .padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(a.title, color = if (picked) Gold else Mute,
+                        fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 12.sp, maxLines = 1)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text("РЕЗЕРВ НА КАРТЕ", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StepBtn("−") { onReserve(-1) }
+            Text(
+                GameMath.formatMoney(reserve, cur),
+                color = TextMain, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                fontSize = 15.sp, maxLines = 1, softWrap = false,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
+            )
+            StepBtn("+") { onReserve(1) }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text("эта сумма всегда остаётся на карте — на покупки",
+            color = Mute, fontSize = 10.sp, lineHeight = 13.sp)
+
+        Spacer(Modifier.height(11.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassInner)
+                .padding(horizontal = 11.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (blocked != null) {
+                Text("не сработает: $blocked", color = RedAccent,
+                    fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp)
+            } else {
+                Text("следующим днём уйдёт ", color = Mute, fontSize = 11.sp)
+                Text(GameMath.formatMoney(amount, cur), color = GreenAccent,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp, maxLines = 1, softWrap = false)
+            }
+        }
+    }
+}
+
+/** Квадратная кнопка шага резерва. */
+@Composable
+private fun StepBtn(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(BtnFill)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+    }
+}
 
 @Composable
 private fun PassiveCard(

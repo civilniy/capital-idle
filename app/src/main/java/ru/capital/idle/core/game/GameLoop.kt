@@ -178,6 +178,9 @@ object GameLoop {
         )
 
         // величины дня: давление элит, показанная прибыль предприятий, доход для тапа
-        return GameMath.dayShownOnNewDay(GameMath.pressureOnNewDay(next))
+        val newDay = GameMath.gameDay(next.gameHours) != next.statsShownDay
+        val out = GameMath.dayShownOnNewDay(GameMath.pressureOnNewDay(next))
+        // автовклад тоже величина дня: срабатывает на границе суток, а не каждый тик
+        return if (newDay) AutoInvest.apply(out) else out
     }
 }

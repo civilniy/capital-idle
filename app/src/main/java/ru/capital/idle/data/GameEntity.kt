@@ -49,6 +49,10 @@ data class GameEntity(
     val investValuesCsv: String,
     val investCostsCsv: String,
     val capitalizeMask: Int,
+    // автовклад: переключатель, закреплённый инструмент и резерв на карте
+    val autoInvestOn: Boolean,
+    val autoInvestAsset: Int,
+    val autoInvestReserve: Double,
     val boostEndsAtMillis: Long,
     val stockPricesCsv: String,
     val stockQtyCsv: String,
@@ -98,6 +102,8 @@ data class GameEntity(
     val statAllTimeEarned: Double,
     val statBestDayIncome: Double,
     val statDaysPrevLives: Int,
+    /** Сколько раз игрок переродился. Ноль — первая жизнь. */
+    val statLives: Int,
     val statBullionEarned: Long,
     val statLifeItems: Int,
     val statBizLevels: Int,
@@ -283,6 +289,8 @@ fun GameState.toEntity() = GameEntity(
     studyingId = studyingId, studyProgress = studyProgress,
     investValuesCsv = investValues.dCsv(), investCostsCsv = investCosts.dCsv(),
     capitalizeMask = capitalizeMask,
+    autoInvestOn = autoInvestOn, autoInvestAsset = autoInvestAsset,
+    autoInvestReserve = autoInvestReserve,
     boostEndsAtMillis = boostEndsAtMillis,
     stockPricesCsv = stockPrices.dCsv(),
     stockQtyCsv = stockQty.dCsv(),
@@ -308,7 +316,8 @@ fun GameState.toEntity() = GameEntity(
     milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
-    statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
+    statDaysPrevLives = statDaysPrevLives, statLives = statLives,
+    statBullionEarned = statBullionEarned,
     statLifeItems = statLifeItems, statBizLevels = statBizLevels, statBestTitle = statBestTitle,
     phaseIndex = phaseIndex, phaseEndGameH = phaseEndGameH,
     gameHours = gameHours, startDateMillis = startDateMillis,
@@ -332,6 +341,8 @@ fun GameEntity.toState() = GameState(
     investValues = investValuesCsv.toDoubles(Investments.COUNT),
     investCosts = investCostsCsv.toDoubles(Investments.COUNT),
     capitalizeMask = capitalizeMask,
+    autoInvestOn = autoInvestOn, autoInvestAsset = autoInvestAsset,
+    autoInvestReserve = autoInvestReserve,
     boostEndsAtMillis = boostEndsAtMillis,
     stockPrices = stockPricesCsv.toDoubles(Exchange.COUNT).mapIndexed { i, v ->
         if (v <= 0.0) Exchange.stocks[i].basePrice else v
@@ -358,7 +369,8 @@ fun GameEntity.toState() = GameState(
     milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
-    statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
+    statDaysPrevLives = statDaysPrevLives, statLives = statLives,
+    statBullionEarned = statBullionEarned,
     statLifeItems = statLifeItems, statBizLevels = statBizLevels, statBestTitle = statBestTitle,
     phaseIndex = phaseIndex, phaseEndGameH = phaseEndGameH,
     gameHours = gameHours, startDateMillis = startDateMillis,
@@ -379,6 +391,12 @@ fun GameEntity.toState() = GameState(
     // сохранение, сделанное до того, как доход для тапа стал храниться: считаем его здесь,
     // иначе до первой смены игрового дня тап давал бы минимальный доллар
     if (st.tapIncome > 0.0) st else st.copy(tapIncome = GameMath.incomePerDay(st))
+}.let { st ->
+    // сохранение, сделанное до появления счётчика жизней: перерождения в нём видны
+    // по музею (запись на каждую прошлую жизнь) и по дням прошлых жизней. Без этого
+    // игрок, который уже перерождался, перестал бы быть ветераном
+    if (st.statLives > 0) st
+    else st.copy(statLives = maxOf(st.museum.size, if (st.statDaysPrevLives > 0) 1 else 0))
 }.let { st ->
     // храповик капитала начинается с текущего капитала: в сохранении, сделанном до его
     // появления, накопителя нет, а пороги разделов и титулов уже сравниваются с ним

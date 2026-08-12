@@ -27,6 +27,11 @@ data class GameState(
     val investValues: List<Double> = List(Investments.COUNT) { 0.0 },
     val investCosts: List<Double> = List(Investments.COUNT) { 0.0 },
     val capitalizeMask: Int = 0,   // битовая маска: какие вклады капитализируют доход (бит i = Asset.ordinal)
+    // автовклад: раз в игровой день переносит с карты во вклад всё сверх резерва.
+    // Не путать с капитализацией — та оставляет во вкладе его собственный доход
+    val autoInvestOn: Boolean = false,
+    val autoInvestAsset: Int = -1,       // ordinal закреплённого инструмента; -1 = лучший доступный
+    val autoInvestReserve: Double = 0.0, // сколько всегда остаётся на карте
     val boostEndsAtMillis: Long = 0L,   // реклама: до какого момента (реального) действует удвоение дохода ×2
     // биржа
     val stockPrices: List<Double> = Exchange.stocks.map { it.basePrice },
@@ -83,6 +88,9 @@ data class GameState(
     val statAllTimeEarned: Double = 0.0,
     val statBestDayIncome: Double = 0.0,
     val statDaysPrevLives: Int = 0,
+    // сколько раз игрок переродился. Ноль — первая жизнь, сколько бы слитков ни было:
+    // слитки выдают и за вехи, а признаком «уже проходил игру» служит само перерождение
+    val statLives: Int = 0,
     val statBullionEarned: Long = 0L,
     val statLifeItems: Int = 0,
     val statBizLevels: Int = 0,
