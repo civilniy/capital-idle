@@ -44,6 +44,10 @@ val Study: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.st
 val Warn: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.warn
 /** Лучший вариант и своё дело. */
 val Best: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.best
+/** Социальный статус: репутация и очки статуса. */
+val Status: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.status
+/** Пройденное обучение. */
+val Learned: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.learned
 
 /**
  * Цвета банковской карты.

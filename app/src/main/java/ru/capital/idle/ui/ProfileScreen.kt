@@ -355,7 +355,7 @@ internal fun LifeItemCard(
             Text(item.title, color = if (owned || canBuy) TextMain else Mute,
                 fontWeight = FontWeight.Bold, fontSize = 14.sp)
             if (item.status > 0)
-                Text("+${item.status} статуса", color = Rest, fontSize = 10.sp)
+                Text("+${item.status} статуса", color = Status, fontSize = 10.sp)
             if (item.upkeep > 0)
                 Text("содержание ${GameMath.formatMoney(item.upkeep, cur)}/день",
                     color = RedAccent, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
@@ -393,7 +393,7 @@ internal fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Bo
             Text(exp.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Text("+${exp.status} статуса · разовая трата", color = Mute, fontSize = 10.sp)
         }
-        if (done) Text("\u2713", color = Rest, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        if (done) Text("\u2713", color = Status, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
         else Box(
             Modifier.clip(RoundedCornerShape(9.dp)).background(if (canBuy) Gold else GlassBtnOff)
                 .clickable(enabled = canBuy, onClick = onBuy).padding(horizontal = 12.dp, vertical = 8.dp)

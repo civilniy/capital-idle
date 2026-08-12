@@ -76,6 +76,15 @@ class Palette(
      * В старой теме тоже золотой, в новой — цвет бизнеса.
      */
     val best: Color,
+    /**
+     * Социальный статус: репутация, очки статуса за имущество и впечатления.
+     * В старой теме это тот же зелёный, что и доход; в новой — сирень.
+     */
+    val status: Color,
+    /**
+     * Пройденное обучение. В старой теме зелёный, в новой — цвет учёбы.
+     */
+    val learned: Color,
 
     // ===== тонированные подложки (акцент на 11–13%) =====
     val moneyFill: Color,
@@ -155,6 +164,8 @@ val GlassPalette = Palette(
     expense = Color(0xFFD9694F),
     warn = Color(0xFFE8B54A),
     best = Color(0xFFE8B54A),
+    status = Color(0xFF5FBF7A),
+    learned = Color(0xFF5FBF7A),
 
     moneyFill = Color(0x1FE8B54A),
     incomeFill = Color(0x1F5FBF7A),
@@ -221,6 +232,8 @@ val MattePalette = Palette(
     expense = Color(0xFFFF6B5A),       // коралл
     warn = Color(0xFFFF6B5A),
     best = Color(0xFF25D0A4),
+    status = Color(0xFF9B7FE8),
+    learned = Color(0xFF4DA3FF),
 
     moneyFill = Color(0x1FFFB02E),
     incomeFill = Color(0x1F8CD62B),

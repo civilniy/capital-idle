@@ -861,7 +861,7 @@ internal fun SummaryCellsRow(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
             onClick = { onNavigate("profile") })
-        SummaryCell("$reputation", "РЕПУТАЦИЯ", Rest, Modifier.weight(0.9f),
+        SummaryCell("$reputation", "РЕПУТАЦИЯ", Status, Modifier.weight(0.9f),
             onClick = { onNavigate("network") })
         // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
         SummaryCell(worthText, "КАПИТАЛ", Heading, Modifier.weight(1.7f),

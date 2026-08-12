@@ -99,7 +99,7 @@ internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () 
         }
         Column(horizontalAlignment = Alignment.End) {
             when {
-                isDone -> Text("✓ изучено", color = Study, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                isDone -> Text("✓ изучено", color = Learned, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 current -> Text(
                     "~${ceil((c.durationHours - state.studyProgress) / perDay).toInt()} дн.",
                     color = Mute, fontFamily = FontFamily.Monospace, fontSize = 12.sp
