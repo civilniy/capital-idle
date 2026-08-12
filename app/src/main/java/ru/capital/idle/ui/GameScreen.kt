@@ -225,7 +225,7 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
                 Text("ВАШИ ОТРАСЛИ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
                 if (need > 0) Text(
                     "часы: ${state.bizH}/${need}ч · ${(eff * 100).toInt()}%",
-                    color = if (eff >= 1.0) GreenAccent else RedAccent,
+                    color = if (eff >= 1.0) Business else RedAccent,
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp
                 )
             }
@@ -255,7 +255,7 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
 // ===================== блоки =====================
 
 @Composable
-private fun GuideCard(state: GameState, cur: Currency) {
+internal fun GuideCard(state: GameState, cur: Currency) {
     val step = Onboarding.steps.getOrNull(state.tutorialStep) ?: return
     val progress = Onboarding.progressText(state, cur)
     Row(
@@ -286,7 +286,7 @@ private fun GuideCard(state: GameState, cur: Currency) {
 }
 
 @Composable
-private fun AdBoostBanner(
+internal fun AdBoostBanner(
     state: GameState,
     canGrant: Boolean,
     unlockInMs: Long,
@@ -304,7 +304,7 @@ private fun AdBoostBanner(
     val canWatch = remainMs <= 3 * 3_600_000L        // добор доступен при запасе ≤ 3ч
 
     val accent = if (active) GreenAccent else Gold
-    val bg = if (active) Color(0x1F5FBF7A) else Color(0x1FE8B54A)
+    val bg = if (active) IncomeFill else MoneyFill
 
     // клик по всему баннеру — только когда буста нет (вариант Б)
     val rowMod = Modifier
@@ -337,8 +337,8 @@ private fun AdBoostBanner(
             else -> "через ${fmtClock(unlockMs)}"
         }
         val btnEnabled = !active || canWatch
-        val btnBg = if (btnEnabled) Gold else Color(0x14FFFFFF)
-        val btnFg = if (btnEnabled) Color(0xFF2A2410) else Color(0xFF54565E)
+        val btnBg = if (btnEnabled) Gold else GlassBtn
+        val btnFg = if (btnEnabled) CoinText else GlassBtnOffText
         Box(
             Modifier
                 .width(86.dp)
@@ -362,7 +362,7 @@ private fun BoostBars(hoursLeft: Double) {
             val fill = (hoursLeft - i).coerceIn(0.0, 1.0).toFloat()
             Box(
                 Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp))
-                    .background(Color(0x1AFFFFFF))
+                    .background(TrackFill)
             ) {
                 if (fill > 0f) {
                     Box(Modifier.fillMaxWidth(fill).fillMaxHeight()
@@ -414,13 +414,13 @@ private fun BoltIcon(color: Color) {
 }
 
 @Composable
-private fun MarketBar(state: GameState) {
+internal fun MarketBar(state: GameState) {
     val phase = state.phase
     val color = when (phase) {
-        MarketPhase.GROWTH -> GreenAccent
-        MarketPhase.BOOM -> Gold
+        MarketPhase.GROWTH -> Business
+        MarketPhase.BOOM -> Best
         MarketPhase.CRISIS -> RedAccent
-        MarketPhase.RECOVERY -> Color(0xFF6A9BD8)
+        MarketPhase.RECOVERY -> Study
     }
     val mult = GameMath.crisisMult(state)
     Row(
@@ -439,13 +439,13 @@ private fun MarketBar(state: GameState) {
             modifier = Modifier.weight(1f)
         )
         Text("×${GameMath.decimal(mult, 2)}",
-            color = if (mult >= 1.0) GreenAccent else RedAccent,
+            color = if (mult >= 1.0) Business else RedAccent,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }
 
 @Composable
-private fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) {
+internal fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) {
     val eff = GameMath.awakeEff(state)
     Column(
         Modifier
@@ -463,10 +463,10 @@ private fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) {
 
         val carBonus = Lifestyle.carExtraHours(state)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Сон: ${state.sleepH}ч", color = Color(0xFFA98BD8), fontSize = 10.sp)
+            Text("Сон: ${state.sleepH}ч", color = Rest, fontSize = 10.sp)
             Text(
                 if (eff >= 1.0) "выспались · 100%" else "недосып · ${(eff * 100).toInt()}%",
-                color = if (eff >= 1.0) GreenAccent else if (eff >= 0.85) Gold else RedAccent,
+                color = if (eff >= 1.0) GreenAccent else if (eff >= 0.85) Warn else RedAccent,
                 fontSize = 10.sp
             )
         }
@@ -499,7 +499,7 @@ private fun GoldSlider(value: Float, range: ClosedFloatingPointRange<Float>, ste
 }
 
 @Composable
-private fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> Unit, onQuit: () -> Unit) {
+internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> Unit, onQuit: () -> Unit) {
     val ok = job.reqCourse == null || job.reqCourse in state.eduDone
     val current = state.jobId == job.id
     val daily = job.ratePerHour * state.workH * GameMath.awakeEff(state) * Prestige.negotiatorMult(state)
@@ -546,7 +546,7 @@ private fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> Un
 }
 
 @Composable
-private fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Currency, onOpen: () -> Unit) {
+internal fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Currency, onOpen: () -> Unit) {
     val list = state.enterprises.getOrElse(index) { emptyList() }
     val count = list.size
     // показываем все отрасли (запертые — с замком), чтобы была видна прогрессия
@@ -566,7 +566,7 @@ private fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Curre
             Text(ind.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             if (count > 0)
                 Text((if (dayNet >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(dayNet), cur)} ${cur.symbol}/день · предприятий $count/${BusinessConfig.MAX_ENTERPRISES_PER_INDUSTRY}",
-                    color = if (dayNet >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                    color = if (dayNet >= 0) Business else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
             else {
                 val gate = GameMath.openGate(state, index)
                 when {
@@ -620,7 +620,7 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent, Modifier.weight(0.9f))
             SummaryCell(
                 (if (netHere >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(netHere), cur),
-                "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) GreenAccent else RedAccent, Modifier.weight(1.7f))
+                "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f))
         }
         Spacer(Modifier.height(12.dp))
 
@@ -628,7 +628,7 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
         val satur = (GameMath.industrySaturation(state, index) * 100).toInt()
         if (list.size > 1) {
             Text("Насыщение рынка: отдача с каждого предприятия ${satur}%. Чем больше одинаковых, тем меньше доход с каждого.",
-                color = if (satur < 100) Color(0xFF6A9BD8) else Mute, fontSize = 10.sp,
+                color = if (satur < 100) Study else Mute, fontSize = 10.sp,
                 modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
         }
@@ -749,7 +749,7 @@ internal fun PressureSlot(pressure: Double, reputation: Double) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0x26D9694F))
+            .background(ExpenseFill)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -770,10 +770,10 @@ internal fun PressureSlot(pressure: Double, reputation: Double) {
 @Composable
 internal fun DayPlanLabels(bizH: Int, studyH: Int, carBonus: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("Свой бизнес: ${bizH}ч", color = Gold, fontSize = 10.sp)
+        Text("Свой бизнес: ${bizH}ч", color = Best, fontSize = 10.sp)
         Text(
             "Учёба: ${studyH}ч" + if (carBonus > 0) " · транспорт +${carBonus}ч" else "",
-            color = Color(0xFF6A9BD8), fontSize = 10.sp
+            color = Study, fontSize = 10.sp
         )
     }
 }
@@ -820,7 +820,7 @@ internal fun CapitalHeader(
 
     @Composable
     fun title() {
-        Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
+        Text("КАПИТАЛ", color = Heading, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, letterSpacing = 2.sp,
             modifier = Modifier.pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onTitleLongPress() })
             })
@@ -861,9 +861,10 @@ internal fun SummaryCellsRow(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
             onClick = { onNavigate("profile") })
-        SummaryCell("$reputation", "РЕПУТАЦИЯ", GreenAccent, Modifier.weight(0.9f),
+        SummaryCell("$reputation", "РЕПУТАЦИЯ", Rest, Modifier.weight(0.9f),
             onClick = { onNavigate("network") })
-        SummaryCell(worthText, "КАПИТАЛ", Gold, Modifier.weight(1.7f),
+        // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
+        SummaryCell(worthText, "КАПИТАЛ", Heading, Modifier.weight(1.7f),
             onClick = { onNavigate("rank") })
     }
 }
@@ -899,7 +900,7 @@ private fun EnterpriseNameDialog(
     var text by remember { mutableStateOf(initial) }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFF1D1F25))
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel)
                 .padding(18.dp)
         ) {
             Text(title, color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -934,7 +935,7 @@ private fun EnterpriseNameDialog(
                     Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Gold)
                         .clickable { onConfirm(text) }.padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
-                ) { Text(confirmText, color = Color(0xFF2A2410), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp) }
+                ) { Text(confirmText, color = CoinText, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp) }
             }
             Spacer(Modifier.height(8.dp))
             Text("кубик подбирает случайное название · можно вписать своё",
@@ -984,7 +985,7 @@ private fun paybackDaysText(days: Double): String {
 @Composable
 internal fun EnterprisePayback(p: GameMath.Payback, cur: Currency, sinceDay: Int? = null) {
     Spacer(Modifier.height(9.dp))
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0x14FFFFFF)))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(DividerLine))
     Spacer(Modifier.height(7.dp))
     Text(
         "вложено ${GameMath.formatMoney(p.invested, cur)} · " +
@@ -1000,9 +1001,9 @@ internal fun EnterprisePayback(p: GameMath.Payback, cur: Currency, sinceDay: Int
         },
         color = when {
             p.unknown -> GlassBtnOffText
-            p.paidOff -> GreenAccent
+            p.paidOff -> Business
             p.stalled -> RedAccent
-            else -> Gold
+            else -> Best
         },
         fontFamily = FontFamily.Monospace, fontSize = 10.sp
     )
@@ -1050,22 +1051,22 @@ internal fun EnterpriseCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text((if (net >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(net), cur)} ${cur.symbol}/день",
-                    color = if (net >= 0) GreenAccent else RedAccent,
+                    color = if (net >= 0) Business else RedAccent,
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Text(if (e.isManual) "вы лично · 100%" else "${e.manager!!.title} · ${(e.efficiency * 100).toInt()}%",
-                    color = if (e.isManual) Gold else Mute, fontFamily = FontFamily.Monospace, fontSize = 9.5.sp)
+                    color = if (e.isManual) Best else Mute, fontFamily = FontFamily.Monospace, fontSize = 9.5.sp)
             }
         }
         Spacer(Modifier.height(8.dp))
         if (e.isManual) {
             Text(
                 "\u23F1 занимает ${BusinessConfig.HOURS_PER_MANUAL_ENTERPRISE} ваших часа \u00B7 выручка ${GameMath.formatAmount(income, cur)} ${cur.symbol}/день",
-                color = Gold, fontFamily = FontFamily.Monospace, fontSize = 10.sp
+                color = Best, fontFamily = FontFamily.Monospace, fontSize = 10.sp
             )
         } else {
             Text(
                 "\uD83D\uDCBC ${e.manager!!.title} \u00B7 выручка ${GameMath.formatAmount(income, cur)} ${cur.symbol}/день",
-                color = Color(0xFF6A9BD8), fontFamily = FontFamily.Monospace, fontSize = 10.sp
+                color = Study, fontFamily = FontFamily.Monospace, fontSize = 10.sp
             )
             Text(
                 "зарплата ${GameMath.formatAmount(salary, cur)} ${cur.symbol}/день",
@@ -1092,12 +1093,12 @@ internal fun EnterpriseCard(
             // управляющий
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(9.dp))
-                    .background(Color(0x265FBF7A))
+                    .background(BusinessFill)
                     .clickable(onClick = onManager).padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(if (e.isManual) "Поставить управляющего" else "Сменить управляющего",
-                    color = GreenAccent, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                    color = Business, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                     fontSize = 10.sp, maxLines = 1)
             }
         }
@@ -1114,7 +1115,7 @@ private fun ManagerSheet(
     onPick: (Int) -> Unit, onFire: () -> Unit, onDismiss: () -> Unit
 ) {
     Box(
-        Modifier.fillMaxSize().background(Color(0x99000000)).clickable(onClick = onDismiss),
+        Modifier.fillMaxSize().background(Scrim).clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
@@ -1142,7 +1143,7 @@ private fun ManagerSheet(
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("${(m.eff * 100).toInt()}%",
-                            color = if (m.eff >= 1.0) Gold else if (m.eff >= 0.8) GreenAccent else Mute,
+                            color = if (m.eff >= 1.0) Best else if (m.eff >= 0.8) Business else Mute,
                             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Text("${GameMath.formatMoney(m.salaryPerDay, cur)}/день", color = RedAccent,
                             fontFamily = FontFamily.Monospace, fontSize = 10.sp)
@@ -1152,7 +1153,7 @@ private fun ManagerSheet(
             }
             if (current != null) {
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0x26D9694F))
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ExpenseFill)
                         .clickable(onClick = onFire).padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1212,7 +1213,8 @@ private fun CardWithActivation(
         Box(
             Modifier
                 .then(if (glowAlpha > 0f) Modifier.shadow(20.dp, RoundedCornerShape(18.dp),
-                    ambientColor = Gold.copy(alpha = glowAlpha), spotColor = Gold.copy(alpha = glowAlpha)) else Modifier)
+                    ambientColor = CardColors.gold.copy(alpha = glowAlpha),
+                    spotColor = CardColors.gold.copy(alpha = glowAlpha)) else Modifier)
                 .then(if (blur > 0f) Modifier.blur(blur.dp) else Modifier)
                 .then(if (activating) Modifier.graphicsLayer { alpha = 0.4f + 0.6f * reveal } else Modifier)
         ) {
@@ -1231,24 +1233,24 @@ private fun CardWithActivation(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(20.dp)
                 ) {
-                    Text("\u2726", color = Gold, fontSize = 30.sp)
+                    Text("\u2726", color = CardColors.gold, fontSize = 30.sp)
                     Spacer(Modifier.height(4.dp))
-                    Text("Новый уровень привилегий", color = TextMain,
+                    Text("Новый уровень привилегий", color = CardColors.text,
                         fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, textAlign = TextAlign.Center)
-                    Text(earnedTier.title, color = Gold, fontFamily = FontFamily.Monospace,
+                    Text(earnedTier.title, color = CardColors.gold, fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, letterSpacing = 2.sp)
                     if (earnedTier.passiveBonus > 0.0) {
                         Spacer(Modifier.height(2.dp))
                         Text("+${(earnedTier.passiveBonus * 100).toInt()}% к доходности накоплений",
-                            color = GreenAccent, fontSize = 11.sp)
+                            color = CardColors.income, fontSize = 11.sp)
                     }
                     Spacer(Modifier.height(12.dp))
                     Box(
-                        Modifier.clip(RoundedCornerShape(12.dp)).background(Gold)
+                        Modifier.clip(RoundedCornerShape(12.dp)).background(CardColors.gold)
                             .clickable { activating = true }
                             .padding(horizontal = 22.dp, vertical = 11.dp)
                     ) {
-                        Text("Активировать карту", color = Color(0xFF2A2410),
+                        Text("Активировать карту", color = CardColors.onGold,
                             fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
                     }
                 }
@@ -1332,11 +1334,12 @@ internal fun CardFace(
                 Text(if (money < 0) "ДОЛГ" else "ДОСТУПНО", color = accent.copy(alpha = 0.7f), fontSize = 9.sp, letterSpacing = 2.sp)
                 BalanceWithTapPop(
                     money = money, accum = popAccum, tick = popTick, currency = currency,
-                    moneyColor = if (money < 0) RedAccent else txt,
+                    moneyColor = if (money < 0) CardColors.expense else txt,
                     onExpire = onPopExpire
                 )
                 Text((if (incomePerDay >= 0) "+" else "-") + "${GameMath.formatAmount(kotlin.math.abs(incomePerDay), currency)} ${currency.symbol}/день " + (if (incomePerDay >= 0) "поступает" else "убыток"),
-                    color = if (incomePerDay >= 0) GreenAccent else RedAccent, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    color = if (incomePerDay >= 0) CardColors.income else CardColors.expense,
+                    fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             }
             Row(
                 Modifier.fillMaxWidth(),
@@ -1462,7 +1465,7 @@ private fun CardChip(accent: Color = Color(0xFFE8B54A)) {
 }
 
 @Composable
-private fun ContactlessIcon(accent: Color = Mute, modifier: Modifier = Modifier) {
+private fun ContactlessIcon(accent: Color = CardColors.mute, modifier: Modifier = Modifier) {
     Canvas(modifier.size(width = 22.dp, height = 26.dp)) {
         val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
         val cy = size.height / 2f
@@ -1488,12 +1491,12 @@ private fun PaySymbol() {
         Box(
             Modifier.size(30.dp).offset(y = 1.dp)
                 .rotate(45f).clip(RoundedCornerShape(5.dp))
-                .background(RedAccent.copy(alpha = 0.95f))
+                .background(CardColors.expense.copy(alpha = 0.95f))
         )
         Box(
             Modifier.size(30.dp).offset(x = 19.dp, y = 1.dp)
                 .rotate(45f).clip(RoundedCornerShape(5.dp))
-                .background(Gold.copy(alpha = 0.62f))
+                .background(CardColors.gold.copy(alpha = 0.62f))
         )
     }
 }
@@ -1503,7 +1506,7 @@ private fun CurrencyChip(code: String, onClick: () -> Unit, onLongPress: () -> U
     Box(
         Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0x14FFFFFF))
+            .background(GlassBtn)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onClick() }, onLongPress = { onLongPress() })  // long = DEV-чит денег
             }
@@ -1661,7 +1664,7 @@ internal fun TapPop(
         )
         Text(
             "+" + GameMath.formatMoney(accum, currency),
-            color = GreenAccent, fontFamily = FontFamily.Monospace,
+            color = CardColors.income, fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold, fontSize = fontSize,
             // суммы до миллиарда показываются целиком, поэтому перенос запрещён структурно
             maxLines = 1, softWrap = false,
@@ -1693,7 +1696,7 @@ private fun OfflineDialog(amount: Double, missed: Double, awaySec: Double, curre
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0xE0101116))
+            .background(OverlayBg)
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center
     ) {
@@ -1701,7 +1704,7 @@ private fun OfflineDialog(amount: Double, missed: Double, awaySec: Double, curre
             Modifier
                 .padding(28.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF1D1F25))
+                .background(Panel)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

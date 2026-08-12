@@ -41,7 +41,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CapitalTheme {
+            val state by vm.state.collectAsStateWithLifecycle()
+            // тема приходит из состояния: неизвестный ключ (и старое сохранение) — прежнее оформление
+            CapitalTheme(themeId = state.themeId) {
                 val lifecycleOwner = LocalLifecycleOwner.current
                 LaunchedEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
@@ -56,7 +58,6 @@ class MainActivity : ComponentActivity() {
                     lifecycleOwner.lifecycle.addObserver(observer)
                 }
 
-                val state by vm.state.collectAsStateWithLifecycle()
                 if (!state.onboarded) {
                     WelcomeScreen(onDone = { vm.finishOnboarding(it) })
                 } else {
@@ -136,7 +137,8 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
                     .padding(start = 20.dp, end = 20.dp, bottom = 96.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Panel2)
-                    .border(1.dp, GoldDim, RoundedCornerShape(14.dp))
+                    // обводка — только в теме со стеклом: в матовой слои разделяет фон
+                    .glassOutline(GoldDim, RoundedCornerShape(14.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text("\uD83D\uDD12 $title", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
@@ -153,15 +155,15 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
                     .systemBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF2A2410), Panel2)))
-                    .border(1.dp, Gold, RoundedCornerShape(14.dp))
+                    .background(Brush.linearGradient(listOf(CoinText, Panel2)))
+                    .glassOutline(Gold, RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(Gold),
                     contentAlignment = Alignment.Center
-                ) { Text(announce.icon, fontSize = 15.sp) }
+                ) { IconSlot(announce.icon, tint = CoinText, fontSize = 15.sp, badge = false) }
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text(announce.title, color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
@@ -173,7 +175,7 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
 }
 
 @Composable
-private fun BottomBar(state: GameState, selected: String, onSelect: (String) -> Unit) {
+internal fun BottomBar(state: GameState, selected: String, onSelect: (String) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -181,19 +183,25 @@ private fun BottomBar(state: GameState, selected: String, onSelect: (String) -> 
             .navigationBarsPadding()
             .padding(vertical = 5.dp)
     ) {
+        val pillFill = LocalPalette.current.moneyFill
+        val pills = !LocalPalette.current.outlines   // \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0430-\u043F\u0438\u043B\u044E\u043B\u044F \u2014 \u0432 \u043C\u0430\u0442\u043E\u0432\u043E\u0439 \u0442\u0435\u043C\u0435
         Onboarding.navGroups.forEach { g ->
             val un = Onboarding.unlocked(state, g.id)
             val isNew = un && g.id !in state.seenTabs
+            val active = selected == g.id
             Box(
                 Modifier
                     .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (pills && active) pillFill else Color.Transparent)
                     .clickable { onSelect(g.id) }
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        if (un) g.icon else "\uD83D\uDD12",
+                    IconSlot(
+                        emoji = if (un) g.icon else "\uD83D\uDD12",
+                        tint = if (active) Gold else Mute,
                         fontSize = 16.sp,
                         modifier = Modifier.alpha(if (un) 1f else 0.45f)
                     )

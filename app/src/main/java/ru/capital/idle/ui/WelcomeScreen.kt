@@ -33,7 +33,7 @@ fun WelcomeScreen(onDone: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(Modifier.height(70.dp))
-        Text("КАПИТАЛ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, letterSpacing = 4.sp)
+        Text("КАПИТАЛ", color = Heading, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, letterSpacing = 4.sp)
         Spacer(Modifier.height(10.dp))
         Text(
             "Постройте состояние с нуля и поднимитесь на вершину мирового рейтинга богатейших.",
@@ -51,7 +51,7 @@ fun WelcomeScreen(onDone: (String) -> Unit) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(Panel)
-                .border(1.dp, LineColor, RoundedCornerShape(14.dp))
+                .glassOutline(LineColor, RoundedCornerShape(14.dp))
                 .padding(16.dp)
         ) {
             if (name.isEmpty()) {

@@ -94,6 +94,7 @@ object SaveFile {
         o.put("seenTabsCsv", e.seenTabsCsv)
         o.put("announcedCsv", e.announcedCsv)
         o.put("currencyCode", e.currencyCode)
+        o.put("themeId", e.themeId)
         o.put("playerName", e.playerName)
         o.put("onboarded", e.onboarded)
         o.put("lastSeenMillis", e.lastSeenMillis)
@@ -191,6 +192,8 @@ object SaveFile {
         seenTabsCsv = o.optString("seenTabsCsv", d.seenTabsCsv),
         announcedCsv = o.optString("announcedCsv", d.announcedCsv),
         currencyCode = o.optString("currencyCode", d.currencyCode),
+        // тема появилась позже: в старом файле ключа нет, и игра открывается в прежнем оформлении
+        themeId = o.optString("themeId", d.themeId),
         playerName = o.optString("playerName", d.playerName),
         onboarded = o.optBoolean("onboarded", d.onboarded),
         lastSeenMillis = o.optLong("lastSeenMillis", d.lastSeenMillis)

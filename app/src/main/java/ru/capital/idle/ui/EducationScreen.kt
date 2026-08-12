@@ -26,7 +26,7 @@ import kotlin.math.ceil
 fun EducationScreen(vm: GameViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val cur = Currency.fromCode(state.currencyCode)
-    val branchColors = listOf(Gold, Color(0xFF6A9BD8), Color(0xFFA98BD8))
+    val branchColors = listOf(Gold, Study, Rest)
 
     Column(
         Modifier
@@ -58,7 +58,7 @@ fun EducationScreen(vm: GameViewModel) {
 }
 
 @Composable
-private fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () -> Unit) {
+internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () -> Unit) {
     val isDone = c.id in state.eduDone
     val locked = c.reqCourse != null && c.reqCourse !in state.eduDone
     val current = state.studyingId == c.id
@@ -72,7 +72,7 @@ private fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () -
             .clip(RoundedCornerShape(14.dp))
             .background(
                 when {
-                    isDone -> Color(0x265FBF7A)   // изучено — зелёный акцент
+                    isDone -> StudyFill            // изучено — акцент раздела учёбы
                     current -> GlassAccent         // идёт учёба — золотистый акцент
                     else -> GlassFill
                 }
@@ -92,14 +92,14 @@ private fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () -
                 Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
                     Box(
                         Modifier.fillMaxWidth(progress).fillMaxHeight()
-                            .clip(RoundedCornerShape(99.dp)).background(Color(0xFF6A9BD8))
+                            .clip(RoundedCornerShape(99.dp)).background(Study)
                     )
                 }
             }
         }
         Column(horizontalAlignment = Alignment.End) {
             when {
-                isDone -> Text("✓ изучено", color = GreenAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                isDone -> Text("✓ изучено", color = Study, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 current -> Text(
                     "~${ceil((c.durationHours - state.studyProgress) / perDay).toInt()} дн.",
                     color = Mute, fontFamily = FontFamily.Monospace, fontSize = 12.sp
