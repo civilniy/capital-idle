@@ -60,6 +60,37 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         return (cur - 3 * 3_600_000L).coerceAtLeast(0L)
     }
 
+    /** Автовклад: включить или выключить. При включении инструмент — лучший доступный. */
+    fun toggleAutoInvest() {
+        _state.update { st ->
+            val on = !st.autoInvestOn
+            st.copy(
+                autoInvestOn = on,
+                autoInvestAsset =
+                    if (on && AutoInvest.target(st) == null) -1
+                    else if (on) (AutoInvest.target(st)?.ordinal ?: -1)
+                    else st.autoInvestAsset
+            )
+        }
+        persistSoon()
+    }
+
+    /** Закрепить инструмент автовклада. */
+    fun setAutoInvestAsset(a: Asset) {
+        _state.update { it.copy(autoInvestAsset = a.ordinal) }
+        persistSoon()
+    }
+
+    /** Подвинуть резерв на карте на ступень вверх (+1) или вниз (-1). */
+    fun stepAutoInvestReserve(dir: Int) {
+        _state.update {
+            it.copy(autoInvestReserve =
+                if (dir > 0) AutoInvest.stepUp(it.autoInvestReserve)
+                else AutoInvest.stepDown(it.autoInvestReserve))
+        }
+        persistSoon()
+    }
+
     fun toggleCapitalize(a: Asset) {
         _state.update { st ->
             val bit = 1 shl a.ordinal
@@ -165,6 +196,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 // стоят — смены дня не будет. Величины дня считаем здесь, иначе они остались бы
                 // от прошлой сессии и не соответствовали бы ни капиталу, ни накопителям
                 st = GameMath.withDayShown(GameMath.withPressure(st))
+                // автовклад срабатывает один раз от текущего баланса, а не по разу
+                // за каждый пропущенный день: игровые часы, пока игра закрыта, стоят
+                st = AutoInvest.apply(st)
                 // сдвигаем метку на текущий момент, чтобы повторный вызов (init + ON_START) не начислил снова
                 st = st.copy(lastSeenMillis = System.currentTimeMillis())
                 _state.value = st

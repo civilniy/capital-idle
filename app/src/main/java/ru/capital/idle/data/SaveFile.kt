@@ -35,6 +35,9 @@ object SaveFile {
         o.put("investValuesCsv", e.investValuesCsv)
         o.put("investCostsCsv", e.investCostsCsv)
         o.put("capitalizeMask", e.capitalizeMask)
+        o.put("autoInvestOn", e.autoInvestOn)
+        o.put("autoInvestAsset", e.autoInvestAsset)
+        o.put("autoInvestReserve", e.autoInvestReserve)
         o.put("boostEndsAtMillis", e.boostEndsAtMillis)
         o.put("stockPricesCsv", e.stockPricesCsv)
         o.put("stockQtyCsv", e.stockQtyCsv)
@@ -124,6 +127,10 @@ object SaveFile {
         investValuesCsv = o.optString("investValuesCsv", d.investValuesCsv),
         investCostsCsv = o.optString("investCostsCsv", d.investCostsCsv),
         capitalizeMask = o.optInt("capitalizeMask", d.capitalizeMask),
+        // в старом сохранении ключей нет — автовклад выключен, как у новой игры
+        autoInvestOn = o.optBoolean("autoInvestOn", false),
+        autoInvestAsset = o.optInt("autoInvestAsset", -1),
+        autoInvestReserve = o.optDouble("autoInvestReserve", 0.0),
         boostEndsAtMillis = o.optLong("boostEndsAtMillis", d.boostEndsAtMillis),
         stockPricesCsv = o.optString("stockPricesCsv", d.stockPricesCsv),
         stockQtyCsv = o.optString("stockQtyCsv", d.stockQtyCsv),

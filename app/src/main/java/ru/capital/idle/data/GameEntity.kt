@@ -49,6 +49,10 @@ data class GameEntity(
     val investValuesCsv: String,
     val investCostsCsv: String,
     val capitalizeMask: Int,
+    // автовклад: переключатель, закреплённый инструмент и резерв на карте
+    val autoInvestOn: Boolean,
+    val autoInvestAsset: Int,
+    val autoInvestReserve: Double,
     val boostEndsAtMillis: Long,
     val stockPricesCsv: String,
     val stockQtyCsv: String,
@@ -285,6 +289,8 @@ fun GameState.toEntity() = GameEntity(
     studyingId = studyingId, studyProgress = studyProgress,
     investValuesCsv = investValues.dCsv(), investCostsCsv = investCosts.dCsv(),
     capitalizeMask = capitalizeMask,
+    autoInvestOn = autoInvestOn, autoInvestAsset = autoInvestAsset,
+    autoInvestReserve = autoInvestReserve,
     boostEndsAtMillis = boostEndsAtMillis,
     stockPricesCsv = stockPrices.dCsv(),
     stockQtyCsv = stockQty.dCsv(),
@@ -335,6 +341,8 @@ fun GameEntity.toState() = GameState(
     investValues = investValuesCsv.toDoubles(Investments.COUNT),
     investCosts = investCostsCsv.toDoubles(Investments.COUNT),
     capitalizeMask = capitalizeMask,
+    autoInvestOn = autoInvestOn, autoInvestAsset = autoInvestAsset,
+    autoInvestReserve = autoInvestReserve,
     boostEndsAtMillis = boostEndsAtMillis,
     stockPrices = stockPricesCsv.toDoubles(Exchange.COUNT).mapIndexed { i, v ->
         if (v <= 0.0) Exchange.stocks[i].basePrice else v
