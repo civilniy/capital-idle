@@ -564,6 +564,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             )
             st.copy(
                 statDaysPrevLives = st.statDaysPrevLives + days,
+                statLives = st.statLives + 1,
                 statBullionEarned = st.statBullionEarned + gain,
                 money = Prestige.startMoney(st.pStart),
                 totalEarned = 0.0,

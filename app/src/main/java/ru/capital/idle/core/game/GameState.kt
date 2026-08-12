@@ -83,6 +83,9 @@ data class GameState(
     val statAllTimeEarned: Double = 0.0,
     val statBestDayIncome: Double = 0.0,
     val statDaysPrevLives: Int = 0,
+    // сколько раз игрок переродился. Ноль — первая жизнь, сколько бы слитков ни было:
+    // слитки выдают и за вехи, а признаком «уже проходил игру» служит само перерождение
+    val statLives: Int = 0,
     val statBullionEarned: Long = 0L,
     val statLifeItems: Int = 0,
     val statBizLevels: Int = 0,

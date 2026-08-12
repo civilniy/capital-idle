@@ -98,6 +98,8 @@ data class GameEntity(
     val statAllTimeEarned: Double,
     val statBestDayIncome: Double,
     val statDaysPrevLives: Int,
+    /** Сколько раз игрок переродился. Ноль — первая жизнь. */
+    val statLives: Int,
     val statBullionEarned: Long,
     val statLifeItems: Int,
     val statBizLevels: Int,
@@ -308,7 +310,8 @@ fun GameState.toEntity() = GameEntity(
     milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
-    statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
+    statDaysPrevLives = statDaysPrevLives, statLives = statLives,
+    statBullionEarned = statBullionEarned,
     statLifeItems = statLifeItems, statBizLevels = statBizLevels, statBestTitle = statBestTitle,
     phaseIndex = phaseIndex, phaseEndGameH = phaseEndGameH,
     gameHours = gameHours, startDateMillis = startDateMillis,
@@ -358,7 +361,8 @@ fun GameEntity.toState() = GameState(
     milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
-    statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
+    statDaysPrevLives = statDaysPrevLives, statLives = statLives,
+    statBullionEarned = statBullionEarned,
     statLifeItems = statLifeItems, statBizLevels = statBizLevels, statBestTitle = statBestTitle,
     phaseIndex = phaseIndex, phaseEndGameH = phaseEndGameH,
     gameHours = gameHours, startDateMillis = startDateMillis,
@@ -379,6 +383,12 @@ fun GameEntity.toState() = GameState(
     // сохранение, сделанное до того, как доход для тапа стал храниться: считаем его здесь,
     // иначе до первой смены игрового дня тап давал бы минимальный доллар
     if (st.tapIncome > 0.0) st else st.copy(tapIncome = GameMath.incomePerDay(st))
+}.let { st ->
+    // сохранение, сделанное до появления счётчика жизней: перерождения в нём видны
+    // по музею (запись на каждую прошлую жизнь) и по дням прошлых жизней. Без этого
+    // игрок, который уже перерождался, перестал бы быть ветераном
+    if (st.statLives > 0) st
+    else st.copy(statLives = maxOf(st.museum.size, if (st.statDaysPrevLives > 0) 1 else 0))
 }.let { st ->
     // храповик капитала начинается с текущего капитала: в сохранении, сделанном до его
     // появления, накопителя нет, а пороги разделов и титулов уже сравниваются с ним

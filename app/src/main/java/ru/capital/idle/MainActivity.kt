@@ -77,7 +77,8 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
     LaunchedEffect(lockInfo) {
         if (lockInfo != null) { delay(2800); lockInfo = null }
     }
-    val onLocked: (String) -> Unit = { id -> lockInfo = Onboarding.lockText(id) }
+    // текст замка зависит от состояния: он называет то условие, которое не выполнено сейчас
+    val onLocked: (String) -> Unit = { id -> lockInfo = Onboarding.lockText(id, state) }
 
     // «пинок» для сброса вложенных оверлеев на главной (например, экрана категории предприятий)
     var mainResetTick by remember { mutableStateOf(0) }

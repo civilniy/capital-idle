@@ -77,6 +77,7 @@ object SaveFile {
         o.put("statAllTimeEarned", e.statAllTimeEarned)
         o.put("statBestDayIncome", e.statBestDayIncome)
         o.put("statDaysPrevLives", e.statDaysPrevLives)
+        o.put("statLives", e.statLives)
         o.put("statBullionEarned", e.statBullionEarned)
         o.put("statLifeItems", e.statLifeItems)
         o.put("statBizLevels", e.statBizLevels)
@@ -169,6 +170,7 @@ object SaveFile {
         statAllTimeEarned = o.optDouble("statAllTimeEarned", d.statAllTimeEarned),
         statBestDayIncome = o.optDouble("statBestDayIncome", d.statBestDayIncome),
         statDaysPrevLives = o.optInt("statDaysPrevLives", d.statDaysPrevLives),
+        statLives = o.optInt("statLives", 0),
         statBullionEarned = o.optLong("statBullionEarned", d.statBullionEarned),
         statLifeItems = o.optInt("statLifeItems", d.statLifeItems),
         statBizLevels = o.optInt("statBizLevels", d.statBizLevels),
