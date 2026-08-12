@@ -71,6 +71,7 @@ object SaveFile {
         o.put("chronicleRaw", e.chronicleRaw)
         o.put("museumRaw", e.museumRaw)
         o.put("milestonesClaimed", e.milestonesClaimed)
+        o.put("peakNetWorth", e.peakNetWorth)
         o.put("statTaps", e.statTaps)
         o.put("statTapEarned", e.statTapEarned)
         o.put("statAllTimeEarned", e.statAllTimeEarned)
@@ -162,6 +163,7 @@ object SaveFile {
         chronicleRaw = o.optString("chronicleRaw", d.chronicleRaw),
         museumRaw = o.optString("museumRaw", d.museumRaw),
         milestonesClaimed = o.optInt("milestonesClaimed", d.milestonesClaimed),
+        peakNetWorth = o.optDouble("peakNetWorth", 0.0),
         statTaps = o.optLong("statTaps", d.statTaps),
         statTapEarned = o.optDouble("statTapEarned", d.statTapEarned),
         statAllTimeEarned = o.optDouble("statAllTimeEarned", d.statAllTimeEarned),
