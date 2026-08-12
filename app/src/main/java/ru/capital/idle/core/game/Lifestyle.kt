@@ -151,9 +151,16 @@ object Lifestyle {
         Title("Легенда", GameConfig.TOP1_USD),
     )
 
-    fun titleIndex(totalEarned: Double): Int {
+    /**
+     * Титул по капиталу. Раньше считался от валового дохода, из-за чего «Миллионер»
+     * приходил раньше, чем капитал на главном экране доходил до миллиона.
+     *
+     * Передавать сюда полагается максимальный достигнутый капитал ([GameState.peakNetWorth]):
+     * заработанный титул не понижается, даже если капитал просел.
+     */
+    fun titleIndex(netWorth: Double): Int {
         var idx = 0
-        titles.forEachIndexed { i, t -> if (totalEarned >= t.threshold) idx = i }
+        titles.forEachIndexed { i, t -> if (netWorth >= t.threshold) idx = i }
         return idx
     }
 }

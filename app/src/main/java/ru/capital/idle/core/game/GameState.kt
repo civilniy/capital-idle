@@ -74,6 +74,9 @@ data class GameState(
     val museum: List<String> = emptyList(),      // записи Museum.entry
     // цели
     val milestonesClaimed: Int = 0,
+    // максимальный достигнутый капитал: храповик для порогов разделов и титулов.
+    // Сам капитал умеет падать (упали акции, продано имущество), а открытое не закрывается
+    val peakNetWorth: Double = 0.0,
     // статистика (за все жизни)
     val statTaps: Long = 0L,
     val statTapEarned: Double = 0.0,

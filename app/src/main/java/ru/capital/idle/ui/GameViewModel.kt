@@ -146,6 +146,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                     val creditedDays = if (perDay > 0.0) gain / perDay else 0.0
                     st = st.copy(
                         money = st.money + gain, totalEarned = st.totalEarned + gain,
+                        // оффлайн — такой же доход, как онлайновый, и в счётчике всех жизней
+                        // ему место наравне с ним
+                        statAllTimeEarned = st.statAllTimeEarned + gain,
                         enterprises = GameMath.accrueEnterpriseStats(st, creditedDays)
                     )
                 }
@@ -233,7 +236,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             }
             val netD = (incD - upkeepD - capIncomeD) * GameMath.boostMult(s)   // на карту, удваивается рекламой
             var money = s.money + netD * dtDays
-            var total = s.totalEarned + incD * GameMath.boostMult(s) * dtDays   // вехи/титулы — по валовому, тоже с бустом
+            // вехи/титулы — по валовому доходу, с бустом. Тем же приростом идёт и счётчик
+            // всех жизней ниже: выражение одно на оба, чтобы они снова не разошлись
+            val earnedTick = GameMath.earnedDelta(s, dtDays)
+            var total = s.totalEarned + earnedTick
             var debt = s.debt
 
             // ушли в минус — копится долг (с процентом); гасится из плюсового баланса
@@ -351,9 +357,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 claimed++
             }
 
+            // максимальный достигнутый капитал: по нему открываются разделы и выдаются титулы.
+            // Капитал умеет падать, а открытое и полученное назад не отбирается
+            val peak = maxOf(s.peakNetWorth, worthNow)
+
             // титул
             var titleIdx = s.lastTitleIdx
-            val nowTitle = Lifestyle.titleIndex(total)
+            val nowTitle = Lifestyle.titleIndex(peak)
             if (nowTitle > titleIdx) {
                 titleIdx = nowTitle
                 newEvents += "title" to nowTitle.toString()
@@ -395,9 +405,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 nextNewsDay = nextNews,
                 phaseIndex = phaseIdx, phaseEndGameH = phaseEnd,
                 milestonesClaimed = claimed,
+                peakNetWorth = peak,
                 lastTitleIdx = titleIdx,
                 debt = debt,
-                statAllTimeEarned = s.statAllTimeEarned + incD * dtDays,
+                // ровно та же формула, что и у totalEarned выше: буст удваивает доход,
+                // и без него счётчик всех жизней отставал вдвое
+                statAllTimeEarned = s.statAllTimeEarned + earnedTick,
                 statBestDayIncome = maxOf(s.statBestDayIncome, incD),
                 statBullionEarned = s.statBullionEarned + bullEarnedTick,
                 statBestTitle = maxOf(s.statBestTitle, titleIdx),
@@ -639,9 +652,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             val qty = st.stockQty.getOrElse(index) { 0.0 }
             if (qty <= 0.0) return@update st
             val gain = qty * st.stockPrices[index]
+            // в заработок идёт только прибыль сверх вложенного, а не вся выручка от продажи
+            val profit = (gain - qty * st.stockAvg[index]).coerceAtLeast(0.0)
             st.copy(
                 money = st.money + gain,
-                totalEarned = st.totalEarned + (gain - qty * st.stockAvg[index]).coerceAtLeast(0.0),
+                totalEarned = st.totalEarned + profit,
+                statAllTimeEarned = st.statAllTimeEarned + profit,
                 stockQty = st.stockQty.toMutableList().also { it[index] = 0.0 },
                 stockAvg = st.stockAvg.toMutableList().also { it[index] = 0.0 }
             )
@@ -693,7 +709,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 // торги прошлой жизни закрываются вместе с ней: иначе залог вернулся бы
                 // уже на новый баланс, а выигранный предмет пережил бы перерождение
                 auction = null, auctionNextGameH = 0.0,
-                lastTitleIdx = 0,
+                // титул и храповик капитала обнуляются вместе с капиталом: новая жизнь
+                // зарабатывает их заново
+                lastTitleIdx = 0, peakNetWorth = 0.0,
                 museum = (listOf(memorial) + st.museum).take(20),
                 chronicle = listOf(Chronicle.entry(1, "start")),
                 announced = st.announced + Onboarding.announceIds

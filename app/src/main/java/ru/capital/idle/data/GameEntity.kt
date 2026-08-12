@@ -91,6 +91,8 @@ data class GameEntity(
     val chronicleRaw: String,
     val museumRaw: String,
     val milestonesClaimed: Int,
+    /** Максимальный достигнутый капитал: храповик порогов разделов и титулов. */
+    val peakNetWorth: Double,
     val statTaps: Long,
     val statTapEarned: Double,
     val statAllTimeEarned: Double,
@@ -303,7 +305,7 @@ fun GameState.toEntity() = GameEntity(
     lastTitleIdx = lastTitleIdx,
     experiencesDoneCsv = experiencesDone.sCsv(), debt = debt, activatedCardTier = activatedCardTier,
     chronicleRaw = chronicle.recCsv(), museumRaw = museum.recCsv(),
-    milestonesClaimed = milestonesClaimed,
+    milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
     statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
@@ -353,7 +355,7 @@ fun GameEntity.toState() = GameState(
     lastTitleIdx = lastTitleIdx,
     experiencesDone = experiencesDoneCsv.toSet(), debt = debt, activatedCardTier = activatedCardTier,
     chronicle = chronicleRaw.toRecList(), museum = museumRaw.toRecList(),
-    milestonesClaimed = milestonesClaimed,
+    milestonesClaimed = milestonesClaimed, peakNetWorth = peakNetWorth,
     statTaps = statTaps, statTapEarned = statTapEarned,
     statAllTimeEarned = statAllTimeEarned, statBestDayIncome = statBestDayIncome,
     statDaysPrevLives = statDaysPrevLives, statBullionEarned = statBullionEarned,
@@ -377,4 +379,8 @@ fun GameEntity.toState() = GameState(
     // сохранение, сделанное до того, как доход для тапа стал храниться: считаем его здесь,
     // иначе до первой смены игрового дня тап давал бы минимальный доллар
     if (st.tapIncome > 0.0) st else st.copy(tapIncome = GameMath.incomePerDay(st))
+}.let { st ->
+    // храповик капитала начинается с текущего капитала: в сохранении, сделанном до его
+    // появления, накопителя нет, а пороги разделов и титулов уже сравниваются с ним
+    st.copy(peakNetWorth = maxOf(st.peakNetWorth, GameMath.netWorth(st)))
 }
