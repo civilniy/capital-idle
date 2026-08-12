@@ -59,6 +59,9 @@ roborazzi {
 val screenshotRun = gradle.startParameter.taskNames.any { it.contains("Roborazzi", ignoreCase = true) }
 tasks.withType<Test>().configureEach {
     if (!screenshotRun) exclude("ru/capital/idle/screenshot/**")
+    // сводка симуляции печатается тестом и должна быть видна прямо в логе CI,
+    // а не только в выгруженном отчёте
+    testLogging { showStandardStreams = true }
 }
 
 dependencies {

@@ -94,7 +94,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private val _stockHistory = MutableStateFlow(List(Exchange.COUNT) { listOf<Double>() })
     val stockHistory: StateFlow<List<List<Double>>> = _stockHistory.asStateFlow()
     private var lastStockHour = -1L
-    private var lastInvestDay = -1L   // волатильность вкладов применяется раз в игровые сутки
+    private var loopCursor = GameLoop.Cursor()   // память цикла между тиками (капитализация раз в сутки)
 
     private var loaded = false
 
@@ -219,75 +219,13 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val dtGameH = GameTime.gameHours(dtReal)
         val dtDays = dtGameH / 24.0
         _state.update { st ->
-            var s = st
-            val gameH = s.gameHours + dtGameH
-
-            // доход минус содержание имущества = чистый доход
-            val incD = GameMath.incomePerDay(s)
-            val upkeepD = Lifestyle.dailyUpkeep(s) + GameMath.managersSalaryPerDay(s)
-            // доход вкладов с включённой капитализацией не идёт на карту, а реинвестируется в тело
-            val tierBonusCap = CardTier.entries.getOrElse(s.activatedCardTier) { CardTier.CLASSIC }.passiveBonus
-            var capIncomeD = 0.0
-            Asset.entries.forEach { a ->
-                if (s.capitalizeMask and (1 shl a.ordinal) != 0) {
-                    val v = s.investValues.getOrElse(a.ordinal) { 0.0 }
-                    capIncomeD += v * Investments.rate(a, s.eduDone) * (1.0 + tierBonusCap)
-                }
-            }
-            val netD = (incD - upkeepD - capIncomeD) * GameMath.boostMult(s)   // на карту, удваивается рекламой
-            var money = s.money + netD * dtDays
-            // вехи/титулы — по валовому доходу, с бустом. Тем же приростом идёт и счётчик
-            // всех жизней ниже: выражение одно на оба, чтобы они снова не разошлись
-            val earnedTick = GameMath.earnedDelta(s, dtDays)
-            var total = s.totalEarned + earnedTick
-            var debt = s.debt
-
-            // ушли в минус — копится долг (с процентом); гасится из плюсового баланса
-            if (money < 0.0) { debt += -money; money = 0.0 }
-            if (debt > 0.0) {
-                debt *= (1.0 + GameConfig.DEBT_RATE_PER_DAY * dtDays)
-                if (money > 0.0) {
-                    val pay = minOf(money, debt)
-                    money -= pay; debt -= pay
-                }
-            }
-
-            // накопители окупаемости: у каждого предприятия своя выручка и своя зарплата
-            s = s.copy(enterprises = GameMath.accrueEnterpriseStats(s, dtDays))
-
-            val newEvents = mutableListOf<Pair<String, String>>()
-
-            // учёба
-            var studying = s.studyingId
-            var prog = s.studyProgress
-            var edu = s.eduDone
-            if (studying.isNotEmpty()) {
-                prog += GameMath.studyHoursPerDay(s) * dtDays
-                val course = Education.byId(studying)
-                if (course != null && prog >= course.durationHours) {
-                    edu = edu + course.id
-                    newEvents += "edu" to course.id
-                    studying = ""
-                    prog = 0.0
-                }
-            }
-
-            // репутация: прирост от окружения + дрейф к уровню, заданному соц-статусом (образ жизни)
-            val statusTarget = (20.0 + Lifestyle.socialStatus(s) * 0.3).coerceAtMost(100.0)
-            val repDrift = (statusTarget - s.reputation) * (0.02 * dtDays).coerceIn(0.0, 1.0)
-            val rep = (s.reputation + Network.repPerDay(s.netOwned) * dtDays + repDrift).coerceIn(0.0, 100.0)
-
-            // капитализация вкладов — раз в игровые сутки. Волатильности у накоплений нет:
-            // депозит/облигации/недвижимость растут предсказуемо (как показано в «доход/день»).
-            val curDay = (gameH / 24.0).toInt().toLong()
-            val applyCap = curDay != lastInvestDay
-            if (applyCap) lastInvestDay = curDay
-            val values = if (!applyCap) s.investValues else s.investValues.mapIndexed { i, v ->
-                val a = Asset.entries[i]
-                if (v > 0 && (s.capitalizeMask and (1 shl i) != 0))
-                    v + v * Investments.rate(a, s.eduDone) * (1.0 + tierBonusCap)
-                else v
-            }
+            // деньги и долг, счётчики заработка, накопители предприятий, учёба, репутация
+            // и капитализация вкладов вынесены в GameLoop — тем же кодом ходит симуляция
+            val eco = GameLoop.economy(st, dtDays, loopCursor)
+            loopCursor = eco.cursor
+            var s = eco.state
+            val gameH = s.gameHours
+            var money = s.money
 
             // биржа: циклы + новостные события + дивиденды
             var prices = s.stockPrices
@@ -336,105 +274,45 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             }
             money = money2
 
-            // фаза рынка
-            var phaseIdx = s.phaseIndex
-            var phaseEnd = s.phaseEndGameH
-            if (phaseEnd <= 0.0) phaseEnd = gameH + MarketPhase.randomLengthDays() * 24.0
-            if (gameH >= phaseEnd) {
-                phaseIdx = MarketPhase.next(s.phase).ordinal
-                phaseEnd = gameH + MarketPhase.randomLengthDays() * 24.0
-            }
+            s = s.copy(
+                money = money,
+                stockPrices = prices,
+                stockHour = stockHour,
+                newsStockIndex = nStock, newsGood = nGood, newsStrength = nStrength,
+                newsTitleKey = nKey, newsHoursLeft = nLeft, newsTotalHours = nTotal,
+                nextNewsDay = nextNews
+            )
 
-            // вехи (по полному капиталу, а не по наличным)
-            var claimed = s.milestonesClaimed
-            var bull = s.bullion
-            var bullEarnedTick = 0L
-            val worthNow = GameMath.netWorth(s.copy(money = money, debt = debt))
-            while (claimed < Milestones.all.size && worthNow >= Milestones.all[claimed].thresholdUsd) {
-                bull += Milestones.all[claimed].rewardBullion
-                bullEarnedTick += Milestones.all[claimed].rewardBullion
-                newEvents += "ms" to claimed.toString()
-                claimed++
-            }
-
-            // максимальный достигнутый капитал: по нему открываются разделы и выдаются титулы.
-            // Капитал умеет падать, а открытое и полученное назад не отбирается
-            val peak = maxOf(s.peakNetWorth, worthNow)
-
-            // титул
-            var titleIdx = s.lastTitleIdx
-            val nowTitle = Lifestyle.titleIndex(peak)
-            if (nowTitle > titleIdx) {
-                titleIdx = nowTitle
-                newEvents += "title" to nowTitle.toString()
-            }
-
-            // анонсы открывшихся разделов
+            // анонсы открывшихся разделов. Считаются до GameLoop.progress — то есть по
+            // прежнему храповику капитала и прежним вехам, как было и до выноса цикла
             var announced = s.announced
             for (id in Onboarding.announceIds) {
-                if (id !in announced) {
-                    val probe = s.copy(money = money, totalEarned = total, eduDone = edu)
-                    if (Onboarding.unlocked(probe, id)) {
-                        announced = announced + id
-                        Onboarding.announces[id]?.let { a ->
-                            _announceQueue.update { q -> q + a }
-                        }
+                if (id !in announced && Onboarding.unlocked(s, id)) {
+                    announced = announced + id
+                    Onboarding.announces[id]?.let { a ->
+                        _announceQueue.update { q -> q + a }
                     }
                 }
             }
 
             // онбординг: продвижение шага гида
             var tut = s.tutorialStep
-            if (tut < Onboarding.steps.size) {
-                val probe = s.copy(money = money, totalEarned = total, eduDone = edu, studyingId = studying)
-                if (Onboarding.stepDone(probe)) {
-                    tut += 1
-                    if (tut >= Onboarding.steps.size) tut = Onboarding.DONE
-                }
+            if (tut < Onboarding.steps.size && Onboarding.stepDone(s)) {
+                tut += 1
+                if (tut >= Onboarding.steps.size) tut = Onboarding.DONE
             }
 
-            s.copy(
-                money = money, totalEarned = total, bullion = bull,
-                gameHours = gameH,
-                studyingId = studying, studyProgress = prog, eduDone = edu,
-                reputation = rep, investValues = values,
-                stockPrices = prices,
-                stockHour = stockHour,
-                newsStockIndex = nStock, newsGood = nGood, newsStrength = nStrength,
-                newsTitleKey = nKey, newsHoursLeft = nLeft, newsTotalHours = nTotal,
-                nextNewsDay = nextNews,
-                phaseIndex = phaseIdx, phaseEndGameH = phaseEnd,
-                milestonesClaimed = claimed,
-                peakNetWorth = peak,
-                lastTitleIdx = titleIdx,
-                debt = debt,
-                // ровно та же формула, что и у totalEarned выше: буст удваивает доход,
-                // и без него счётчик всех жизней отставал вдвое
-                statAllTimeEarned = s.statAllTimeEarned + earnedTick,
-                statBestDayIncome = maxOf(s.statBestDayIncome, incD),
-                statBullionEarned = s.statBullionEarned + bullEarnedTick,
-                statBestTitle = maxOf(s.statBestTitle, titleIdx),
-                chronicle = if (newEvents.isEmpty()) s.chronicle else {
-                    val day = (gameH / 24.0).toInt() + 1
-                    (newEvents.map { Chronicle.entry(day, it.first, it.second) } + s.chronicle)
-                        .take(Chronicle.MAX)
-                },
-                announced = announced,
-                tutorialStep = tut
-            ).let { next ->
-                // величины дня: на границе игровых суток считаем заново, внутри суток держим
-                // прежние. Давление — от текущих денег, показанная прибыль предприятий —
-                // с их накопителей (см. GameMath.pressureOnNewDay и dayShownOnNewDay)
-                GameMath.dayShownOnNewDay(GameMath.pressureOnNewDay(next))
-            }.let { next ->
-                // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
-                val adv = Auctions.advance(next, gameH)
-                val e = adv.ended
-                if (e == null) adv.state else {
-                    _auctionResult.value = e
-                    adv.state.withChronicle(e.chronicleCode, e.chronicleParam)
+            // фаза рынка, вехи, храповик капитала, титул, хроника и величины дня
+            GameLoop.progress(s.copy(announced = announced, tutorialStep = tut), eco.events)
+                .let { next ->
+                    // торги живут по игровым часам: перебивы зала, завершение лота и запуск следующего
+                    val adv = Auctions.advance(next, gameH)
+                    val e = adv.ended
+                    if (e == null) adv.state else {
+                        _auctionResult.value = e
+                        adv.state.withChronicle(e.chronicleCode, e.chronicleParam)
+                    }
                 }
-            }
         }
     }
 
