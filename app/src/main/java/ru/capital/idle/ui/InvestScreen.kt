@@ -230,19 +230,22 @@ internal fun AutoInvestCard(
         Spacer(Modifier.height(12.dp))
         Text("КУДА", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // строками, а не чипами в ряд: «Недвижимость» при крупном шрифте в узкий чип
+        // не помещается, а обрезать название нельзя
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             unlocked.forEach { a ->
                 val picked = a == target
-                Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                         .background(if (picked) Color(0x2EE8B54A) else BtnFill)
                         .clickable { onPick(a) }
-                        .padding(vertical = 9.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 11.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(a.title, color = if (picked) Gold else Mute,
                         fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 12.sp, maxLines = 1)
+                        fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    if (picked) Text("✓", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -265,19 +268,21 @@ internal fun AutoInvestCard(
             color = Mute, fontSize = 10.sp, lineHeight = 13.sp)
 
         Spacer(Modifier.height(11.dp))
-        Row(
+        Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassInner)
-                .padding(horizontal = 11.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 11.dp, vertical = 9.dp)
         ) {
             if (blocked != null) {
                 Text("не сработает: $blocked", color = RedAccent,
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp)
             } else {
-                Text("следующим днём уйдёт ", color = Mute, fontSize = 11.sp)
+                // сумма отдельной строкой: до миллиарда деньги показываются целиком
+                // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
+                Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
+                Spacer(Modifier.height(2.dp))
                 Text(GameMath.formatMoney(amount, cur), color = GreenAccent,
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp, maxLines = 1, softWrap = false)
+                    fontSize = 13.sp, maxLines = 1, softWrap = false)
             }
         }
     }
