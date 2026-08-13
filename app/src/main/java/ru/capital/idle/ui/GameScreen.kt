@@ -667,13 +667,13 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             val grossHere = list.sumOf { GameMath.enterpriseGrossPerDay(state, ind, it) }
             val netHere = grossHere - salaryHere
             SummaryCell("${hoursHere}ч", "ВАШИ ЧАСЫ", TextMain, Modifier.weight(0.9f),
-                icon = AppIcon.CLOCK)
+                icon = AppIcon.CLOCK, iconTint = Study)
             SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent,
-                Modifier.weight(0.9f), icon = AppIcon.USER)
+                Modifier.weight(0.9f), icon = AppIcon.USER, iconTint = RedAccent)
             SummaryCell(
                 (if (netHere >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(netHere), cur),
                 "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f),
-                icon = AppIcon.CHART)
+                icon = AppIcon.CHART, iconTint = Business)
         }
         Spacer(Modifier.height(12.dp))
 
@@ -913,19 +913,19 @@ internal fun SummaryCellsRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
-            icon = AppIcon.USER, onClick = { onNavigate("profile") })
+            icon = AppIcon.USER, iconTint = Rest, onClick = { onNavigate("profile") })
         SummaryCell("$reputation", "РЕПУТАЦИЯ", Status, Modifier.weight(0.9f),
-            icon = AppIcon.STAR, onClick = { onNavigate("network") })
+            icon = AppIcon.STAR, iconTint = Status, onClick = { onNavigate("network") })
         // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
         SummaryCell(worthText, "КАПИТАЛ", Heading, Modifier.weight(1.7f),
-            icon = AppIcon.COIN, onClick = { onNavigate("rank") })
+            icon = AppIcon.COIN, iconTint = Gold, onClick = { onNavigate("rank") })
     }
 }
 
 @Composable
 private fun SummaryCell(
     value: String, label: String, color: Color, modifier: Modifier,
-    icon: AppIcon? = null, onClick: (() -> Unit)? = null
+    icon: AppIcon? = null, iconTint: Color = color, onClick: (() -> Unit)? = null
 ) {
     Column((if (onClick != null) modifier.clip(tileShape(12.dp)).clickable(onClick = onClick)
             else modifier.clip(tileShape(12.dp)))
@@ -933,7 +933,7 @@ private fun SummaryCell(
         horizontalAlignment = Alignment.CenterHorizontally) {
         // иконка стоит в строке числа, а не над ним: плитка не должна подрасти
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) LeadingIcon(icon, color, size = Modern.tileIconCircle, gap = 6.dp)
+            if (icon != null) LeadingIcon(icon, iconTint, size = Modern.tileIconCircle, gap = 6.dp)
             Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                 fontSize = 14.sp, maxLines = 1)
         }
