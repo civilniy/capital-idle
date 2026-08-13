@@ -443,7 +443,8 @@ internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () 
             Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassAccent)
                 .padding(13.dp)
         ) {
-            Text("Жизнь ${life.num} · ${life.title}", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+            Text("Жизнь ${life.num} · ${life.title}", color = legacy(Gold, Status),
+                fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             Spacer(Modifier.height(3.dp))
             Text("${life.days} дней · ${GameMath.format(life.earned)} $ · ${life.home} · ${life.car}",
                 color = Mute, fontSize = 11.sp, lineHeight = 16.sp)

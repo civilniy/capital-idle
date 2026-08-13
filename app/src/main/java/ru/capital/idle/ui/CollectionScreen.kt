@@ -466,7 +466,8 @@ private fun SetCard(row: SetProgress) {
         }
         Spacer(Modifier.width(4.dp))
         Column(
-            Modifier.clip(RoundedCornerShape(9.dp)).background(if (done) Gold else GlassInner)
+            Modifier.clip(RoundedCornerShape(9.dp))
+                .background(if (done) legacy(Gold, Status) else GlassInner)
                 .padding(horizontal = 9.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
