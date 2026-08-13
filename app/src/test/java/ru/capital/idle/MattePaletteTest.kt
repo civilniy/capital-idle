@@ -36,7 +36,10 @@ class MattePaletteTest {
         0x26272B to "вложенный", 0x323338 to "третий уровень"
     )
     private val texts = mapOf(0xF5F4F2 to "основной", 0xC4C5CA to "вторичный", 0x7C7E86 to "приглушённый")
-    private val neutral = mapOf(0x000000 to "чёрный", 0xFFFFFF to "белый")
+    // символ на янтарном круге: тёмный, иначе не читается — тот же янтарь, доведённый до чернил
+    private val neutral = mapOf(
+        0x000000 to "чёрный", 0xFFFFFF to "белый", 0x231703 to "символ на янтарном"
+    )
 
     private val allowed = accents + layers + texts + neutral
 
