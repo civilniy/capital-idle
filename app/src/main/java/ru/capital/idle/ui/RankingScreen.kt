@@ -83,7 +83,7 @@ fun RankingScreen(vm: GameViewModel) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(cardShape(18.dp))
                     .background(GlassAccent)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -129,7 +129,7 @@ internal fun RankRow(row: RankRowData, cur: Currency) {
         Modifier
             .fillMaxWidth()
             .padding(vertical = 3.dp)
-            .clip(RoundedCornerShape(13.dp))
+            .clip(tileShape(13.dp))
             .background(if (row.isPlayer) GlassAccent else GlassFill)
             .padding(horizontal = 13.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically

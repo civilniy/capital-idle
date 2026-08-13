@@ -44,7 +44,7 @@ fun PrestigeScreen(vm: GameViewModel) {
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(cardShape(16.dp))
                         .background(GlassAccent)
                         .padding(14.dp)
                 ) {
@@ -64,7 +64,7 @@ fun PrestigeScreen(vm: GameViewModel) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(cardShape(18.dp))
                     .background(GlassAccent)
                     .padding(16.dp)
             ) {
@@ -84,6 +84,7 @@ fun PrestigeScreen(vm: GameViewModel) {
             Text("ПЕРМАНЕНТНЫЕ АПГРЕЙДЫ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
             Spacer(Modifier.height(8.dp))
 
+            GroupCard {
             for (u in PrestigeUpgrade.entries) {
                 val lvl = Prestige.levelOf(state, u)
                 val cost = u.costAt(lvl)
@@ -91,11 +92,13 @@ fun PrestigeScreen(vm: GameViewModel) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(GlassFill)
-                        .padding(14.dp),
+                        .clip(cardShape(14.dp))
+                        .background(rowFill(GlassFill))
+                        .padding(horizontal = dpOf(14.dp, Modern.cardPadH),
+                            vertical = dpOf(14.dp, Modern.rowPadV)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    LeadingIcon(AppIcon.ARROW_UP, if (can) Gold else Mute)
                     Column(Modifier.weight(1f)) {
                         Text(u.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(Modifier.height(2.dp))
@@ -105,7 +108,7 @@ fun PrestigeScreen(vm: GameViewModel) {
                     Spacer(Modifier.width(10.dp))
                     Box(
                         Modifier
-                            .clip(RoundedCornerShape(11.dp))
+                            .clip(btnShape(11.dp))
                             .background(if (can) Gold else GlassBtnOff)
                             .clickable(enabled = can) { vm.buyPrestigeUpgrade(u) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -116,7 +119,8 @@ fun PrestigeScreen(vm: GameViewModel) {
                             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                RowSeparator(8.dp, last = u == PrestigeUpgrade.entries.last())
+            }
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -132,7 +136,7 @@ internal fun PrestigeButton(canPrestige: Boolean, gain: Long, onClick: () -> Uni
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(13.dp))
+            .clip(tileShape(13.dp))
             .background(if (canPrestige) Gold else GlassBtnOff)
             .clickable(enabled = canPrestige, onClick = onClick)
             .padding(vertical = 13.dp),

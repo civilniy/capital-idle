@@ -35,7 +35,7 @@ fun WorldScreen(vm: GameViewModel, onLocked: (String) -> Unit, startInner: Strin
                 Spacer(Modifier.height(10.dp))
                 // стеклянный переключатель вкладок
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
+                    Modifier.fillMaxWidth().clip(tileShape(13.dp)).background(GlassFill).padding(4.dp)
                 ) {
                     GlassTab("Рейтинг", inner == "rank", false, Modifier.weight(1f)) { inner = "rank" }
                     GlassTab("Цели", inner == "goals", false, Modifier.weight(1f)) { inner = "goals" }

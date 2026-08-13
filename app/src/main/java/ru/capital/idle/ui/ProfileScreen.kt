@@ -61,13 +61,13 @@ fun ProfileScreen(vm: GameViewModel) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .clip(cardShape(18.dp))
                 .background(if (inDebt) ExpenseFill else GlassAccent)
                 .padding(15.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showRename = true }
+                modifier = Modifier.clip(chipShape(6.dp)).clickable { showRename = true }
             ) {
                 Text(state.playerName.uppercase(java.util.Locale.ROOT), color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1)
                 Spacer(Modifier.width(6.dp))
@@ -82,11 +82,12 @@ fun ProfileScreen(vm: GameViewModel) {
             // шкала статуса
             Spacer(Modifier.height(10.dp))
             Box(
-                Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)
+                Modifier.fillMaxWidth().height(dpOf(8.dp, Modern.barHeight))
+                    .clip(barShape(99.dp)).background(GlassInner)
             ) {
                 val frac = (status / 800f).coerceIn(0f, 1f)
                 Box(
-                    Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(99.dp))
+                    Modifier.fillMaxWidth(frac).fillMaxHeight().clip(barShape(99.dp))
                         .background(Brush.horizontalGradient(
                             listOf(legacy(GoldDim, Status.copy(alpha = 0.5f)), legacy(Gold, Status))))
                 )
@@ -120,7 +121,7 @@ fun ProfileScreen(vm: GameViewModel) {
         if (inDebt) {
             Spacer(Modifier.height(10.dp))
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                Modifier.fillMaxWidth().clip(cardShape(16.dp))
                     .background(ExpenseFill)
                     .padding(13.dp)
             ) {
@@ -144,31 +145,39 @@ fun ProfileScreen(vm: GameViewModel) {
         when (inner) {
             0 -> {
                 Lifestyle.categories.forEach { cat ->
-                    Text(cat.title, color = Mute, fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
                     val curIdx = Lifestyle.ownedIndex(state, cat.id)
-                    cat.items.forEachIndexed { i, item ->
-                        if (i < curIdx || i > curIdx + 1) return@forEachIndexed
-                        LifeItemCard(
-                            item = item, owned = i == curIdx, isBase = i == 0,
-                            canBuy = i == curIdx + 1 && state.money >= item.cost,
-                            cur = cur,
-                            onBuy = { vm.buyLifeItem(cat.id) },
-                            onSell = { vm.sellLifeItem(cat.id) }
-                        )
+                    val shown = cat.items.indices.filter { it >= curIdx && it <= curIdx + 1 }
+                    GroupCard {
+                        Text(cat.title, color = Mute, fontSize = 11.sp, letterSpacing = 2.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(
+                                start = dpOf(0.dp, Modern.cardPadH), top = dpOf(0.dp, 8.dp)))
                         Spacer(Modifier.height(6.dp))
+                        shown.forEach { i ->
+                            val item = cat.items[i]
+                            LifeItemCard(
+                                item = item, owned = i == curIdx, isBase = i == 0,
+                                canBuy = i == curIdx + 1 && state.money >= item.cost,
+                                cur = cur,
+                                onBuy = { vm.buyLifeItem(cat.id) },
+                                onSell = { vm.sellLifeItem(cat.id) }
+                            )
+                            RowSeparator(6.dp, last = i == shown.last())
+                        }
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(dpOf(8.dp, Modern.cardGap)))
                 }
             }
             1 -> {
                 Text("РАЗОВЫЕ ВПЕЧАТЛЕНИЯ · статус навсегда", color = Mute, fontSize = 11.sp,
                     letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
-                Lifestyle.experiences.forEach { exp ->
-                    val done = exp.id in state.experiencesDone
-                    ExperienceCard(exp, done, state.money >= exp.cost, cur) { vm.buyExperience(exp.id) }
-                    Spacer(Modifier.height(6.dp))
+                GroupCard {
+                    Lifestyle.experiences.forEachIndexed { i, exp ->
+                        val done = exp.id in state.experiencesDone
+                        ExperienceCard(exp, done, state.money >= exp.cost, cur) { vm.buyExperience(exp.id) }
+                        RowSeparator(6.dp, last = i == Lifestyle.experiences.lastIndex)
+                    }
                 }
             }
             4 -> CollectionSection(vm = vm, state = state, cur = cur)
@@ -203,7 +212,7 @@ private fun PlayerNameDialog(
     var text by remember { mutableStateOf(initial) }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel)
+            Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(Panel)
                 .padding(18.dp)
         ) {
             Text("КАК ВАС ЗОВУТ", color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -216,19 +225,19 @@ private fun PlayerNameDialog(
                 textStyle = androidx.compose.ui.text.TextStyle(
                     color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp),
                 cursorBrush = androidx.compose.ui.graphics.SolidColor(Gold),
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(Panel2)
+                modifier = Modifier.fillMaxWidth().clip(btnShape(11.dp)).background(Panel2)
                     .padding(12.dp)
             )
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Panel2)
+                    Modifier.weight(1f).clip(btnShape(11.dp)).background(Panel2)
                         .clickable(onClick = onDismiss).padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) { Text("Отмена", color = Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
                 val canSave = text.isNotBlank()
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
+                    Modifier.weight(1f).clip(btnShape(11.dp))
                         .background(if (canSave) Gold else Panel2)
                         .clickable(enabled = canSave) { onConfirm(text) }.padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
@@ -244,7 +253,7 @@ private fun PlayerNameDialog(
 @Composable
 private fun MoneyCell(value: String, label: String, color: Color,
                       valueSize: androidx.compose.ui.unit.TextUnit, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(11.dp)).background(GlassInner).padding(horizontal = 10.dp, vertical = 9.dp)) {
+    Column(modifier.clip(btnShape(11.dp)).background(GlassInner).padding(horizontal = 10.dp, vertical = 9.dp)) {
         Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
             fontSize = valueSize, maxLines = 1, softWrap = false)
         Spacer(Modifier.height(2.dp))
@@ -257,7 +266,7 @@ private fun MoneyCell(value: String, label: String, color: Color,
 @Composable
 internal fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner).padding(vertical = 10.dp, horizontal = 4.dp),
+        modifier.clip(tileShape(12.dp)).background(GlassInner).padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         IconSlot(item.emoji, tint = Gold, fontSize = 24.sp)
@@ -297,7 +306,7 @@ internal fun ProfileTabsRow(selected: Int, onSelect: (Int) -> Unit) {
             cellWidthPx, TAB_MAX_SP, TAB_MIN_DP
         ).sp
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
+            Modifier.fillMaxWidth().clip(tileShape(13.dp)).background(GlassFill).padding(4.dp)
         ) {
             tabs.forEach { (label, idx) ->
                 GlassTab(
@@ -346,9 +355,9 @@ internal fun LifeItemCard(
     onBuy: () -> Unit, onSell: () -> Unit
 ) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (owned) GlassAccent else GlassFill)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
+            .background(if (owned) GlassAccent else rowFill(GlassFill))
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconSlot(item.emoji, tint = if (owned) Gold else Mute, fontSize = 22.sp,
@@ -365,12 +374,12 @@ internal fun LifeItemCard(
         if (owned) {
             if (isBase) Text("базовое", color = Mute, fontSize = 11.sp)
             else Box(
-                Modifier.clip(RoundedCornerShape(9.dp)).background(GlassBtn)
+                Modifier.clip(btnShape(9.dp)).background(GlassBtn)
                     .clickable(onClick = onSell).padding(horizontal = 10.dp, vertical = 7.dp)
             ) { Text("продать", color = Mute, fontFamily = FontFamily.Monospace, fontSize = 10.sp) }
         } else {
             Box(
-                Modifier.clip(RoundedCornerShape(9.dp))
+                Modifier.clip(btnShape(9.dp))
                     .background(if (canBuy) Gold else GlassBtnOff)
                     .clickable(enabled = canBuy, onClick = onBuy)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -385,8 +394,9 @@ internal fun LifeItemCard(
 @Composable
 internal fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Boolean, cur: Currency, onBuy: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (done) GlassAccent else GlassFill).padding(horizontal = 12.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
+            .background(if (done) GlassAccent else rowFill(GlassFill))
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconSlot(exp.emoji, tint = if (done) Rest else Mute, fontSize = 22.sp,
@@ -397,7 +407,7 @@ internal fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Bo
         }
         if (done) Text("\u2713", color = Status, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
         else Box(
-            Modifier.clip(RoundedCornerShape(9.dp)).background(if (canBuy) Gold else GlassBtnOff)
+            Modifier.clip(btnShape(9.dp)).background(if (canBuy) Gold else GlassBtnOff)
                 .clickable(enabled = canBuy, onClick = onBuy).padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(GameMath.formatMoney(exp.cost, cur), color = if (canBuy) CoinText else GlassBtnOffText,
@@ -440,7 +450,7 @@ internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () 
     // музей прошлых жизней
     state.museum.mapNotNull { Museum.parse(it) }.forEach { life ->
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassAccent)
+            Modifier.fillMaxWidth().clip(cardShape(16.dp)).background(GlassAccent)
                 .padding(13.dp)
         ) {
             Text("Жизнь ${life.num} · ${life.title}", color = legacy(Gold, Status),
@@ -472,7 +482,7 @@ internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () 
     if (all.size > CHRONICLE_PREVIEW) {
         Spacer(Modifier.height(6.dp))
         Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(GlassBtn)
+            Modifier.fillMaxWidth().clip(btnShape(11.dp)).background(GlassBtn)
                 .clickable(onClick = onToggle).padding(vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -495,7 +505,7 @@ private fun StatsBlock(state: GameState, cur: Currency) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(cardShape(18.dp))
             .background(GlassAccent)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -546,7 +556,7 @@ private fun StatGrid(items: List<Pair<String, String>>) {
 @Composable
 private fun StatTile(value: String, label: String, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(12.dp)
+        modifier.clip(tileShape(13.dp)).background(GlassFill).padding(12.dp)
     ) {
         Text(value, color = TextMain, fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1)

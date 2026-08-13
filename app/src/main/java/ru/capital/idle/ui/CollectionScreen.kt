@@ -57,20 +57,22 @@ fun CollectionSection(vm: GameViewModel, state: GameState, cur: Currency) {
         letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(6.dp))
 
-    Collectibles.all.forEach { c ->
-        CollectibleCard(
-            item = c,
-            price = Collectibles.priceIn(c, state),
-            owned = Collectibles.owns(state, c.id),
-            paid = Collectibles.paidFor(state, c.id),
-            profit = Collectibles.profit(state, c),
-            canBuy = Auctions.canBuyInCatalog(state, c.id),
-            inCatalog = Auctions.inCatalog(c.id),
-            cur = cur,
-            onBuy = { vm.buyCollectible(c.id) },
-            onSell = { vm.sellCollectible(c.id) }
-        )
-        Spacer(Modifier.height(6.dp))
+    GroupCard {
+        Collectibles.all.forEachIndexed { i, c ->
+            CollectibleCard(
+                item = c,
+                price = Collectibles.priceIn(c, state),
+                owned = Collectibles.owns(state, c.id),
+                paid = Collectibles.paidFor(state, c.id),
+                profit = Collectibles.profit(state, c),
+                canBuy = Auctions.canBuyInCatalog(state, c.id),
+                inCatalog = Auctions.inCatalog(c.id),
+                cur = cur,
+                onBuy = { vm.buyCollectible(c.id) },
+                onSell = { vm.sellCollectible(c.id) }
+            )
+            RowSeparator(6.dp, last = i == Collectibles.all.lastIndex)
+        }
     }
 }
 
@@ -141,10 +143,10 @@ internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: 
     val item = Collectibles.byId(ended.itemId)
     val won = ended.won
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
             .background(if (won) GlassAccent else GlassFill)
             .then(
-                if (won) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (won) Modifier.glassOutline(Gold.copy(alpha = 0.45f), cardShape(14.dp))
                 else Modifier
             )
             .padding(horizontal = 12.dp, vertical = 11.dp),
@@ -168,7 +170,7 @@ internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: 
             )
         }
         Box(
-            Modifier.clip(RoundedCornerShape(9.dp)).background(GlassBtn)
+            Modifier.clip(btnShape(9.dp)).background(GlassBtn)
                 .clickable(onClick = onDismiss).padding(horizontal = 12.dp, vertical = 7.dp)
         ) {
             Text("ясно", color = TextMain, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
@@ -212,11 +214,11 @@ internal fun AuctionBlock(view: AuctionView, cur: Currency, onBid: (Double) -> U
 @Composable
 private fun AuctionIdleCard(nextInH: Double, hasLotsLeft: Boolean) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
             .background(if (hasLotsLeft) GlassFill else GlassAccent)
             .then(
                 if (hasLotsLeft) Modifier
-                else Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                else Modifier.glassOutline(Gold.copy(alpha = 0.45f), cardShape(14.dp))
             )
             .padding(horizontal = 12.dp, vertical = 13.dp)
     ) {
@@ -243,7 +245,7 @@ private fun AuctionIdleCard(nextInH: Double, hasLotsLeft: Boolean) {
 private fun AuctionLockedCard(view: AuctionView) {
     val item = view.item ?: return
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GlassFill)
+        Modifier.fillMaxWidth().clip(cardShape(14.dp)).background(GlassFill)
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,7 +270,7 @@ private fun AuctionLockedCard(view: AuctionView) {
 @Composable
 private fun GateCell(label: String, have: String, need: String, ok: Boolean, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner)
+        modifier.clip(tileShape(12.dp)).background(GlassInner)
             .padding(vertical = 8.dp, horizontal = 10.dp)
     ) {
         Text("$have / $need", color = if (ok) GreenAccent else TextMain,
@@ -284,10 +286,10 @@ private fun GateCell(label: String, have: String, need: String, ok: Boolean, mod
 private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) -> Unit) {
     val item = view.item ?: return
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
             .background(if (view.playerLeads) GlassAccent else GlassFill)
             .then(
-                if (view.playerLeads) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (view.playerLeads) Modifier.glassOutline(Gold.copy(alpha = 0.45f), cardShape(14.dp))
                 else Modifier
             )
             .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -317,11 +319,11 @@ private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) ->
         Spacer(Modifier.height(9.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(GlassInner)
+                Modifier.weight(1f).height(dpOf(4.dp, Modern.barHeight)).clip(barShape(2.dp)).background(GlassInner)
             ) {
                 Box(
                     Modifier.fillMaxWidth(1f - view.timeFraction).fillMaxHeight()
-                        .clip(RoundedCornerShape(2.dp)).background(if (view.playerLeads) Gold else GoldDim)
+                        .clip(barShape(2.dp)).background(if (view.playerLeads) Gold else GoldDim)
                 )
             }
             Spacer(Modifier.width(6.dp))
@@ -355,7 +357,7 @@ private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) ->
 @Composable
 private fun AuctionStat(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner)
+        modifier.clip(tileShape(12.dp)).background(GlassInner)
             .padding(vertical = 8.dp, horizontal = 10.dp)
     ) {
         Text(value, color = color, fontFamily = FontFamily.Monospace,
@@ -371,7 +373,7 @@ private fun BidButton(
     modifier: Modifier, onClick: () -> Unit
 ) {
     Column(
-        modifier.clip(RoundedCornerShape(11.dp))
+        modifier.clip(btnShape(11.dp))
             .background(if (enabled) Gold else GlassBtnOff)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 8.dp, horizontal = 8.dp),
@@ -414,10 +416,13 @@ internal fun CollectionSetsBlock(rows: List<SetProgress>) {
     }
     Spacer(Modifier.height(6.dp))
 
-    rows.forEach { row ->
-        SetCard(row)
-        Spacer(Modifier.height(6.dp))
+    GroupCard {
+        rows.forEachIndexed { i, row ->
+            SetCard(row)
+            RowSeparator(6.dp, last = i == rows.lastIndex)
+        }
     }
+    Spacer(Modifier.height(dpOf(0.dp, 8.dp)))
 
     Text(
         "Получено $earned из $possible очков статуса за наборы. Предмет может входить сразу " +
@@ -431,13 +436,13 @@ private fun SetCard(row: SetProgress) {
     val total = Collectibles.sizeOf(row.set)
     val done = total > 0 && row.owned >= total
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (done) GlassAccent else GlassFill)
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
+            .background(if (done) GlassAccent else rowFill(GlassFill))
             .then(
-                if (done) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (done) Modifier.glassOutline(Gold.copy(alpha = 0.45f), cardShape(14.dp))
                 else Modifier
             )
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconSlot(row.set.emoji, tint = if (done) Gold else Mute, fontSize = 20.sp,
@@ -466,7 +471,7 @@ private fun SetCard(row: SetProgress) {
         }
         Spacer(Modifier.width(4.dp))
         Column(
-            Modifier.clip(RoundedCornerShape(9.dp))
+            Modifier.clip(btnShape(9.dp))
                 .background(if (done) legacy(Gold, Status) else GlassInner)
                 .padding(horizontal = 9.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -487,7 +492,7 @@ private fun SetProgressBar(owned: Int, total: Int, done: Boolean, modifier: Modi
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         repeat(total) { i ->
             Box(
-                Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
+                Modifier.weight(1f).height(dpOf(4.dp, Modern.barHeight)).clip(barShape(2.dp))
                     .background(
                         when {
                             i >= owned -> GlassInner
@@ -504,7 +509,7 @@ private fun SetProgressBar(owned: Int, total: Int, done: Boolean, modifier: Modi
 @Composable
 internal fun CollectionSummary(day: Int, owned: Int, value: Double, profit: Double, cur: Currency) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassAccent).padding(13.dp)
+        Modifier.fillMaxWidth().clip(cardShape(16.dp)).background(GlassAccent).padding(13.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("КОЛЛЕКЦИЯ", color = Gold, fontWeight = FontWeight.ExtraBold,
@@ -534,7 +539,7 @@ internal fun CollectionSummary(day: Int, owned: Int, value: Double, profit: Doub
 @Composable
 private fun CollectStat(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner).padding(vertical = 9.dp, horizontal = 10.dp)
+        modifier.clip(tileShape(12.dp)).background(GlassInner).padding(vertical = 9.dp, horizontal = 10.dp)
     ) {
         Text(value, color = color, fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, maxLines = 1)
@@ -551,9 +556,9 @@ internal fun CollectibleCard(
     inCatalog: Boolean = true
 ) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (owned) GlassAccent else GlassFill)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
+            .background(if (owned) GlassAccent else rowFill(GlassFill))
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconSlot(item.emoji, tint = if (owned) Gold else Mute, fontSize = 22.sp,
@@ -587,7 +592,7 @@ internal fun CollectibleCard(
                     fontSize = 11.sp, maxLines = 1)
                 Spacer(Modifier.height(4.dp))
                 Box(
-                    Modifier.clip(RoundedCornerShape(9.dp)).background(GlassSell)
+                    Modifier.clip(btnShape(9.dp)).background(GlassSell)
                         .clickable(onClick = onSell).padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text("продать", color = GlassSellText,
@@ -597,7 +602,7 @@ internal fun CollectibleCard(
         } else if (!inCatalog) {
             // предмет ушёл с рынка: цену показываем как ориентир, купить можно только на торгах
             Column(
-                Modifier.clip(RoundedCornerShape(9.dp)).background(GlassBtnOff)
+                Modifier.clip(btnShape(9.dp)).background(GlassBtnOff)
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -609,7 +614,7 @@ internal fun CollectibleCard(
             }
         } else {
             Box(
-                Modifier.clip(RoundedCornerShape(9.dp))
+                Modifier.clip(btnShape(9.dp))
                     .background(if (canBuy) Gold else GlassBtnOff)
                     .clickable(enabled = canBuy, onClick = onBuy)
                     .padding(horizontal = 12.dp, vertical = 8.dp)

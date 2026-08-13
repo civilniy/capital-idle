@@ -192,7 +192,7 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
             // подсказка о необходимости уволиться — сразу под заголовком, в поле зрения
             if (jobHint != null) {
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp))
+                    Modifier.fillMaxWidth().clip(btnShape(11.dp))
                         .background(GlassFill)
                         .clickable { jobHint = null }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -205,14 +205,16 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
                 }
                 Spacer(Modifier.height(8.dp))
             }
-            Jobs.all.forEach { job ->
-                JobCard(state, job, cur,
-                    onClick = {
-                        if (state.jobId.isEmpty()) { vm.setJob(job.id); jobHint = null }
-                        else jobHint = "Сначала увольтесь с текущей работы, потом устройтесь на новую"
-                    },
-                    onQuit = { vm.setJob(""); jobHint = null })
-                Spacer(Modifier.height(6.dp))
+            GroupCard {
+                Jobs.all.forEachIndexed { i, job ->
+                    JobCard(state, job, cur,
+                        onClick = {
+                            if (state.jobId.isEmpty()) { vm.setJob(job.id); jobHint = null }
+                            else jobHint = "Сначала увольтесь с текущей работы, потом устройтесь на новую"
+                        },
+                        onQuit = { vm.setJob(""); jobHint = null })
+                    RowSeparator(6.dp, last = i == Jobs.all.lastIndex)
+                }
             }
             Spacer(Modifier.height(10.dp))
         }
@@ -230,9 +232,11 @@ fun GameScreen(vm: GameViewModel, resetTick: Int = 0, onNavigate: (String) -> Un
                 )
             }
             Spacer(Modifier.height(6.dp))
-            Industries.all.forEachIndexed { i, ind ->
-                CategoryCard(state, i, ind, cur) { openedCategory = i }
-                Spacer(Modifier.height(6.dp))
+            GroupCard {
+                Industries.all.forEachIndexed { i, ind ->
+                    CategoryCard(state, i, ind, cur) { openedCategory = i }
+                    RowSeparator(6.dp, last = i == Industries.all.lastIndex)
+                }
             }
         }
     }
@@ -261,13 +265,13 @@ internal fun GuideCard(state: GameState, cur: Currency) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(cardShape(14.dp))
             .background(GlassAccent)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.Top
     ) {
         Box(
-            Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(Gold),
+            Modifier.size(26.dp).clip(chipShape(8.dp)).background(Gold),
             contentAlignment = Alignment.Center
         ) {
             Text("${state.tutorialStep + 1}", color = CoinText, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
@@ -309,15 +313,16 @@ internal fun AdBoostBanner(
     // клик по всему баннеру — только когда буста нет (вариант Б)
     val rowMod = Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(14.dp))
+        .clip(cardShape(14.dp))
         .background(bg)
         .then(if (!active) Modifier.clickable(onClick = onWatch) else Modifier)
         .padding(12.dp)
 
     Row(rowMod, verticalAlignment = Alignment.CenterVertically) {
         // иконка: play (нет буста) или молния (активен)
-        Box(Modifier.size(26.dp), contentAlignment = Alignment.Center) {
-            if (active) BoltIcon(accent) else PlayIcon(accent)
+        Box(Modifier.size(dpOf(26.dp, Modern.iconCircle)), contentAlignment = Alignment.Center) {
+            if (modernLook) AppIconBadge(if (active) AppIcon.BOLT else AppIcon.ARROW_UP, accent, Modern.iconCircle)
+            else if (active) BoltIcon(accent) else PlayIcon(accent)
         }
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
@@ -342,7 +347,7 @@ internal fun AdBoostBanner(
         Box(
             Modifier
                 .width(86.dp)
-                .clip(RoundedCornerShape(9.dp))
+                .clip(btnShape(9.dp))
                 .background(btnBg)
                 .then(if (active && btnEnabled) Modifier.clickable(onClick = onWatch) else Modifier)
                 .padding(vertical = 8.dp),
@@ -361,12 +366,12 @@ private fun BoostBars(hoursLeft: Double) {
         for (i in 0 until 4) {
             val fill = (hoursLeft - i).coerceIn(0.0, 1.0).toFloat()
             Box(
-                Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp))
-                    .background(TrackFill)
+                Modifier.weight(1f).height(dpOf(5.dp, Modern.barHeight)).clip(barShape(3.dp))
+                    .background(legacy(TrackFill, GlassInner))
             ) {
                 if (fill > 0f) {
                     Box(Modifier.fillMaxWidth(fill).fillMaxHeight()
-                        .clip(RoundedCornerShape(3.dp)).background(GreenAccent))
+                        .clip(barShape(3.dp)).background(GreenAccent))
                 }
             }
         }
@@ -426,14 +431,18 @@ internal fun MarketBar(state: GameState) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(tileShape(12.dp))
             // подложка тонируется цветом фазы рынка; в старой теме она серая, как была
             .background(legacy(GlassFill, color.copy(alpha = 0.12f)))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-        Spacer(Modifier.width(8.dp))
+        if (modernLook) {
+            AppIconBadge(AppIcon.CHART, color, Modern.iconCircle)
+        } else {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        }
+        Spacer(Modifier.width(dpOf(8.dp, 12.dp)))
         Text(
             "Рынок: ${phase.title}" + if (phase.sale < 1.0) " · бизнесы дешевле" else "",
             color = TextMain, fontWeight = FontWeight.Bold, fontSize = 12.sp,
@@ -451,7 +460,7 @@ internal fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) 
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(cardShape(14.dp))
             .background(GlassFill)
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
@@ -493,19 +502,47 @@ internal fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) 
  * В старой теме все три полосы золотые, как и были: [legacy] отдаёт ей прежний цвет,
  * а смысловой берёт только новая тема.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PlanSlider(
     value: Float, range: ClosedFloatingPointRange<Float>, steps: Int,
     meaning: Color, onChange: (Float) -> Unit
 ) {
-    val c = legacy(Gold, meaning)
+    if (!modernLook) {
+        // старая тема: тот же вызов, что и был, до параметра
+        Slider(
+            value = value, onValueChange = onChange, valueRange = range, steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = Gold, activeTrackColor = GoldDim,
+                inactiveTrackColor = Panel2, activeTickColor = Gold, inactiveTickColor = LineColor
+            ),
+            modifier = Modifier.height(26.dp)
+        )
+        return
+    }
+    // новая тема: дорожка 7dp без точек, ползунок — риска 5×18 цвета своей строки
+    val span = (range.endInclusive - range.start).takeIf { it > 0f } ?: 1f
+    val frac = ((value - range.start) / span).coerceIn(0f, 1f)
     Slider(
         value = value, onValueChange = onChange, valueRange = range, steps = steps,
-        colors = SliderDefaults.colors(
-            thumbColor = c, activeTrackColor = legacy(GoldDim, meaning.copy(alpha = 0.5f)),
-            inactiveTrackColor = Panel2, activeTickColor = c, inactiveTickColor = LineColor
-        ),
-        modifier = Modifier.height(26.dp)
+        modifier = Modifier.height(26.dp),
+        thumb = {
+            Box(
+                Modifier.size(width = 5.dp, height = 18.dp)
+                    .clip(RoundedCornerShape(3.dp)).background(meaning)
+            )
+        },
+        track = {
+            Box(
+                Modifier.fillMaxWidth().height(Modern.barHeight)
+                    .clip(RoundedCornerShape(Modern.barRadius)).background(GlassInner)
+            ) {
+                Box(
+                    Modifier.fillMaxWidth(frac).fillMaxHeight()
+                        .clip(RoundedCornerShape(Modern.barRadius)).background(meaning)
+                )
+            }
+        }
     )
 }
 
@@ -517,13 +554,13 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (current) GlassAccent else GlassFill)
+            .clip(cardShape(14.dp))
+            .background(if (current) GlassAccent else rowFill(GlassFill))
             .clickable(enabled = ok && !current, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute, size = 26.dp, gap = 8.dp)
+        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(job.title, color = if (ok) TextMain else Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -545,7 +582,7 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
                 Spacer(Modifier.height(4.dp))
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(chipShape(8.dp))
                         .background(GlassBtn)
                         .clickable(onClick = onQuit)
                         .padding(horizontal = 10.dp, vertical = 5.dp)
@@ -568,14 +605,13 @@ internal fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Curr
     val dayNet = gross - salaryHere
 
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (count > 0) GlassAccent else GlassFill)
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
+            .background(if (count > 0) GlassAccent else rowFill(GlassFill))
             .clickable(onClick = onOpen)
-            .padding(horizontal = 14.dp, vertical = 13.dp),
+            .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(13.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcons.forIndustry(ind.id), if (count > 0) Business else Mute,
-            size = 26.dp, gap = 8.dp)
+        LeadingIcon(AppIcons.forIndustry(ind.id), if (count > 0) Business else Mute)
         Column(Modifier.weight(1f)) {
             Text(ind.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             if (count > 0)
@@ -615,7 +651,7 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
     ) {
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClose).padding(8.dp)) {
+            Box(Modifier.clip(btnShape(10.dp)).clickable(onClick = onClose).padding(8.dp)) {
                 Text("\u2039 назад", color = Gold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
             Spacer(Modifier.width(8.dp))
@@ -653,7 +689,7 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
         // кнопка открыть новое
         val openEnabled = gate.ok && state.money >= openCost
         Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
+            Modifier.fillMaxWidth().clip(tileShape(13.dp))
                 .background(if (openEnabled) GlassAccent else GlassFill)
                 .clickable(enabled = openEnabled) { showCreateDialog = true }
                 .padding(14.dp),
@@ -765,7 +801,7 @@ internal fun PressureSlot(pressure: Double, reputation: Double) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(tileShape(12.dp))
             .background(ExpenseFill)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -891,13 +927,13 @@ private fun SummaryCell(
     value: String, label: String, color: Color, modifier: Modifier,
     icon: AppIcon? = null, onClick: (() -> Unit)? = null
 ) {
-    Column((if (onClick != null) modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
-            else modifier.clip(RoundedCornerShape(12.dp)))
-            .background(GlassFill).padding(10.dp),
+    Column((if (onClick != null) modifier.clip(tileShape(12.dp)).clickable(onClick = onClick)
+            else modifier.clip(tileShape(12.dp)))
+            .background(GlassFill).padding(dpOf(10.dp, 12.dp)),
         horizontalAlignment = Alignment.CenterHorizontally) {
         // иконка стоит в строке числа, а не над ним: плитка не должна подрасти
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) LeadingIcon(icon, color, size = 16.dp, gap = 4.dp)
+            if (icon != null) LeadingIcon(icon, color, size = Modern.tileIconCircle, gap = 6.dp)
             Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                 fontSize = 14.sp, maxLines = 1)
         }
@@ -924,7 +960,7 @@ private fun EnterpriseNameDialog(
     var text by remember { mutableStateOf(initial) }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel)
+            Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(Panel)
                 .padding(18.dp)
         ) {
             Text(title, color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -938,12 +974,12 @@ private fun EnterpriseNameDialog(
                     textStyle = androidx.compose.ui.text.TextStyle(
                         color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp),
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(Gold),
-                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Panel2)
+                    modifier = Modifier.weight(1f).clip(btnShape(11.dp)).background(Panel2)
                         .padding(12.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Box(
-                    Modifier.size(48.dp).clip(RoundedCornerShape(11.dp)).background(Panel2)
+                    Modifier.size(48.dp).clip(btnShape(11.dp)).background(Panel2)
                         .clickable { text = EnterpriseNames.random(industryId) },
                     contentAlignment = Alignment.Center
                 ) { Text("\uD83C\uDFB2", fontSize = 22.sp) }   // игральная кость
@@ -951,12 +987,12 @@ private fun EnterpriseNameDialog(
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Panel2)
+                    Modifier.weight(1f).clip(btnShape(11.dp)).background(Panel2)
                         .clickable(onClick = onDismiss).padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) { Text("Отмена", color = Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
                 Box(
-                    Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Gold)
+                    Modifier.weight(1f).clip(btnShape(11.dp)).background(Gold)
                         .clickable { onConfirm(text) }.padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) { Text(confirmText, color = CoinText, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp) }
@@ -1056,7 +1092,7 @@ internal fun EnterpriseCard(
     val canUp = hasNext && eduOk && state.money >= upCost
 
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(cardShape(14.dp))
             .background(if (e.isManual) GlassAccent else GlassFill)
             .padding(13.dp)
     ) {
@@ -1064,7 +1100,7 @@ internal fun EnterpriseCard(
             Column(Modifier.weight(1f)) {
                 val displayName = e.name.ifEmpty { lvl.name }
                 Row(verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onRename)) {
+                    modifier = Modifier.clip(chipShape(6.dp)).clickable(onClick = onRename)) {
                     Text(displayName, color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, maxLines = 1)
                     Spacer(Modifier.width(5.dp))
                     Text("\u270E", color = Mute, fontSize = 11.sp)   // карандаш: можно переименовать
@@ -1101,7 +1137,7 @@ internal fun EnterpriseCard(
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             // улучшить
             Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(9.dp))
+                Modifier.weight(1f).clip(btnShape(9.dp))
                     .background(if (canUp) GlassAccent else GlassBtnOff)
                     .clickable(enabled = canUp, onClick = onUpgrade).padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
@@ -1116,7 +1152,7 @@ internal fun EnterpriseCard(
             }
             // управляющий
             Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(9.dp))
+                Modifier.weight(1f).clip(btnShape(9.dp))
                     .background(BusinessFill)
                     .clickable(onClick = onManager).padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
@@ -1156,7 +1192,7 @@ private fun ManagerSheet(
             Spacer(Modifier.height(12.dp))
             Manager.entries.forEachIndexed { i, m ->
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Panel2)
+                    Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(Panel2)
                         .clickable { onPick(i) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1177,7 +1213,7 @@ private fun ManagerSheet(
             }
             if (current != null) {
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ExpenseFill)
+                    Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(ExpenseFill)
                         .clickable(onClick = onFire).padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1754,7 +1790,7 @@ private fun OfflineDialog(amount: Double, missed: Double, awaySec: Double, curre
             Spacer(Modifier.height(16.dp))
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(tileShape(12.dp))
                     .background(Gold)
                     .clickable(onClick = onDismiss)
                     .padding(horizontal = 24.dp, vertical = 12.dp)

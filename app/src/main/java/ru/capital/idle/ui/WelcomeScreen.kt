@@ -49,9 +49,9 @@ fun WelcomeScreen(onDone: (String) -> Unit) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(cardShape(14.dp))
                 .background(Panel)
-                .glassOutline(LineColor, RoundedCornerShape(14.dp))
+                .glassOutline(LineColor, cardShape(14.dp))
                 .padding(16.dp)
         ) {
             if (name.isEmpty()) {
@@ -84,7 +84,7 @@ fun WelcomeScreen(onDone: (String) -> Unit) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(cardShape(14.dp))
                 .background(Gold)
                 .clickable { onDone(name) }
                 .padding(vertical = 16.dp),

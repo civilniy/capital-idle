@@ -219,21 +219,21 @@ val MattePalette = Palette(
     accentFill = Color(0x1FFFB02E),    // янтарь на 12%
     accentStrong = Color(0x2EFFB02E),
     btnFill = Color(0xFF22252D),
-    btnOffFill = Color(0xFF15171C),
-    btnOffText = Color(0xFF5A5C64),
-    sellFill = Color(0x24FF6B5A),
-    sellText = Color(0xFFFF9C90),
+    btnOffFill = Color(0xFF0E0F13),
+    btnOffText = Color(0xFF7E8088),
+    sellFill = Color(0x1FFF6B5A),
+    sellText = Color(0xFFFF6B5A),
     trackFill = Color(0xFF22252D),
-    toggleOff = Color(0xFF2E323C),
+    toggleOff = Color(0xFF22252D),
 
     textMain = Color(0xFFF2F1EC),
     textSecondary = Color(0xFFCDCED4),
     mute = Color(0xFF7E8088),
 
     money = Color(0xFFFFB02E),
-    moneyDim = Color(0xFF8A6526),
-    onMoney = Color(0xFF241802),
-    heading = Color(0xFFFFC24D),
+    moneyDim = Color(0x8CFFB02E),      // тот же янтарь, приглушённый
+    onMoney = Color(0xFF0E0F13),
+    heading = Color(0xFFFFB02E),
     income = Color(0xFF8CD62B),        // лайм
     business = Color(0xFF25D0A4),      // мята
     rest = Color(0xFF9B7FE8),          // сирень
@@ -246,11 +246,11 @@ val MattePalette = Palette(
 
     moneyFill = Color(0x1FFFB02E),
     incomeFill = Color(0x1F8CD62B),
-    businessFill = Color(0x2125D0A4),
-    studyFill = Color(0x214DA3FF),
-    expenseFill = Color(0x21FF6B5A),
+    businessFill = Color(0x1F25D0A4),
+    studyFill = Color(0x1F4DA3FF),
+    expenseFill = Color(0x1FFF6B5A),
     eventGoodFill = Color(0x1F8CD62B),
-    eventBadFill = Color(0x21FF6B5A),
+    eventBadFill = Color(0x1FFF6B5A),
 
     dialogBg = Color(0xFF181A20),
     scrim = Color(0xB3000000),
