@@ -34,7 +34,18 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Record screenshots
-        run: ./gradlew :app:recordRoborazziDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:recordRoborazziDebug 2>&1 | tee /tmp/build.log
+
+      # Полный лог Gradle со стектрейсом читать неоткуда: артефакты и логи прогонов
+      # снаружи недоступны. Этот шаг печатает только то, ради чего лог и открывают —
+      # ошибки компиляции и упавшие проверки.
+      - name: Что именно упало
+        if: failure()
+        run: |
+          grep -E "^e: |^w: .*error|FAILED|AssertionError|Expected|expected:" /tmp/build.log \
+            | head -60 || echo "строк с ошибками не нашлось"
 
       - name: Commit updated baselines
         run: |

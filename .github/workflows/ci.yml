@@ -29,15 +29,28 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Compile
-        run: ./gradlew :app:compileDebugKotlin --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:compileDebugKotlin 2>&1 | tee /tmp/build.log
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest 2>&1 | tee -a /tmp/build.log
 
       # Сверка вёрстки с эталонными скриншотами. Эталоны записаны на ubuntu
       # (workflow «Record screenshots»), поэтому сравнение здесь идёт на той же платформе.
       - name: Screenshot tests
-        run: ./gradlew :app:verifyRoborazziDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:verifyRoborazziDebug 2>&1 | tee -a /tmp/build.log
+
+      # Полный лог Gradle снаружи не прочитать, поэтому ошибки печатаются отдельным шагом.
+      - name: Что именно упало
+        if: failure()
+        run: |
+          grep -E "^e: |FAILED|AssertionError|Expected|expected:" /tmp/build.log \
+            | head -60 || echo "строк с ошибками не нашлось"
 
       - name: Upload screenshot diffs
         if: failure()
