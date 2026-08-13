@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Капитал · тёмная тема</title>
+<style>
+/* ============================================================
+   ПРАВИЛО, НА КОТОРОМ ВСЁ ДЕРЖИТСЯ:
+   поверхности нейтрально-серые, БЕЗ тонировки акцентом.
+   Цвет даёт плотная яркая фигура — круг иконки с белым символом.
+   Тёплый цвет при малой прозрачности на чёрном даёт коричневую грязь,
+   поэтому подложек акцентом здесь нет вообще.
+   ============================================================ */
+:root{
+  --bg:#0B0B0D;
+  --surface:#1A1B1E;
+  --surface-2:#26272B;
+  --surface-3:#323338;
+  --line:rgba(255,255,255,.07);
+
+  --text:#F5F4F2;
+  --text-2:#C4C5CA;
+  --mute:#7C7E86;
+
+  --amber:#FFB02E;   /* деньги, бренд, активное состояние */
+  --blue:#4A9BF5;    /* учёба, информация                 */
+  --teal:#16C79A;    /* бизнес, рост                      */
+  --green:#3DD068;   /* доход, работа                     */
+  --purple:#A78BFA;  /* сон, статус                       */
+  --coral:#FF6B5A;   /* расход, риск                      */
+  --pink:#F472B6;    /* коллекция, редкое                 */
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;background:#050506;padding:14px 10px 30px}
+.mono{font-family:"SF Mono","Roboto Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+
+.phone{max-width:430px;margin:0 auto;border-radius:26px;overflow:hidden;background:var(--bg);
+  color:var(--text);min-height:840px;display:flex;flex-direction:column}
+.scroll{flex:1;overflow-y:auto;padding:18px 14px 14px}
+.scroll::-webkit-scrollbar{width:0}
+
+/* ---------- шапка ---------- */
+.top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.top h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.06em;color:var(--amber)}
+.top .date{flex:1;font-size:11.5px;color:var(--mute);letter-spacing:.06em}
+.chip{background:var(--surface);border-radius:20px;padding:8px 14px;font-size:12.5px;color:var(--text-2)}
+.gear{width:40px;height:40px;border-radius:50%;background:var(--surface);display:flex;
+  align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+.gear svg{width:19px;height:19px;fill:var(--text-2)}
+
+/* ---------- ИКОНКА: плотный круг + белый символ ---------- */
+.ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ic svg{width:19px;height:19px;fill:#fff}
+.ic.sm{width:30px;height:30px}.ic.sm svg{width:15px;height:15px}
+.i-amber{background:var(--amber)} .i-amber svg{fill:#231703}
+.i-blue{background:var(--blue)} .i-teal{background:var(--teal)}
+.i-green{background:var(--green)} .i-purple{background:var(--purple)}
+.i-coral{background:var(--coral)} .i-pink{background:var(--pink)}
+.i-off{background:var(--surface-2)} .i-off svg{fill:var(--mute)}
+
+/* ---------- плитки ---------- */
+.tiles{display:flex;gap:9px;margin-bottom:12px}
+.tile{flex:1;background:var(--surface);border-radius:18px;padding:13px 12px}
+.tile .ic{margin-bottom:9px}
+.tile b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.tile span{display:block;font-size:10.5px;color:var(--mute);margin-top:3px}
+.tile.wide{flex:1.5}
+.tile b.amber{color:var(--amber)}
+
+/* ---------- баннер: поверхность нейтральная, цвет — в иконке ---------- */
+.banner{background:var(--surface);border-radius:20px;padding:13px 15px;margin-bottom:10px;
+  display:flex;align-items:center;gap:13px}
+.banner .t1{font-size:14px;font-weight:700}
+.banner .t2{font-size:12px;color:var(--mute);margin-top:2px}
+.banner .right{margin-left:auto;text-align:right}
+.banner .btn{background:var(--amber);color:#231703;border:none;border-radius:13px;
+  padding:11px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pips{display:flex;gap:4px;margin-top:8px}
+.pips i{width:24px;height:4px;border-radius:2px;background:var(--green)}
+.pips i.off{background:var(--surface-2)}
+
+/* ---------- карта ---------- */
+.card{border-radius:22px;padding:19px 20px 18px;margin-bottom:10px;position:relative;overflow:hidden;
+  background:linear-gradient(150deg,#2C2418 0%,#16130D 55%,#080705 100%);
+  box-shadow:0 12px 34px rgba(0,0,0,.5);cursor:pointer;user-select:none}
+.card .bank{font-size:13.5px;letter-spacing:.18em;color:#D9AC5C}
+.card .chp{width:39px;height:29px;border-radius:6px;margin:13px 0 15px;
+  background:linear-gradient(135deg,#F0D398,#C79B34)}
+.card .lbl{font-size:9.5px;letter-spacing:.18em;color:#9C8253;text-transform:uppercase}
+.card .balrow{display:flex;align-items:flex-start;gap:9px}
+.card .bal{font-size:33px;font-weight:800;color:#F7F1E4;margin:3px 0 5px;letter-spacing:-.02em}
+.card .plus{font-size:12px;color:#3DD068;margin-top:9px;opacity:0;transition:opacity .12s}
+.card .plus.on{opacity:1}
+.card .inc{font-size:12.5px;color:#3DD068}
+.card .num{font-size:12.5px;color:#9C8253;letter-spacing:.16em;margin-top:13px}
+.card .own{font-size:13.5px;color:#EFE9DC;letter-spacing:.05em;margin-top:3px}
+.card .tier{position:absolute;right:18px;bottom:56px;font-size:10.5px;letter-spacing:.2em;color:#D9AC5C}
+.card .logo{position:absolute;right:16px;bottom:16px;width:54px;height:33px}
+.card .logo i{position:absolute;width:29px;height:29px;border-radius:8px;transform:rotate(45deg)}
+.card .logo i:first-child{left:0;background:#E4674A}
+.card .logo i:last-child{right:0;background:#D9A03A}
+.hint{text-align:center;font-size:12.5px;color:var(--mute);margin:11px 0 15px}
+
+/* ---------- группы ---------- */
+.group{background:var(--surface);border-radius:22px;padding:4px 16px;margin-bottom:12px}
+.gh{padding:14px 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+.gh b{font-size:15px}.gh span{font-size:12px;color:var(--mute)}
+.item{display:flex;align-items:center;gap:13px;padding:13px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:none}
+.item .nm{font-size:14.5px;font-weight:600}
+.item .ds{font-size:12px;color:var(--mute);margin-top:2px}
+.item .val{margin-left:auto;text-align:right;font-size:14.5px;font-weight:700}
+.item .val small{display:block;font-size:11.5px;font-weight:400;color:var(--mute);margin-top:2px}
+.item .go{margin-left:auto;color:var(--mute);font-size:18px}
+.item.dim{opacity:.42}
+/* выбранная строка — светлее серым, НЕ золотом */
+.item.sel{background:var(--surface-2);border-radius:14px;margin:0 -10px;padding:13px 10px;border-top:none}
+.item.sel + .item{border-top:none}
+
+.row{padding:11px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:none}
+.rl{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.rl .nm{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--text-2)}
+.rl .nm em{width:9px;height:9px;border-radius:50%;font-style:normal}
+.rl .vl{font-size:12.5px;color:var(--mute)}
+.bar{height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px}
+
+/* ---------- подразделы ---------- */
+.subtabs{display:flex;gap:5px;background:var(--surface);border-radius:16px;padding:5px;margin-bottom:12px}
+.subtabs button{flex:1;font-family:inherit;font-size:13px;font-weight:600;color:var(--mute);
+  background:transparent;border:none;border-radius:12px;padding:10px 6px;cursor:pointer}
+.subtabs button[aria-pressed="true"]{background:var(--surface-2);color:var(--text)}
+
+.pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:9px;font-weight:600;
+  background:var(--surface-2);color:var(--mute)}
+.pill.ok{color:var(--green)}
+.pill.now{color:var(--amber)}
+
+/* ---------- навигация ---------- */
+.nav{display:flex;background:var(--surface);padding:8px 6px 10px;box-shadow:0 -1px 0 var(--line)}
+.nav button{flex:1;background:transparent;border:none;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;gap:4px;padding:4px 0;font-family:inherit}
+.nav .navic{width:38px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  transition:background .18s}
+.nav svg{width:19px;height:19px;fill:var(--mute);transition:fill .18s}
+.nav span{font-size:10px;color:var(--mute);transition:color .18s}
+.nav button[aria-pressed="true"] .navic{background:var(--amber)}
+.nav button[aria-pressed="true"] svg{fill:#231703}
+.nav button[aria-pressed="true"] span{color:var(--amber);font-weight:600}
+
+.why{max-width:430px;margin:14px auto 0;font-size:12.5px;line-height:1.65;color:#8b8d95;
+  background:#111214;border-radius:16px;padding:15px 17px}
+.why b{color:#FFB02E;font-weight:600}
+.why ul{margin:9px 0 0;padding-left:18px}
+.why li{margin-bottom:7px}
+.swatch{display:flex;gap:7px;margin:11px 0 4px;flex-wrap:wrap}
+.swatch div{flex:1;min-width:88px;border-radius:10px;padding:9px 10px;font-size:10.5px;
+  font-family:"SF Mono",monospace}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="scroll" id="screen"></div>
+  <div class="nav" id="nav"></div>
+</div>
+
+<div class="why">
+  <b>Почему было грязно и что изменилось.</b>
+  <div class="swatch">
+    <div style="background:#2D2417;color:#8a7a5c">янтарь 13%<br>#2D2417 — грязь</div>
+    <div style="background:#162130;color:#7d95b5">синий 13%<br>#162130 — чисто</div>
+    <div style="background:#1A1B1E;color:#9a9ba0">нейтраль<br>#1A1B1E — верно</div>
+  </div>
+  <ul>
+    <li>Тёплый цвет при малой прозрачности на почти чёрном даёт коричневый. Это арифметика,
+        а не вкус: <b>#FFB02E</b> на 13% поверх <b>#0E0F13</b> = <b>#2D2417</b>.</li>
+    <li>Поэтому тонированных подложек здесь нет вообще. Все поверхности нейтрально-серые:
+        фон #0B0B0D, карточка #1A1B1E, вложенный элемент #26272B.</li>
+    <li>Цвет даёт <b>плотный яркий круг иконки с белым символом</b> — как в Т-Банке.
+        Насыщенная фигура на нейтральном фоне читается чисто при любом оттенке.</li>
+    <li>Янтарь остался чернилами, а не краской: заголовки, капитал, активная вкладка,
+        кнопка действия. Никаких янтарных поверхностей.</li>
+    <li>Выделенная строка подсвечивается светло-серым #26272B, а не золотом.</li>
+  </ul>
+</div>
+
+<script>
+(function(){
+"use strict";
+var I={
+ case:'<svg viewBox="0 0 24 24"><path d="M10 4h4a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm0 3h4V6h-4v1z"/></svg>',
+ cap:'<svg viewBox="0 0 24 24"><path d="M12 3 1 8l11 5 9-4.1V15h2V8L12 3zM5 13.2V17c0 1.7 3.1 3 7 3s7-1.3 7-3v-3.8l-7 3.2-7-3.2z"/></svg>',
+ chart:'<svg viewBox="0 0 24 24"><path d="M4 20h16v-2H4v2zM6 16h3V8H6v8zm5 0h3V4h-3v12zm5 0h3v-5h-3v5z"/></svg>',
+ globe:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-3a15 15 0 0 0-1.2-5.2A8 8 0 0 1 18.9 11zM12 4.2c.8 1.2 1.6 3.3 1.8 6.8h-3.6c.2-3.5 1-5.6 1.8-6.8zM5.1 11a8 8 0 0 1 4.2-5.2A15 15 0 0 0 8.1 11h-3zm0 2h3a15 15 0 0 0 1.2 5.2A8 8 0 0 1 5.1 13zm6.9 6.8c-.8-1.2-1.6-3.3-1.8-6.8h3.6c-.2 3.5-1 5.6-1.8 6.8zm2.7-1.6a15 15 0 0 0 1.2-5.2h3a8 8 0 0 1-4.2 5.2z"/></svg>',
+ user:'<svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5z"/></svg>',
+ gear:'<svg viewBox="0 0 24 24"><path d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L14.9 3h-4l-.4 2.6c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4L6.6 11a7.8 7.8 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4-2.2-1.6zM12.9 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>',
+ bolt:'<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>',
+ up:'<svg viewBox="0 0 24 24"><path d="M4 18l6-6 4 4 6-7v6h2V5h-8v2h5l-5 5.8L10 9l-7 7 1 2z"/></svg>',
+ star:'<svg viewBox="0 0 24 24"><path d="m12 2 3 6.5 7 .9-5 4.8 1.3 7L12 17.8 5.7 21.2 7 14.2 2 9.4l7-.9L12 2z"/></svg>',
+ gem:'<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/></svg>',
+ coin:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15.4V19h-2v-1.6c-1.6-.3-2.8-1.3-2.9-2.9h1.9c.1.8.8 1.4 2 1.4s1.9-.5 1.9-1.3c0-.7-.5-1-2.1-1.4-2-.5-3.4-1.1-3.4-2.9 0-1.5 1.2-2.5 2.6-2.8V6h2v1.5c1.6.3 2.6 1.3 2.7 2.7h-1.9c-.1-.8-.7-1.3-1.7-1.3-1.1 0-1.7.5-1.7 1.2 0 .6.5.9 2.1 1.3 2 .5 3.4 1.2 3.4 3 0 1.6-1.2 2.6-2.9 3z"/></svg>',
+ shop:'<svg viewBox="0 0 24 24"><path d="M4 4h16l1 5a3 3 0 0 1-5 2.2A3 3 0 0 1 12 12a3 3 0 0 1-4-.8A3 3 0 0 1 3 9l1-5zm1 9.7V20h14v-6.3a5 5 0 0 1-3-.5 5 5 0 0 1-4 .6 5 5 0 0 1-4-.6 5 5 0 0 1-3 .5z"/></svg>',
+ food:'<svg viewBox="0 0 24 24"><path d="M8 2v8a3 3 0 0 1-2 2.8V22H4V12.8A3 3 0 0 1 2 10V2h2v7h1V2h2v7h1V2zm10 0c2 0 3 3 3 7s-1 5-2 5.4V22h-2V2h1z"/></svg>',
+ factory:'<svg viewBox="0 0 24 24"><path d="M2 20h20v2H2v-2zm1-2V9l6 4V9l6 4V4h5v14H3z"/></svg>',
+ truck:'<svg viewBox="0 0 24 24"><path d="M3 6h11v9H3V6zm12 3h3.5l2.5 3v3h-6V9zM6.5 20a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6zm11 0a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/></svg>',
+ clock:'<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6 4 2.3-1 1.7-5-2.9V6h2v6.6z"/></svg>',
+ bank:'<svg viewBox="0 0 24 24"><path d="M12 2 2 8v2h20V8L12 2zM4 11v8H2v2h20v-2h-2v-8h-2v8h-3v-8h-2v8H8v-8H6v8H4v-8z"/></svg>',
+ home:'<svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h5v-5h4v5h5v-8h3L12 3z"/></svg>',
+ check:'<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
+ lock:'<svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V6a3 3 0 0 1 3-3z"/></svg>',
+ fund:'<svg viewBox="0 0 24 24"><path d="M3 3v18h18v-2H5V3H3zm5 12h2v-5H8v5zm4 0h2V7h-2v8zm4 0h2v-3h-2v3z"/></svg>'
+};
+
+var S={tab:"cap", sub:"assets", balance:19, };
+function n(v){return Math.round(v).toLocaleString("ru-RU").replace(/\u00a0/g," ")}
+function money(v){return "$ "+n(v)}
+
+function ic(col,g,sm){ return '<div class="ic i-'+col+(sm?" sm":"")+'">'+I[g]+'</div>' }
+
+function scrCap(){
+ return '<div class="top"><h1>КАПИТАЛ</h1><div class="date mono">09.03.27 · 12:00</div>'+
+   '<div class="chip mono">USD</div></div>'+
+
+ '<div class="tiles">'+
+   '<div class="tile">'+ic("purple","user",1)+'<b class="mono">0</b><span>Статус</span></div>'+
+   '<div class="tile">'+ic("teal","gem",1)+'<b class="mono">19</b><span>Репутация</span></div>'+
+   '<div class="tile wide">'+ic("amber","coin",1)+'<b class="mono amber">26 122</b><span>Капитал</span></div>'+
+ '</div>'+
+
+ '<div class="banner">'+ic("amber","bolt")+
+   '<div style="flex:1"><div class="t1">Удвоить доход</div>'+
+   '<div class="t2">×2 на один час</div></div>'+
+   '<button class="btn">Смотреть</button></div>'+
+
+ '<div class="banner">'+ic("blue","chart")+
+   '<div style="flex:1"><div class="t1">Рынок: Восстановление</div>'+
+   '<div class="t2">бизнесы дешевле</div></div>'+
+   '<div class="right"><div class="t1 mono" style="color:var(--coral)">×0,85</div></div></div>'+
+
+ '<div class="card" id="bankcard">'+
+   '<div class="bank">AURUM BANK</div><div class="chp"></div>'+
+   '<div class="lbl">доступно</div>'+
+   '<div class="balrow"><div class="bal mono" id="bal">'+money(S.balance)+'</div>'+
+   '<div class="plus mono" id="plus">+$ 3,6</div></div>'+
+   '<div class="inc mono">+162 $/день поступает</div>'+
+   '<div class="num mono">•••• •••• •••• 4040</div>'+
+   '<div class="own">СЕРГЕЙ МОРОЗОВ</div>'+
+   '<div class="tier">CLASSIC</div><div class="logo"><i></i><i></i></div></div>'+
+
+ '<div class="hint">нажмите на карту · подработка <span class="mono">+$ 3,6</span></div>'+
+
+ '<div class="group"><div class="gh"><b>Распорядок дня</b><span class="mono">8 / 13 / 0 / 3</span></div>'+
+   bar("Сон","var(--purple)",33,"8 ч · выспались 100%")+
+   bar("Работа по найму","var(--green)",54,"13 ч")+
+   bar("Свой бизнес","var(--teal)",0,"0 ч")+
+   bar("Учёба","var(--blue)",13,"3 ч")+'</div>'+
+
+ '<div class="group"><div class="gh"><b>Работа по найму</b><span>вы продавец</span></div>'+
+   '<div class="item">'+ic("off","case")+'<div><div class="nm">Курьер</div>'+
+     '<div class="ds mono">0,8 $/час · нанимает</div></div><div class="go">›</div></div>'+
+   '<div class="item sel">'+ic("green","case")+'<div><div class="nm">Продавец '+
+     '<span style="color:var(--green);font-size:12px;font-weight:500">· вы здесь</span></div>'+
+     '<div class="ds mono">2,5 $/час</div></div>'+
+     '<div class="val mono" style="color:var(--amber)">32<small>$/день</small></div></div>'+
+   '<div class="item dim">'+ic("off","case")+'<div><div class="nm">Менеджер по продажам</div>'+
+     '<div class="ds mono">8 $/час · нужно: Курсы продаж</div></div></div>'+
+   '<div class="item dim">'+ic("off","case")+'<div><div class="nm">Директор филиала</div>'+
+     '<div class="ds mono">110 $/час · нужно: Менеджмент</div></div></div>'+'</div>'+
+
+ '<div class="group"><div class="gh"><b>Ваши отрасли</b><span class="mono">часы 0/3ч</span></div>'+
+   ind("teal","shop","Торговля","предприятий 1 / 10","+0")+
+   ind("amber","food","Общепит","от $ 1 350 · нажмите, чтобы открыть",null)+
+   ind("off","user","Услуги","нужен статус 8 · у вас 0",null,1)+
+   ind("off","factory","Производство","нужно образование: Курсы продаж",null,1)+'</div>';
+}
+function bar(nm,col,w,val){
+ return '<div class="row"><div class="rl"><span class="nm"><em style="background:'+col+'"></em>'+nm+'</span>'+
+  '<span class="vl mono">'+val+'</span></div><div class="bar"><i style="width:'+w+'%;background:'+col+'"></i></div></div>';
+}
+function ind(col,g,nm,ds,val,dim){
+ return '<div class="item'+(dim?" dim":"")+'">'+ic(col,g)+
+  '<div><div class="nm">'+nm+'</div><div class="ds mono">'+ds+'</div></div>'+
+  (val!==null&&val!==undefined?'<div class="val mono" style="color:var(--teal)">'+val+'<small>$/день</small></div>'
+   :'<div class="go">›</div>')+'</div>';
+}
+
+function scrProf(){
+ var b;
+ if(S.sub==="assets"){
+  b='<div class="group"><div class="gh"><b>Жильё</b></div>'+
+    '<div class="item sel">'+ic("amber","home")+'<div><div class="nm">Комната в общежитии</div>'+
+      '<div class="ds">ваше жильё</div></div><div class="val"><span class="pill now">сейчас</span></div></div>'+
+    '<div class="item">'+ic("off","home")+'<div><div class="nm">Хрущёвка на окраине</div>'+
+      '<div class="ds mono">+5 статуса · содержание $ 120/день</div></div>'+
+      '<div class="val mono">$ 8 000</div></div></div>'+
+   '<div class="group"><div class="gh"><b>Транспорт</b></div>'+
+    '<div class="item sel">'+ic("amber","user")+'<div><div class="nm">Пешком</div>'+
+      '<div class="ds">базовое</div></div><div class="val"><span class="pill now">сейчас</span></div></div>'+
+    '<div class="item">'+ic("off","truck")+'<div><div class="nm">Lada Vesta</div>'+
+      '<div class="ds mono">+5 статуса · содержание $ 200/день</div></div>'+
+      '<div class="val mono">$ 18 000</div></div></div>';
+ } else if(S.sub==="coll"){
+  b='<div class="group"><div class="gh"><b>Коллекция</b><span class="mono">0 / 12</span></div>'+
+    '<div class="item">'+ic("pink","gem")+'<div><div class="nm">Литография с автографом</div>'+
+      '<div class="ds">обычный · +5 статуса</div></div><div class="val mono">$ 126 375</div></div>'+
+    '<div class="item">'+ic("pink","gem")+'<div><div class="nm">Античная амфора</div>'+
+      '<div class="ds">обычный · +9 статуса</div></div><div class="val mono">$ 245 988</div></div>'+
+    '<div class="item">'+ic("pink","gem")+'<div><div class="nm">Скрипка старого мастера</div>'+
+      '<div class="ds">редкий · +14 статуса</div></div><div class="val mono">$ 1 322 874</div></div></div>';
+ } else {
+  b='<div class="banner">'+ic("amber","coin")+
+     '<div style="flex:1"><div class="t2">Заработано за все жизни</div>'+
+     '<div class="t1 mono" style="font-size:19px">$ 1 171 544</div></div></div>'+
+    '<div class="group"><div class="gh"><b>Цифры</b></div>'+
+     st("Жизней прожито","1")+st("Игровых дней","407")+
+     st("Лучший доход за день","$ 25 467")+st("Тапов сделано","2 990")+'</div>';
+ }
+ return '<div class="top"><h1>ПРОФИЛЬ</h1><div class="date"></div>'+
+   '<div class="gear">'+I.gear+'</div></div>'+
+  '<div class="group" style="padding:16px 18px 15px"><div style="font-size:19px;font-weight:800">СЕРГЕЙ МОРОЗОВ</div>'+
+   '<div style="font-size:13.5px;font-weight:700;color:var(--purple);margin:3px 0 13px">ПРЕДПРИНИМАТЕЛЬ</div>'+
+   '<div class="bar"><i style="width:34%;background:var(--purple)"></i></div>'+
+   '<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:var(--mute)">'+
+   '<span>Социальный статус</span><span class="mono">0</span></div></div>'+
+  '<div class="tiles">'+
+   '<div class="tile">'+ic("amber","coin",1)+'<b class="mono">$ 29</b><span>На счету</span></div>'+
+   '<div class="tile">'+ic("coral","home",1)+'<b class="mono">$ 0</b><span>Содержание</span></div>'+
+   '<div class="tile">'+ic("green","up",1)+'<b class="mono">$ 162</b><span>Чистый /день</span></div>'+
+  '</div>'+
+  '<div class="subtabs" id="sub">'+
+   '<button data-v="assets" aria-pressed="'+(S.sub==="assets")+'">Имущество</button>'+
+   '<button data-v="coll" aria-pressed="'+(S.sub==="coll")+'">Коллекция</button>'+
+   '<button data-v="hist" aria-pressed="'+(S.sub==="hist")+'">История</button></div>'+ b;
+}
+function st(nm,v){
+ return '<div class="item"><div style="flex:1"><div class="nm" style="font-weight:500;font-size:13.5px;color:var(--text-2)">'+nm+'</div></div>'+
+  '<div class="val mono">'+v+'</div></div>';
+}
+
+var TABS=[["cap","Капитал","case"],["dev","Развитие","cap"],["inv","Инвест","chart"],
+          ["world","Мир","globe"],["prof","Профиль","user"]];
+function render(){
+ document.getElementById("screen").innerHTML = S.tab==="prof"?scrProf():scrCap();
+ document.getElementById("screen").scrollTop=0;
+ document.getElementById("nav").innerHTML=TABS.map(function(t){
+   return '<button data-tab="'+t[0]+'" aria-pressed="'+(S.tab===t[0])+'">'+
+     '<div class="navic">'+I[t[2]]+'</div><span>'+t[1]+'</span></button>'}).join("");
+ var c=document.getElementById("bankcard");
+ if(c) c.onclick=function(){
+   S.balance+=3.6;
+   document.getElementById("bal").textContent=money(S.balance);
+   var p=document.getElementById("plus");
+   p.classList.remove("on"); void p.offsetWidth; p.classList.add("on");
+   setTimeout(function(){p.classList.remove("on")},700);
+ };
+ var sb=document.getElementById("sub");
+ if(sb) sb.onclick=function(e){var b=e.target.closest("button"); if(!b)return; S.sub=b.dataset.v; render()};
+}
+document.getElementById("nav").addEventListener("click",function(e){
+ var b=e.target.closest("button"); if(!b)return;
+ S.tab=(b.dataset.tab==="prof")?"prof":"cap"; render();
+});
+render();
+})();
+</script>
+</body>
+</html>
