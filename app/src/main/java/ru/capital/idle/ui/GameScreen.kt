@@ -427,7 +427,8 @@ internal fun MarketBar(state: GameState) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(GlassFill)
+            // подложка тонируется цветом фазы рынка; в старой теме она серая, как была
+            .background(legacy(GlassFill, color.copy(alpha = 0.12f)))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -470,29 +471,39 @@ internal fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) 
                 fontSize = 10.sp
             )
         }
-        GoldSlider(state.sleepH.toFloat(), 3f..9f, 5) { onChange(it.toInt(), state.workH, state.bizH) }
+        PlanSlider(state.sleepH.toFloat(), 3f..9f, 5, Rest) { onChange(it.toInt(), state.workH, state.bizH) }
 
         val maxWork = (state.dayBudget - state.bizH).coerceAtLeast(1)
         Text("Работа по найму: ${state.workH}ч", color = GreenAccent, fontSize = 10.sp)
-        GoldSlider(state.workH.toFloat(), 0f..maxWork.toFloat(), (maxWork - 1).coerceAtLeast(0)) {
+        PlanSlider(state.workH.toFloat(), 0f..maxWork.toFloat(), (maxWork - 1).coerceAtLeast(0), GreenAccent) {
             onChange(state.sleepH, it.toInt(), state.bizH)
         }
 
         val maxBiz = (state.dayBudget - state.workH).coerceAtLeast(1)
         DayPlanLabels(bizH = state.bizH, studyH = state.studyHCalc, carBonus = carBonus)
-        GoldSlider(state.bizH.toFloat(), 0f..maxBiz.toFloat(), (maxBiz - 1).coerceAtLeast(0)) {
+        PlanSlider(state.bizH.toFloat(), 0f..maxBiz.toFloat(), (maxBiz - 1).coerceAtLeast(0), Business) {
             onChange(state.sleepH, state.workH, it.toInt())
         }
     }
 }
 
+/**
+ * Полоса распорядка. Цвет приходит по смыслу строки — сон, работа, свой бизнес.
+ *
+ * В старой теме все три полосы золотые, как и были: [legacy] отдаёт ей прежний цвет,
+ * а смысловой берёт только новая тема.
+ */
 @Composable
-private fun GoldSlider(value: Float, range: ClosedFloatingPointRange<Float>, steps: Int, onChange: (Float) -> Unit) {
+private fun PlanSlider(
+    value: Float, range: ClosedFloatingPointRange<Float>, steps: Int,
+    meaning: Color, onChange: (Float) -> Unit
+) {
+    val c = legacy(Gold, meaning)
     Slider(
         value = value, onValueChange = onChange, valueRange = range, steps = steps,
         colors = SliderDefaults.colors(
-            thumbColor = Gold, activeTrackColor = GoldDim,
-            inactiveTrackColor = Panel2, activeTickColor = Gold, inactiveTickColor = LineColor
+            thumbColor = c, activeTrackColor = legacy(GoldDim, meaning.copy(alpha = 0.5f)),
+            inactiveTrackColor = Panel2, activeTickColor = c, inactiveTickColor = LineColor
         ),
         modifier = Modifier.height(26.dp)
     )
@@ -512,6 +523,7 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(job.title, color = if (ok) TextMain else Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -562,6 +574,7 @@ internal fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Curr
             .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        LeadingIcon(AppIcons.forIndustry(ind.id), if (count > 0) Business else Mute)
         Column(Modifier.weight(1f)) {
             Text(ind.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             if (count > 0)
@@ -616,11 +629,14 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             val salaryHere = list.sumOf { it.manager?.salaryPerDay ?: 0.0 }
             val grossHere = list.sumOf { GameMath.enterpriseGrossPerDay(state, ind, it) }
             val netHere = grossHere - salaryHere
-            SummaryCell("${hoursHere}ч", "ВАШИ ЧАСЫ", TextMain, Modifier.weight(0.9f))
-            SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent, Modifier.weight(0.9f))
+            SummaryCell("${hoursHere}ч", "ВАШИ ЧАСЫ", TextMain, Modifier.weight(0.9f),
+                icon = AppIcon.CLOCK)
+            SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent,
+                Modifier.weight(0.9f), icon = AppIcon.PERSON)
             SummaryCell(
                 (if (netHere >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(netHere), cur),
-                "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f))
+                "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f),
+                icon = AppIcon.CHART)
         }
         Spacer(Modifier.height(12.dp))
 
@@ -860,23 +876,30 @@ internal fun SummaryCellsRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
-            onClick = { onNavigate("profile") })
+            icon = AppIcon.PERSON, onClick = { onNavigate("profile") })
         SummaryCell("$reputation", "РЕПУТАЦИЯ", Status, Modifier.weight(0.9f),
-            onClick = { onNavigate("network") })
+            icon = AppIcon.STAR, onClick = { onNavigate("network") })
         // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
         SummaryCell(worthText, "КАПИТАЛ", Heading, Modifier.weight(1.7f),
-            onClick = { onNavigate("rank") })
+            icon = AppIcon.COIN, onClick = { onNavigate("rank") })
     }
 }
 
 @Composable
-private fun SummaryCell(value: String, label: String, color: Color, modifier: Modifier, onClick: (() -> Unit)? = null) {
+private fun SummaryCell(
+    value: String, label: String, color: Color, modifier: Modifier,
+    icon: AppIcon? = null, onClick: (() -> Unit)? = null
+) {
     Column((if (onClick != null) modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
             else modifier.clip(RoundedCornerShape(12.dp)))
             .background(GlassFill).padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-            fontSize = 14.sp, maxLines = 1)
+        // иконка стоит в строке числа, а не над ним: плитка не должна подрасти
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) LeadingIcon(icon, color, size = 17.dp, gap = 5.dp)
+            Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                fontSize = 14.sp, maxLines = 1)
+        }
         Spacer(Modifier.height(3.dp))
         // подпись ужимается по самому длинному слову: «РЕПУТАЦИЯ» при крупном системном
         // шрифте переносила последнюю букву на вторую строку — перенос посреди слова.

@@ -2,9 +2,13 @@ package ru.capital.idle.ui.theme
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
@@ -95,6 +99,23 @@ fun IconSlot(
                 else drawIconSymbol(icon!!, tint, d * 0.86f, at + Offset(d * 0.07f, d * 0.07f))
             }
         }
+    }
+}
+
+/**
+ * Ведущая иконка строки — там, где раньше значка не было вовсе.
+ *
+ * В старой теме не рисует НИЧЕГО: на этих местах у неё пусто, и добавлять ей значки нельзя.
+ * Поэтому размер подобран так, чтобы иконка была не выше содержимого строки — иначе строка
+ * подросла бы, а вёрстка при переключении темы меняться не должна (это сверяет
+ * `ThemeLayoutParityTest`).
+ */
+@Composable
+fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = 30.dp, gap: Dp = 10.dp) {
+    if (!LocalPalette.current.vectorIcons) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        AppIconBadge(icon, tint, size)
+        Spacer(Modifier.width(gap))
     }
 }
 
@@ -330,7 +351,40 @@ object AppIcons {
         put("⌚", AppIcon.CLOCK)             // ⌚
         put("👔", AppIcon.PERSON)      // 👔
         put("💎", AppIcon.GEM)         // 💎
-        put("🖼", AppIcon.GEM)         // 🖼 картина в ряду аксессуаров
+        // коллекция и впечатления: искусство — звезда, древности — здание, драгоценности — самоцвет
+        put("🖼", AppIcon.STAR)
+        put("🎨", AppIcon.STAR)
+        put("🖌", AppIcon.STAR)
+        put("🎻", AppIcon.STAR)
+        put("📜", AppIcon.STAR)
+        put("🏺", AppIcon.BANK)
+        put("🗿", AppIcon.BANK)
+        put("🏛", AppIcon.BANK)
+        put("👑", AppIcon.GEM)
+        put("🌑", AppIcon.GEM)
+        put("🦖", AppIcon.GEM)
+        put("🏖", AppIcon.STAR)
+        put("🎰", AppIcon.STAR)
+        put("🎭", AppIcon.STAR)
+        put("🦁", AppIcon.STAR)
+        put("🚀", AppIcon.ARROW_UP)
+    }
+
+    /** Иконка отрасли — по её идентификатору. */
+    fun forIndustry(id: String): AppIcon = when (id) {
+        "trade" -> AppIcon.SHOP
+        "food" -> AppIcon.CAFE
+        "serv" -> AppIcon.PERSON
+        "prod" -> AppIcon.FACTORY
+        "log" -> AppIcon.TRUCK
+        else -> AppIcon.BOLT          // it
+    }
+
+    /** Иконка инструмента накоплений — по порядковому номеру. */
+    fun forAsset(ordinal: Int): AppIcon = when (ordinal) {
+        0 -> AppIcon.BANK             // депозит
+        1 -> AppIcon.COIN             // облигации
+        else -> AppIcon.HOME          // недвижимость
     }
 
     /** Иконка для эмодзи или `null`, если замены нет и эмодзи остаётся как есть. */

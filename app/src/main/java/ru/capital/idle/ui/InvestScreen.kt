@@ -292,8 +292,11 @@ internal fun PassiveCard(
 
     if (!unlocked) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(a.title, color = Mute, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                LeadingIcon(AppIcons.forAsset(i), Mute, size = 20.dp, gap = 8.dp)
+                Text(a.title, color = Mute, fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                    modifier = Modifier.weight(1f))
                 Text(GameMath.decimal(rate * 100) + "%/день", color = Mute,
                     fontFamily = FontFamily.Monospace, fontSize = 11.sp)
             }
@@ -307,6 +310,8 @@ internal fun PassiveCard(
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                LeadingIcon(AppIcons.forAsset(i), if (hasValue) GreenAccent else Mute,
+                    size = 20.dp, gap = 8.dp)
                 Text(a.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Tag(a.riskText(), riskColor(a.riskText()))
             }
@@ -370,6 +375,7 @@ internal fun StockCard(
 
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute, size = 28.dp, gap = 9.dp)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stock.title, color = if (unlocked) TextMain else Mute,

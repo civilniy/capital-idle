@@ -75,7 +75,8 @@ fun ProfileScreen(vm: GameViewModel) {
             }
             Text(
                 Lifestyle.titles[state.lastTitleIdx.coerceIn(Lifestyle.titles.indices)].name.uppercase(java.util.Locale.ROOT),
-                color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
+                color = legacy(Gold, Status),
+                fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
             )
 
             // шкала статуса
@@ -86,7 +87,8 @@ fun ProfileScreen(vm: GameViewModel) {
                 val frac = (status / 800f).coerceIn(0f, 1f)
                 Box(
                     Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(99.dp))
-                        .background(Brush.horizontalGradient(listOf(GoldDim, Gold)))
+                        .background(Brush.horizontalGradient(
+                            listOf(legacy(GoldDim, Status.copy(alpha = 0.5f)), legacy(Gold, Status))))
                 )
             }
             Spacer(Modifier.height(4.dp))
