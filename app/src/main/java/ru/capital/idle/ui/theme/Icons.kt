@@ -4,8 +4,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -106,15 +108,19 @@ fun IconSlot(
  * Ведущая иконка строки — там, где раньше значка не было вовсе.
  *
  * В старой теме не рисует НИЧЕГО: на этих местах у неё пусто, и добавлять ей значки нельзя.
- * Поэтому размер подобран так, чтобы иконка была не выше содержимого строки — иначе строка
- * подросла бы, а вёрстка при переключении темы меняться не должна (это сверяет
- * `ThemeLayoutParityTest`).
+ *
+ * По высоте иконка НУЛЕВАЯ: измеряется в ноль и рисуется поверх, центрируясь по строке
+ * (родитель выравнивает нулевой по высоте элемент по центру). Иначе строка подросла бы
+ * ровно там, где содержимого меньше, чем иконка, — а вёрстка при переключении темы
+ * меняться не должна. Ширину иконка занимает по-настоящему: текст рядом становится уже.
  */
 @Composable
-fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = 30.dp, gap: Dp = 10.dp) {
+fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = 26.dp, gap: Dp = 8.dp) {
     if (!LocalPalette.current.vectorIcons) return
     Row(verticalAlignment = Alignment.CenterVertically) {
-        AppIconBadge(icon, tint, size)
+        Box(Modifier.height(0.dp).wrapContentHeight(unbounded = true)) {
+            AppIconBadge(icon, tint, size)
+        }
         Spacer(Modifier.width(gap))
     }
 }

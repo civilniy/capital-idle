@@ -523,7 +523,7 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute)
+        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute, size = 26.dp, gap = 8.dp)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(job.title, color = if (ok) TextMain else Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -574,7 +574,8 @@ internal fun CategoryCard(state: GameState, index: Int, ind: Industry, cur: Curr
             .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcons.forIndustry(ind.id), if (count > 0) Business else Mute)
+        LeadingIcon(AppIcons.forIndustry(ind.id), if (count > 0) Business else Mute,
+            size = 26.dp, gap = 8.dp)
         Column(Modifier.weight(1f)) {
             Text(ind.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             if (count > 0)
@@ -896,7 +897,7 @@ private fun SummaryCell(
         horizontalAlignment = Alignment.CenterHorizontally) {
         // иконка стоит в строке числа, а не над ним: плитка не должна подрасти
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) LeadingIcon(icon, color, size = 17.dp, gap = 5.dp)
+            if (icon != null) LeadingIcon(icon, color, size = 16.dp, gap = 4.dp)
             Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                 fontSize = 14.sp, maxLines = 1)
         }

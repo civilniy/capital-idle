@@ -159,9 +159,11 @@ class ThemeLayoutParityTest {
         compose.waitForIdle()
         val matte = measure()
 
-        glass.keys.forEach { tag ->
-            assertEquals("блок «$tag» сдвинулся или изменил размер", glass[tag], matte[tag])
-        }
+        // все расхождения сразу, а не первое попавшееся: иначе на каждый блок нужен свой прогон,
+        // а прогон здесь идёт только на сервере
+        val moved = glass.keys.filter { glass[it] != matte[it] }
+            .joinToString("\n") { "  $it: стекло ${glass[it]} · матовая ${matte[it]}" }
+        assertEquals("блоки сдвинулись или изменили размер:\n$moved\n", "", moved)
     }
 
     @Test

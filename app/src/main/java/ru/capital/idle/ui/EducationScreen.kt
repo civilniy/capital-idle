@@ -80,7 +80,8 @@ internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () 
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.GRADUATION, if (isDone) Learned else if (locked) Mute else Study)
+        LeadingIcon(AppIcon.GRADUATION, if (isDone) Learned else if (locked) Mute else Study,
+            size = 24.dp, gap = 8.dp)
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(c.title, color = if (locked) Mute else TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(

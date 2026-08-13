@@ -375,7 +375,7 @@ internal fun StockCard(
 
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute, size = 28.dp, gap = 9.dp)
+            LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute, size = 24.dp, gap = 8.dp)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stock.title, color = if (unlocked) TextMain else Mute,
