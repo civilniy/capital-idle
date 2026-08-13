@@ -502,6 +502,7 @@ internal fun ScheduleBlock(state: GameState, onChange: (Int, Int, Int) -> Unit) 
  * В старой теме все три полосы золотые, как и были: [legacy] отдаёт ей прежний цвет,
  * а смысловой берёт только новая тема.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PlanSlider(
     value: Float, range: ClosedFloatingPointRange<Float>, steps: Int,
