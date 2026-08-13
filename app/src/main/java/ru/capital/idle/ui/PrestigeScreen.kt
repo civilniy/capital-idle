@@ -98,7 +98,7 @@ fun PrestigeScreen(vm: GameViewModel) {
                             vertical = dpOf(14.dp, Modern.rowPadV)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LeadingIcon(AppIcon.ARROW_UP, if (can) Gold else Mute)
+                    LeadingIcon(AppIcon.UP, if (can) Gold else Mute)
                     Column(Modifier.weight(1f)) {
                         Text(u.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(Modifier.height(2.dp))

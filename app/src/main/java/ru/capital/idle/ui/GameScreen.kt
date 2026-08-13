@@ -321,7 +321,7 @@ internal fun AdBoostBanner(
     Row(rowMod, verticalAlignment = Alignment.CenterVertically) {
         // иконка: play (нет буста) или молния (активен)
         Box(Modifier.size(dpOf(26.dp, Modern.iconCircle)), contentAlignment = Alignment.Center) {
-            if (modernLook) AppIconBadge(if (active) AppIcon.BOLT else AppIcon.ARROW_UP, accent, Modern.iconCircle)
+            if (modernLook) AppIconBadge(if (active) AppIcon.BOLT else AppIcon.UP, accent, Modern.iconCircle)
             else if (active) BoltIcon(accent) else PlayIcon(accent)
         }
         Spacer(Modifier.width(11.dp))
@@ -560,7 +560,7 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
             .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute)
+        LeadingIcon(AppIcon.CASE, if (current) GreenAccent else Mute)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(job.title, color = if (ok) TextMain else Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -669,7 +669,7 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             SummaryCell("${hoursHere}ч", "ВАШИ ЧАСЫ", TextMain, Modifier.weight(0.9f),
                 icon = AppIcon.CLOCK)
             SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent,
-                Modifier.weight(0.9f), icon = AppIcon.PERSON)
+                Modifier.weight(0.9f), icon = AppIcon.USER)
             SummaryCell(
                 (if (netHere >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(netHere), cur),
                 "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f),
@@ -913,7 +913,7 @@ internal fun SummaryCellsRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
-            icon = AppIcon.PERSON, onClick = { onNavigate("profile") })
+            icon = AppIcon.USER, onClick = { onNavigate("profile") })
         SummaryCell("$reputation", "РЕПУТАЦИЯ", Status, Modifier.weight(0.9f),
             icon = AppIcon.STAR, onClick = { onNavigate("network") })
         // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
