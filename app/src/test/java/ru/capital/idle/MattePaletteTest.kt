@@ -18,20 +18,24 @@ class MattePaletteTest {
 
     // ===== закрытый список =====
     private val amber = 0xFFB02E     // деньги, бренд, активная вкладка
-    private val lime = 0x8CD62B      // доход, работа по найму
-    private val mint = 0x25D0A4      // бизнес, производство, рост
-    private val lilac = 0x9B7FE8     // сон, отдых, статус
-    private val sky = 0x4DA3FF       // учёба, информация
-    private val coral = 0xFF6B5A     // расход, убыток, риск
+    private val blue = 0x4A9BF5      // учёба, информация
+    private val teal = 0x16C79A      // бизнес, рост
+    private val green = 0x3DD068     // доход, работа по найму
+    private val purple = 0xA78BFA    // сон, статус
+    private val coral = 0xFF6B5A     // расход, риск
+    private val pink = 0xF472B6      // коллекция, редкое
 
     private val accents = mapOf(
-        amber to "янтарь", lime to "лайм", mint to "мята",
-        lilac to "сирень", sky to "небесный", coral to "коралл"
+        amber to "янтарь", blue to "синий", teal to "бирюза",
+        green to "зелёный", purple to "сирень", coral to "коралл", pink to "розовый"
     )
 
-    // фон, карточка, вложенный элемент
-    private val layers = mapOf(0x0E0F13 to "фон", 0x181A20 to "карточка", 0x22252D to "вложенный")
-    private val texts = mapOf(0xF2F1EC to "основной", 0xCDCED4 to "вторичный", 0x7E8088 to "приглушённый")
+    // фон, карточка, вложенный элемент, третий уровень
+    private val layers = mapOf(
+        0x0B0B0D to "фон", 0x1A1B1E to "карточка",
+        0x26272B to "вложенный", 0x323338 to "третий уровень"
+    )
+    private val texts = mapOf(0xF5F4F2 to "основной", 0xC4C5CA to "вторичный", 0x7C7E86 to "приглушённый")
     private val neutral = mapOf(0x000000 to "чёрный", 0xFFFFFF to "белый")
 
     private val allowed = accents + layers + texts + neutral
@@ -56,7 +60,8 @@ class MattePaletteTest {
         "rest" to MattePalette.rest, "study" to MattePalette.study,
         "expense" to MattePalette.expense, "warn" to MattePalette.warn,
         "best" to MattePalette.best, "status" to MattePalette.status,
-        "learned" to MattePalette.learned,
+        "learned" to MattePalette.learned, "rare" to MattePalette.rare,
+        "surface3" to MattePalette.surface3,
         "moneyFill" to MattePalette.moneyFill, "incomeFill" to MattePalette.incomeFill,
         "businessFill" to MattePalette.businessFill, "studyFill" to MattePalette.studyFill,
         "expenseFill" to MattePalette.expenseFill,
@@ -79,13 +84,51 @@ class MattePaletteTest {
     fun `каждый акцент стоит на своём смысле`() {
         assertEquals("деньги — янтарь", amber, rgb(MattePalette.money))
         assertEquals("капитал и заголовки — янтарь", amber, rgb(MattePalette.heading))
-        assertEquals("доход и работа по найму — лайм", lime, rgb(MattePalette.income))
-        assertEquals("бизнес и рост — мята", mint, rgb(MattePalette.business))
-        assertEquals("сон, отдых и статус — сирень", lilac, rgb(MattePalette.rest))
-        assertEquals("статус — сирень", lilac, rgb(MattePalette.status))
-        assertEquals("учёба — небесный", sky, rgb(MattePalette.study))
-        assertEquals("пройденный курс — небесный", sky, rgb(MattePalette.learned))
+        assertEquals("доход и работа по найму — зелёный", green, rgb(MattePalette.income))
+        assertEquals("бизнес и рост — бирюза", teal, rgb(MattePalette.business))
+        assertEquals("сон и статус — сирень", purple, rgb(MattePalette.rest))
+        assertEquals("статус — сирень", purple, rgb(MattePalette.status))
+        assertEquals("учёба и информация — синий", blue, rgb(MattePalette.study))
+        assertEquals("пройденный курс — синий", blue, rgb(MattePalette.learned))
         assertEquals("расход и риск — коралл", coral, rgb(MattePalette.expense))
+        assertEquals("коллекция и редкое — розовый", pink, rgb(MattePalette.rare))
+    }
+
+    /**
+     * Поверхности нейтральные.
+     *
+     * Тёплый цвет с малой прозрачностью на почти чёрном даёт коричневую грязь: #FFB02E
+     * на 13% поверх #0B0B0D — это #2D2417. Поэтому подложек акцентом в новой теме нет
+     * вовсе, и проверка меряет именно это: у любой поверхности разброс каналов мал.
+     */
+    @Test
+    fun `ни одна поверхность не подкрашена акцентом`() {
+        val surfaces = listOf(
+            "bg" to MattePalette.bg, "panel" to MattePalette.panel, "panel2" to MattePalette.panel2,
+            "surface3" to MattePalette.surface3,
+            "cardFill" to MattePalette.cardFill, "innerFill" to MattePalette.innerFill,
+            "accentFill" to MattePalette.accentFill, "accentStrong" to MattePalette.accentStrong,
+            "btnFill" to MattePalette.btnFill, "btnOffFill" to MattePalette.btnOffFill,
+            "sellFill" to MattePalette.sellFill, "trackFill" to MattePalette.trackFill,
+            "toggleOff" to MattePalette.toggleOff,
+            "moneyFill" to MattePalette.moneyFill, "incomeFill" to MattePalette.incomeFill,
+            "businessFill" to MattePalette.businessFill, "studyFill" to MattePalette.studyFill,
+            "expenseFill" to MattePalette.expenseFill,
+            "eventGoodFill" to MattePalette.eventGoodFill, "eventBadFill" to MattePalette.eventBadFill,
+            "dialogBg" to MattePalette.dialogBg, "bgBase" to MattePalette.bgBase
+        )
+        val tinted = surfaces.filter { (_, c) -> chroma(c) > 0.08f }
+            .joinToString("\n") { (n, c) -> "  $n = #%06X, разброс %.0f%%".format(rgb(c), chroma(c) * 100) }
+        assertEquals("подкрашенные поверхности:\n$tinted\n", "", tinted)
+    }
+
+    /** Разброс каналов: 0 у серого, 1 у чистого цвета. */
+    private fun chroma(c: Color): Float {
+        val v = rgb(c)
+        val r = v shr 16 and 0xFF
+        val g = v shr 8 and 0xFF
+        val b = v and 0xFF
+        return (maxOf(r, g, b) - minOf(r, g, b)) / 255f
     }
 
     @Test

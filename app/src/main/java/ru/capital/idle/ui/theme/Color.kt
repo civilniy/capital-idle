@@ -48,6 +48,10 @@ val Best: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.bes
 val Status: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.status
 /** Пройденное обучение. */
 val Learned: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.learned
+/** Коллекция и редкое. */
+val Rare: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.rare
+/** Третья ступень поверхности. */
+val Surface3: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.surface3
 
 /**
  * Цвета банковской карты.

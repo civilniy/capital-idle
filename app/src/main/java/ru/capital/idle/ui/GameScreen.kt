@@ -313,7 +313,7 @@ internal fun AdBoostBanner(
     // клик по всему баннеру — только когда буста нет (вариант Б)
     val rowMod = Modifier
         .fillMaxWidth()
-        .clip(cardShape(14.dp))
+        .clip(bannerShape(14.dp))
         .background(bg)
         .then(if (!active) Modifier.clickable(onClick = onWatch) else Modifier)
         .padding(12.dp)
@@ -431,9 +431,9 @@ internal fun MarketBar(state: GameState) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(tileShape(12.dp))
-            // подложка тонируется цветом фазы рынка; в старой теме она серая, как была
-            .background(legacy(GlassFill, color.copy(alpha = 0.12f)))
+            .clip(bannerShape(12.dp))
+            // поверхность нейтральная в обеих темах: цвет даёт круг иконки рядом
+            .background(GlassFill)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -801,9 +801,9 @@ internal fun PressureSlot(pressure: Double, reputation: Double) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(tileShape(12.dp))
+            .clip(bannerShape(12.dp))
             .background(ExpenseFill)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(9.dp, 13.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -1372,7 +1372,9 @@ internal fun CardFace(
                 ambientColor = glow, spotColor = glow) else Modifier)
             .clip(RoundedCornerShape(18.dp))
             .background(Brush.linearGradient(gradient))
-            .then(if (kant != null) Modifier.border(1.dp, kant, RoundedCornerShape(18.dp)) else Modifier)
+            // в новой теме у карты канта нет — только мягкая тень
+             .then(if (kant != null && !modernLook)
+                 Modifier.border(1.dp, kant, RoundedCornerShape(18.dp)) else Modifier)
             .drawBehind { drawCardPattern(tier.pattern, Color(tier.patternColor)) }
             .then(modifier)
     ) {

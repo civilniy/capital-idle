@@ -152,7 +152,7 @@ internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: 
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconSlot(item?.emoji.orEmpty(), tint = if (won) Gold else Mute, fontSize = 20.sp,
+        IconSlot(item?.emoji.orEmpty(), tint = if (won) legacy(Gold, Rare) else Mute, fontSize = 20.sp,
             modifier = Modifier.width(28.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(
@@ -295,7 +295,7 @@ private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) ->
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconSlot(item.emoji, tint = Gold, fontSize = 22.sp, modifier = Modifier.width(30.dp))
+            IconSlot(item.emoji, tint = legacy(Gold, Rare), fontSize = 22.sp, modifier = Modifier.width(30.dp))
             Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
                 Text(item.title, color = TextMain, fontWeight = FontWeight.Bold,
                     fontSize = 13.sp, maxLines = 1)
@@ -445,7 +445,7 @@ private fun SetCard(row: SetProgress) {
             .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconSlot(row.set.emoji, tint = if (done) Gold else Mute, fontSize = 20.sp,
+        IconSlot(row.set.emoji, tint = if (done) legacy(Gold, Rare) else Mute, fontSize = 20.sp,
             modifier = Modifier.width(30.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             // счётчик стоит не рядом с названием, а в строке полоски: при крупном системном
@@ -512,7 +512,7 @@ internal fun CollectionSummary(day: Int, owned: Int, value: Double, profit: Doub
         Modifier.fillMaxWidth().clip(cardShape(16.dp)).background(GlassAccent).padding(13.dp)
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("КОЛЛЕКЦИЯ", color = Gold, fontWeight = FontWeight.ExtraBold,
+            Text("КОЛЛЕКЦИЯ", color = legacy(Gold, Rare), fontWeight = FontWeight.ExtraBold,
                 fontSize = 12.sp, letterSpacing = 1.sp)
             Text("$owned / ${Collectibles.all.size}", color = TextMain,
                 fontFamily = FontFamily.Monospace, fontSize = 12.sp)
@@ -561,7 +561,7 @@ internal fun CollectibleCard(
             .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconSlot(item.emoji, tint = if (owned) Gold else Mute, fontSize = 22.sp,
+        IconSlot(item.emoji, tint = if (owned) legacy(Gold, Rare) else Mute, fontSize = 22.sp,
             modifier = Modifier.width(34.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(item.title, color = if (owned || canBuy) TextMain else Mute,

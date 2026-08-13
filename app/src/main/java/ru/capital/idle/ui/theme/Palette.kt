@@ -85,6 +85,12 @@ class Palette(
      * Пройденное обучение. В старой теме зелёный, в новой — цвет учёбы.
      */
     val learned: Color,
+    /**
+     * Коллекция и редкое. В старой теме это золото (как и всё ценное), в новой — розовый.
+     */
+    val rare: Color,
+    /** Третья ступень поверхности: подсветка внутри вложенного элемента. */
+    val surface3: Color,
 
     // ===== тонированные подложки (акцент на 11–13%) =====
     val moneyFill: Color,
@@ -174,6 +180,8 @@ val GlassPalette = Palette(
     best = Color(0xFFE8B54A),
     status = Color(0xFF5FBF7A),
     learned = Color(0xFF5FBF7A),
+    rare = Color(0xFFE8B54A),
+    surface3 = Color(0xFF24262E),
 
     moneyFill = Color(0x1FE8B54A),
     incomeFill = Color(0x1F5FBF7A),
@@ -208,59 +216,65 @@ val GlassPalette = Palette(
 val MattePalette = Palette(
     id = ThemeIds.MATTE,
 
-    bg = Color(0xFF0E0F13),
-    panel = Color(0xFF181A20),
-    panel2 = Color(0xFF22252D),
-    line = Color(0x0FFFFFFF),          // белый на 6%
-    divider = Color(0x0FFFFFFF),
+    bg = Color(0xFF0B0B0D),
+    panel = Color(0xFF1A1B1E),
+    panel2 = Color(0xFF26272B),
+    line = Color(0x12FFFFFF),          // белый на 7%
+    divider = Color(0x12FFFFFF),
 
-    cardFill = Color(0xFF181A20),
-    innerFill = Color(0xFF22252D),
-    accentFill = Color(0x1FFFB02E),    // янтарь на 12%
-    accentStrong = Color(0x2EFFB02E),
-    btnFill = Color(0xFF22252D),
-    btnOffFill = Color(0xFF0E0F13),
-    btnOffText = Color(0xFF7E8088),
-    sellFill = Color(0x1FFF6B5A),
+    cardFill = Color(0xFF1A1B1E),
+    innerFill = Color(0xFF26272B),
+    // «акцентная» карточка и выделенная строка — светло-серые, а НЕ золотые
+    accentFill = Color(0xFF26272B),
+    accentStrong = Color(0xFF323338),
+    btnFill = Color(0xFF26272B),
+    btnOffFill = Color(0xFF26272B),
+    btnOffText = Color(0xFF7C7E86),
+    sellFill = Color(0xFF26272B),
     sellText = Color(0xFFFF6B5A),
-    trackFill = Color(0xFF22252D),
-    toggleOff = Color(0xFF22252D),
+    trackFill = Color(0xFF26272B),
+    toggleOff = Color(0xFF26272B),
 
-    textMain = Color(0xFFF2F1EC),
-    textSecondary = Color(0xFFCDCED4),
-    mute = Color(0xFF7E8088),
+    textMain = Color(0xFFF5F4F2),
+    textSecondary = Color(0xFFC4C5CA),
+    mute = Color(0xFF7C7E86),
 
-    money = Color(0xFFFFB02E),
-    moneyDim = Color(0x8CFFB02E),      // тот же янтарь, приглушённый
-    onMoney = Color(0xFF0E0F13),
+    money = Color(0xFFFFB02E),         // янтарь
+    moneyDim = Color(0xFF323338),      // приглушённая дорожка — серая, не золотая
+    onMoney = Color(0xFF231703),       // символ на янтарном круге
     heading = Color(0xFFFFB02E),
-    income = Color(0xFF8CD62B),        // лайм
-    business = Color(0xFF25D0A4),      // мята
-    rest = Color(0xFF9B7FE8),          // сирень
-    study = Color(0xFF4DA3FF),         // небесный
+    income = Color(0xFF3DD068),        // зелёный
+    business = Color(0xFF16C79A),      // бирюза
+    rest = Color(0xFFA78BFA),          // сирень
+    study = Color(0xFF4A9BF5),         // синий
     expense = Color(0xFFFF6B5A),       // коралл
     warn = Color(0xFFFF6B5A),
-    best = Color(0xFF25D0A4),
-    status = Color(0xFF9B7FE8),
-    learned = Color(0xFF4DA3FF),
+    best = Color(0xFF16C79A),
+    status = Color(0xFFA78BFA),
+    learned = Color(0xFF4A9BF5),
+    rare = Color(0xFFF472B6),          // розовый
+    surface3 = Color(0xFF323338),
 
-    moneyFill = Color(0x1FFFB02E),
-    incomeFill = Color(0x1F8CD62B),
-    businessFill = Color(0x1F25D0A4),
-    studyFill = Color(0x1F4DA3FF),
-    expenseFill = Color(0x1FFF6B5A),
-    eventGoodFill = Color(0x1F8CD62B),
-    eventBadFill = Color(0x1FFF6B5A),
+    // Подложек акцентом в новой теме нет: тёплый цвет с малой прозрачностью на почти
+    // чёрном даёт коричневую грязь. Все эти слоты — обычные поверхности, цвет живёт
+    // в круге иконки рядом.
+    moneyFill = Color(0xFF1A1B1E),
+    incomeFill = Color(0xFF1A1B1E),
+    businessFill = Color(0xFF1A1B1E),
+    studyFill = Color(0xFF1A1B1E),
+    expenseFill = Color(0xFF1A1B1E),
+    eventGoodFill = Color(0xFF1A1B1E),
+    eventBadFill = Color(0xFF1A1B1E),
 
-    dialogBg = Color(0xFF181A20),
+    dialogBg = Color(0xFF1A1B1E),
     scrim = Color(0xB3000000),
-    overlayBg = Color(0xE60E0F13),
+    overlayBg = Color(0xE60B0B0D),
 
-    bgBase = Color(0xFF0E0F13),
-    // плоский фон: цветных пятен в матовой теме нет
+    bgBase = Color(0xFF0B0B0D),
+    // плоский фон: цветных пятен нет
     spotMoney = Color(0x00FFB02E),
-    spotStudy = Color(0x004DA3FF),
-    spotIncome = Color(0x008CD62B),
+    spotStudy = Color(0x004A9BF5),
+    spotIncome = Color(0x003DD068),
 
     outlines = false,
     vectorIcons = true,

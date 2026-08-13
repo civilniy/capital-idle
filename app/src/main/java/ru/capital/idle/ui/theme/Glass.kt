@@ -124,14 +124,14 @@ fun GlassTab(
         modifier
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (on) legacy(GlassBtn, MoneyFill) else Color.Transparent)
+            .background(if (on) legacy(GlassBtn, GlassInner) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center
     ) {
         Text(
             (if (locked) "🔒 " else "") + label,
-            color = if (locked) Mute.copy(alpha = 0.6f) else if (on) Gold else Mute,
+            color = if (locked) Mute.copy(alpha = 0.6f) else if (on) legacy(Gold, TextMain) else Mute,
             fontWeight = if (on) FontWeight.ExtraBold else FontWeight.Medium,
             fontSize = fontSize, lineHeight = (fontSize.value + 1.5f).sp, maxLines = maxLines,
             textAlign = TextAlign.Center
