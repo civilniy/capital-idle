@@ -29,7 +29,7 @@ fun HintCard(state: GameState, hintId: String, onDismiss: (String) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(cardShape(16.dp))
             .background(GlassAccent)
             .padding(horizontal = 14.dp, vertical = 13.dp)
     ) {
@@ -42,7 +42,7 @@ fun HintCard(state: GameState, hintId: String, onDismiss: (String) -> Unit) {
             Spacer(Modifier.width(10.dp))
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(chipShape(8.dp))
                     .background(GlassInner)
                     .clickable { onDismiss(hintId) }
                     .padding(horizontal = 9.dp, vertical = 4.dp)
@@ -55,7 +55,7 @@ fun HintCard(state: GameState, hintId: String, onDismiss: (String) -> Unit) {
         Spacer(Modifier.height(11.dp))
         Box(
             Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(btnShape(10.dp))
                 .background(Gold)
                 .clickable { onDismiss(hintId) }
                 .padding(horizontal = 18.dp, vertical = 9.dp)
@@ -74,7 +74,7 @@ fun InnerTab(label: String, on: Boolean, locked: Boolean, modifier: Modifier, on
     Box(
         modifier
             .height(40.dp)
-            .clip(RoundedCornerShape(9.dp))
+            .clip(btnShape(9.dp))
             .background(if (on) Panel2 else Panel)
             .clickable(onClick = onClick)
             .padding(horizontal = 4.dp),

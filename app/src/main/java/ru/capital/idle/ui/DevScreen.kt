@@ -31,7 +31,7 @@ fun DevScreen(vm: GameViewModel, onLocked: (String) -> Unit, startInner: String 
                     fontSize = 18.sp, letterSpacing = 2.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp)).background(GlassFill).padding(4.dp)
+                    Modifier.fillMaxWidth().clip(tileShape(13.dp)).background(GlassFill).padding(4.dp)
                 ) {
                     GlassTab("Курсы", inner == "courses", false, Modifier.weight(1f)) { inner = "courses" }
                     GlassTab("Окружение", inner == "net", !netUnlocked, Modifier.weight(1f)) {

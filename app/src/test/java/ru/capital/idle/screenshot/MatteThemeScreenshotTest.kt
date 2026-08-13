@@ -6,8 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,6 +27,10 @@ import ru.capital.idle.ui.theme.AppIcon
 import ru.capital.idle.ui.theme.AppIconBadge
 import ru.capital.idle.ui.theme.AppTheme
 import ru.capital.idle.ui.theme.Gold
+import ru.capital.idle.ui.theme.GroupCard
+import ru.capital.idle.ui.theme.Modern
+import ru.capital.idle.ui.theme.Mute
+import ru.capital.idle.ui.theme.RowSeparator
 import ru.capital.idle.ui.theme.ThemeIds
 
 /**
@@ -96,11 +104,19 @@ class MatteThemeScreenshotTest {
         PressureSlot(pressure = 0.24, reputation = 44.0)
         ScheduleBlock(rich) { _, _, _ -> }
         gap()
-        JobCard(rich, Jobs.all[1], cur, onClick = {}, onQuit = {})
+        GroupCard {
+            Jobs.all.forEachIndexed { i, job ->
+                JobCard(rich, job, cur, onClick = {}, onQuit = {})
+                RowSeparator(6.dp, last = i == Jobs.all.lastIndex)
+            }
+        }
         gap()
-        CategoryCard(rich, 0, Industries.all[0], cur) {}
-        gap()
-        CategoryCard(rich, 3, Industries.all[3], cur) {}
+        GroupCard {
+            Industries.all.forEachIndexed { i, ind ->
+                CategoryCard(rich, i, ind, cur) {}
+                RowSeparator(6.dp, last = i == Industries.all.lastIndex)
+            }
+        }
         gap()
         EnterpriseCard(rich, Industries.all[0], 0, 0, rich.enterprises[0][0], cur, {}, {}, {})
     }
@@ -134,12 +150,19 @@ class MatteThemeScreenshotTest {
     private fun coursesPanel() {
         val branch = Education.branches[0]
         HintCard(GameState(), "inv") {}
-        branch.courses.take(3).forEachIndexed { i, c ->
-            CourseCard(
-                if (i == 1) rich.copy(studyingId = c.id, studyProgress = 40.0) else rich,
-                c, cur
-            ) {}
+        GroupCard {
+            Text(branch.title, color = Gold, fontSize = 11.sp, letterSpacing = 2.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = Modern.cardPadH, top = 8.dp))
             gap()
+            val shown = branch.courses.take(3)
+            shown.forEachIndexed { i, c ->
+                CourseCard(
+                    if (i == 1) rich.copy(studyingId = c.id, studyProgress = 40.0) else rich,
+                    c, cur
+                ) {}
+                RowSeparator(6.dp, last = i == shown.lastIndex)
+            }
         }
     }
 
@@ -152,13 +175,16 @@ class MatteThemeScreenshotTest {
 
     @Composable
     private fun networkPanel() {
-        Network.all.take(4).forEachIndexed { i, item ->
-            NetworkItemCard(
-                title = item.title, info = item.info,
-                owned = i == 0, canBuy = i == 1,
-                costText = GameMath.formatMoney(item.cost, cur), onBuy = {}
-            )
-            gap()
+        GroupCard {
+            val shown = Network.all
+            shown.forEachIndexed { i, item ->
+                NetworkItemCard(
+                    title = item.title, info = item.info,
+                    owned = i == 0, canBuy = i == 1,
+                    costText = GameMath.formatMoney(item.cost, cur), onBuy = {}
+                )
+                RowSeparator(8.dp, last = i == shown.lastIndex)
+            }
         }
     }
 
@@ -197,29 +223,53 @@ class MatteThemeScreenshotTest {
     // ===================== мир =====================
 
     @Composable
-    private fun worldPanel() {
+    private fun rankPanel() {
         RankRow(RankRowData(1L, "Иван Разумовский", 999_999_999.0, "", true, true), cur)
         RankRow(RankRowData(2L, "Bernard Arnault", 233_000_000_000.0, "LVMH", true, false, 1.4), cur)
         RankRow(RankRowData(3L, "Elon Musk", 195_000_000_000.0, "Tesla", true, false, -0.8), cur)
-        gap()
-        Milestones.all.take(3).forEachIndexed { i, m ->
-            MilestoneRow(
-                name = m.name, value = GameMath.formatMoney(m.thresholdUsd, cur),
-                reward = m.rewardBullion, done = i == 0, current = i == 1
-            )
+    }
+
+    @Composable
+    private fun goalsPanel() {
+        GroupCard {
+            val shown = Milestones.all.take(4)
+            shown.forEachIndexed { i, m ->
+                MilestoneRow(
+                    name = m.name, value = GameMath.formatMoney(m.thresholdUsd, cur),
+                    reward = m.rewardBullion, done = i == 0, current = i == 1,
+                    last = i == shown.lastIndex
+                )
+            }
         }
-        gap()
+    }
+
+    @Composable
+    private fun prestigePanel() {
         PrestigeButton(canPrestige = true, gain = 128L)
         gap()
         PrestigeButton(canPrestige = false, gain = 0L)
     }
 
     @Test
-    fun `мир`() = shot("matte_world") { worldPanel() }
+    fun `мир · рейтинг`() = shot("matte_world_rank") { rankPanel() }
 
     @Test
-    fun `мир при крупном шрифте`() =
-        shot("matte_world_large_font", Screenshots.LARGE_FONT) { worldPanel() }
+    fun `мир · рейтинг при крупном шрифте`() =
+        shot("matte_world_rank_large_font", Screenshots.LARGE_FONT) { rankPanel() }
+
+    @Test
+    fun `мир · цели`() = shot("matte_world_goals") { goalsPanel() }
+
+    @Test
+    fun `мир · цели при крупном шрифте`() =
+        shot("matte_world_goals_large_font", Screenshots.LARGE_FONT) { goalsPanel() }
+
+    @Test
+    fun `мир · престиж`() = shot("matte_world_pres") { prestigePanel() }
+
+    @Test
+    fun `мир · престиж при крупном шрифте`() =
+        shot("matte_world_pres_large_font", Screenshots.LARGE_FONT) { prestigePanel() }
 
     // ===================== профиль =====================
 
@@ -245,11 +295,18 @@ class MatteThemeScreenshotTest {
     private fun profileItemsPanel() {
         profileHeader()
         gap()
-        LifeItemCard(Lifestyle.home.items[3], owned = true, isBase = false, canBuy = false,
-            cur = cur, onBuy = {}, onSell = {})
-        gap()
-        LifeItemCard(Lifestyle.home.items[4], owned = false, isBase = false, canBuy = true,
-            cur = cur, onBuy = {}, onSell = {})
+        GroupCard {
+            Text("ЖИЛЬЁ", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = Modern.cardPadH, top = 8.dp))
+            gap()
+            LifeItemCard(Lifestyle.home.items[3], owned = true, isBase = false, canBuy = false,
+                cur = cur, onBuy = {}, onSell = {})
+            RowSeparator(6.dp)
+            LifeItemCard(Lifestyle.home.items[4], owned = false, isBase = false, canBuy = true,
+                cur = cur, onBuy = {}, onSell = {})
+            RowSeparator(6.dp, last = true)
+        }
     }
 
     @Test
@@ -263,9 +320,12 @@ class MatteThemeScreenshotTest {
     private fun profileRestPanel() {
         ProfileTabsRow(selected = 1) {}
         gap()
-        ExperienceCard(Lifestyle.experiences[0], done = true, canBuy = false, cur = cur) {}
-        gap()
-        ExperienceCard(Lifestyle.experiences[1], done = false, canBuy = true, cur = cur) {}
+        GroupCard {
+            Lifestyle.experiences.forEachIndexed { i, exp ->
+                ExperienceCard(exp, done = i == 0, canBuy = i == 1, cur = cur) {}
+                RowSeparator(6.dp, last = i == Lifestyle.experiences.lastIndex)
+            }
+        }
     }
 
     @Test
@@ -287,11 +347,16 @@ class MatteThemeScreenshotTest {
             }
         )
         gap()
-        CollectibleCard(
-            item = Collectibles.all[0], price = 1_240_000.0, owned = true,
-            paid = 900_000.0, profit = 340_000.0, canBuy = false, cur = cur,
-            onBuy = {}, onSell = {}
-        )
+        GroupCard {
+            Collectibles.all.take(3).forEachIndexed { i, c ->
+                CollectibleCard(
+                    item = c, price = 1_240_000.0, owned = i == 0,
+                    paid = 900_000.0, profit = 340_000.0, canBuy = i == 1, cur = cur,
+                    onBuy = {}, onSell = {}
+                )
+                RowSeparator(6.dp, last = i == 2)
+            }
+        }
     }
 
     @Test

@@ -41,17 +41,18 @@ fun NetworkScreen(vm: GameViewModel) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(cardShape(14.dp))
                 .background(GlassFill)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("РЕПУТАЦИЯ", color = TextMain, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(10.dp))
-            Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
+            Box(Modifier.weight(1f).height(dpOf(6.dp, Modern.barHeight))
+                .clip(barShape(99.dp)).background(GlassInner)) {
                 Box(
                     Modifier.fillMaxWidth((state.reputation / 100.0).toFloat().coerceIn(0f, 1f))
-                        .fillMaxHeight().clip(RoundedCornerShape(99.dp)).background(Rest)
+                        .fillMaxHeight().clip(barShape(99.dp)).background(Rest)
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -63,15 +64,17 @@ fun NetworkScreen(vm: GameViewModel) {
             color = Mute, fontSize = 11.sp)
         Spacer(Modifier.height(14.dp))
 
-        Network.all.forEach { item ->
-            NetworkItemCard(
-                title = item.title, info = item.info,
-                owned = item.id in state.netOwned,
-                canBuy = item.id !in state.netOwned && state.money >= item.cost,
-                costText = GameMath.formatMoney(item.cost, cur),
-                onBuy = { vm.buyNetItem(item.id) }
-            )
-            Spacer(Modifier.height(8.dp))
+        GroupCard {
+            Network.all.forEachIndexed { i, item ->
+                NetworkItemCard(
+                    title = item.title, info = item.info,
+                    owned = item.id in state.netOwned,
+                    canBuy = item.id !in state.netOwned && state.money >= item.cost,
+                    costText = GameMath.formatMoney(item.cost, cur),
+                    onBuy = { vm.buyNetItem(item.id) }
+                )
+                RowSeparator(8.dp, last = i == Network.all.lastIndex)
+            }
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -89,12 +92,12 @@ internal fun NetworkItemCard(
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (owned) GlassAccent else GlassFill)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .clip(cardShape(14.dp))
+            .background(if (owned) GlassAccent else rowFill(GlassFill))
+            .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(12.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.PERSON, if (owned) Gold else Mute, size = 26.dp, gap = 8.dp)
+        LeadingIcon(AppIcon.PERSON, if (owned) Gold else Mute)
         Column(Modifier.weight(1f)) {
             Text(title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(info, color = Mute, fontSize = 10.sp)
@@ -104,7 +107,7 @@ internal fun NetworkItemCard(
         } else {
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(11.dp))
+                    .clip(btnShape(11.dp))
                     .background(if (canBuy) Gold else GlassBtnOff)
                     .clickable(enabled = canBuy, onClick = onBuy)
                     .padding(horizontal = 14.dp, vertical = 9.dp)

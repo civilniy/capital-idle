@@ -59,7 +59,7 @@ fun InvestScreen(vm: GameViewModel) {
         HintCard(state = state, hintId = "inv", onDismiss = { vm.markHintSeen(it) })
 
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(16.dp),
+            Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
@@ -112,7 +112,7 @@ fun InvestScreen(vm: GameViewModel) {
             val (title, sub) = Exchange.newsTitle(event)
             val left = (event.hoursLeft).coerceAtLeast(0)
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                Modifier.fillMaxWidth().clip(cardShape(16.dp))
                     .background(if (event.good) EventGoodFill else EventBadFill)
                     .padding(13.dp),
                 verticalAlignment = Alignment.Top
@@ -176,7 +176,7 @@ internal fun AutoInvestCard(
     onPick: (Asset) -> Unit = {},
     onReserve: (Int) -> Unit = {}
 ) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+    Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(
             Modifier.fillMaxWidth().clickable { onToggle() },
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -211,7 +211,7 @@ internal fun AutoInvestCard(
             unlocked.forEach { a ->
                 val picked = a == target
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    Modifier.fillMaxWidth().clip(tileShape(12.dp))
                         .background(if (picked) AccentStrong else GlassBtn)
                         .clickable { onPick(a) }
                         .padding(horizontal = 11.dp, vertical = 9.dp),
@@ -244,7 +244,7 @@ internal fun AutoInvestCard(
 
         Spacer(Modifier.height(11.dp))
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassInner)
+            Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(GlassInner)
                 .padding(horizontal = 11.dp, vertical = 9.dp)
         ) {
             if (blocked != null) {
@@ -267,7 +267,7 @@ internal fun AutoInvestCard(
 @Composable
 private fun StepBtn(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(GlassBtn)
+        Modifier.size(38.dp).clip(tileShape(12.dp)).background(GlassBtn)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -291,10 +291,10 @@ internal fun PassiveCard(
     val hasValue = value > 0.0
 
     if (!unlocked) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+        Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
-                LeadingIcon(AppIcons.forAsset(i), Mute, size = 20.dp, gap = 8.dp)
+                LeadingIcon(AppIcons.forAsset(i), Mute)
                 Text(a.title, color = Mute, fontWeight = FontWeight.Bold, fontSize = 15.sp,
                     modifier = Modifier.weight(1f))
                 Text(GameMath.decimal(rate * 100) + "%/день", color = Mute,
@@ -307,11 +307,10 @@ internal fun PassiveCard(
         return
     }
 
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+    Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                LeadingIcon(AppIcons.forAsset(i), if (hasValue) GreenAccent else Mute,
-                    size = 20.dp, gap = 8.dp)
+                LeadingIcon(AppIcons.forAsset(i), if (hasValue) GreenAccent else Mute)
                 Text(a.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Tag(a.riskText(), riskColor(a.riskText()))
             }
@@ -332,7 +331,7 @@ internal fun PassiveCard(
 
         Spacer(Modifier.height(11.dp))
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassInner)
+            Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(GlassInner)
                 .clickable { onToggleCap() }.padding(horizontal = 11.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -351,10 +350,10 @@ internal fun PassiveCard(
 private fun CapToggle(on: Boolean) {
     val track = if (on) GreenAccent.copy(alpha = 0.55f) else ToggleOff
     Box(
-        Modifier.width(36.dp).height(20.dp).clip(RoundedCornerShape(10.dp)).background(track),
+        Modifier.width(36.dp).height(20.dp).clip(btnShape(10.dp)).background(track),
         contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Box(Modifier.padding(2.dp).size(16.dp).clip(RoundedCornerShape(8.dp)).background(TextMain))
+        Box(Modifier.padding(2.dp).size(16.dp).clip(chipShape(8.dp)).background(TextMain))
     }
 }
 
@@ -373,9 +372,9 @@ internal fun StockCard(
     val hasMoney = state.money >= price
     val divPct = stock.divPerDay * 100.0
 
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GlassFill).padding(15.dp)) {
+    Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute, size = 24.dp, gap = 8.dp)
+            LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stock.title, color = if (unlocked) TextMain else Mute,
@@ -477,7 +476,7 @@ private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier:
     }
     Box(
         modifier
-            .clip(RoundedCornerShape(13.dp))
+            .clip(tileShape(13.dp))
             .background(bg)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 12.dp),
@@ -490,7 +489,7 @@ private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier:
 @Composable
 private fun Tag(text: String, color: Color) {
     Box(
-        Modifier.padding(start = 6.dp).clip(RoundedCornerShape(6.dp))
+        Modifier.padding(start = 6.dp).clip(chipShape(6.dp))
             .background(color.copy(alpha = 0.18f)).padding(horizontal = 7.dp, vertical = 3.7.dp)
     ) {
         Text(text, color = color, fontFamily = FontFamily.Monospace,

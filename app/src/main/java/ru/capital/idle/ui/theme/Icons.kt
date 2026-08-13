@@ -84,25 +84,20 @@ fun IconSlot(
     modifier: Modifier = Modifier,
     /** Рисовать ли круглую подложку. Выключается там, где иконка и так лежит на цветной плашке. */
     badge: Boolean = true,
+    /** Диаметр иконки в новой теме. По макету — 40dp в строке и 30dp в плитке. */
+    size: Dp = Modern.iconCircle,
     icon: AppIcon? = AppIcons.forEmoji(emoji)
 ) {
-    val vector = LocalPalette.current.vectorIcons && icon != null
+    val vector = modernLook && icon != null
     Box(modifier) {
-        // Мерило: занимает ровно столько же, сколько занимало эмодзи.
-        // Никаких maxLines/softWrap — здесь должен остаться ровно тот Text, что стоял раньше,
-        // иначе при крупном системном шрифте старая тема начинает рисоваться иначе
-        // (поймано перезаписью эталонов: девять картинок торгов и коллекции поехали).
-        Text(
-            emoji, fontSize = fontSize,
-            modifier = if (vector) Modifier.alpha(0f).clearAndSetSemantics { } else Modifier
-        )
         if (vector) {
-            Canvas(Modifier.matchParentSize()) {
-                val d = size.minDimension
-                val at = Offset((size.width - d) / 2f, (size.height - d) / 2f)
-                if (badge) drawIconBadge(icon!!, tint, d, at)
-                else drawIconSymbol(icon!!, tint, d * 0.86f, at + Offset(d * 0.07f, d * 0.07f))
-            }
+            if (badge) AppIconBadge(icon!!, tint, size)
+            else Canvas(Modifier.size(size)) { drawIconSymbol(icon, tint, this.size.minDimension, Offset.Zero) }
+        } else {
+            // В старой теме здесь должен остаться ровно тот Text, что стоял до темы:
+            // без maxLines и softWrap. Однажды я их добавила — и при системном шрифте 1.5
+            // поехали девять эталонов торгов и коллекции.
+            Text(emoji, fontSize = fontSize)
         }
     }
 }
@@ -111,19 +106,14 @@ fun IconSlot(
  * Ведущая иконка строки — там, где раньше значка не было вовсе.
  *
  * В старой теме не рисует НИЧЕГО: на этих местах у неё пусто, и добавлять ей значки нельзя.
- *
- * По высоте иконка НУЛЕВАЯ: измеряется в ноль и рисуется поверх, центрируясь по строке
- * (родитель выравнивает нулевой по высоте элемент по центру). Иначе строка подросла бы
- * ровно там, где содержимого меньше, чем иконка, — а вёрстка при переключении темы
- * меняться не должна. Ширину иконка занимает по-настоящему: текст рядом становится уже.
+ * В новой — круг 40dp по макету (в плитках 30dp), из-за чего строка становится выше:
+ * задание разрешает менять размеры и воздух ради современного вида.
  */
 @Composable
-fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = 26.dp, gap: Dp = 8.dp) {
-    if (!LocalPalette.current.vectorIcons) return
+fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = Modern.iconCircle, gap: Dp = 12.dp) {
+    if (!modernLook) return
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.height(0.dp).wrapContentHeight(unbounded = true)) {
-            AppIconBadge(icon, tint, size)
-        }
+        AppIconBadge(icon, tint, size)
         Spacer(Modifier.width(gap))
     }
 }

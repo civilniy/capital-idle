@@ -48,7 +48,7 @@ fun GoalsScreen(vm: GameViewModel) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(cardShape(18.dp))
                     .background(GlassAccent)
                     .padding(16.dp)
             ) {
@@ -61,10 +61,11 @@ fun GoalsScreen(vm: GameViewModel) {
                     color = Mute, fontSize = 12.sp
                 )
                 Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
+                Box(Modifier.fillMaxWidth().height(dpOf(8.dp, Modern.barHeight))
+                    .clip(barShape(99.dp)).background(GlassInner)) {
                     Box(
                         Modifier.fillMaxWidth(progress).fillMaxHeight()
-                            .clip(RoundedCornerShape(99.dp))
+                            .clip(barShape(99.dp))
                             .background(Brush.linearGradient(listOf(GoldDim, Gold)))
                     )
                 }
@@ -81,15 +82,17 @@ fun GoalsScreen(vm: GameViewModel) {
             Text("ВЕХИ БОГАТСТВА", color = Mute, fontSize = 11.sp, letterSpacing = 2.sp)
             Spacer(Modifier.height(8.dp))
 
-            Milestones.all.forEachIndexed { i, m ->
-                val isDone = i < state.milestonesClaimed
-                val isCur = i == state.milestonesClaimed
-                MilestoneRow(
-                    name = m.name,
-                    value = GameMath.formatMoney(m.thresholdUsd, cur),
-                    reward = m.rewardBullion,
-                    done = isDone, current = isCur
-                )
+            GroupCard {
+                Milestones.all.forEachIndexed { i, m ->
+                    MilestoneRow(
+                        name = m.name,
+                        value = GameMath.formatMoney(m.thresholdUsd, cur),
+                        reward = m.rewardBullion,
+                        done = i < state.milestonesClaimed,
+                        current = i == state.milestonesClaimed,
+                        last = i == Milestones.all.lastIndex
+                    )
+                }
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -97,19 +100,27 @@ fun GoalsScreen(vm: GameViewModel) {
 }
 
 @Composable
-internal fun MilestoneRow(name: String, value: String, reward: Long, done: Boolean, current: Boolean) {
+internal fun MilestoneRow(
+    name: String, value: String, reward: Long, done: Boolean, current: Boolean,
+    last: Boolean = true
+) {
     // текущая веха — золотистый акцент, остальные — стекло
-    val bg = if (current) GlassAccent else GlassFill
+    val bg = if (current) GlassAccent else rowFill(GlassFill)
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(13.dp))
+            .clip(tileShape(13.dp))
             .background(bg)
-            .padding(13.dp),
+            .padding(horizontal = dpOf(13.dp, Modern.cardPadH), vertical = dpOf(13.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier.size(22.dp).clip(RoundedCornerShape(7.dp))
+        if (modernLook) {
+            AppIconBadge(
+                if (done) AppIcon.CHECK else if (current) AppIcon.STAR else AppIcon.LOCK,
+                if (done) Business else if (current) Gold else Mute, Modern.iconCircle
+            )
+        } else Box(
+            Modifier.size(22.dp).clip(chipShape(7.dp))
                 .background(if (done) Business else if (current) Gold else GlassInner),
             contentAlignment = Alignment.Center
         ) {
@@ -126,5 +137,5 @@ internal fun MilestoneRow(name: String, value: String, reward: Long, done: Boole
         Text("+$reward слитк.", color = Gold, fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold, fontSize = 12.sp)
     }
-    Spacer(Modifier.height(7.dp))
+    RowSeparator(7.dp, last = last)
 }

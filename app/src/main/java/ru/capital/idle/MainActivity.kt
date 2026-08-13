@@ -135,10 +135,10 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
                 Modifier
                     .align(Alignment.BottomCenter)
                     .padding(start = 20.dp, end = 20.dp, bottom = 96.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(cardShape(14.dp))
                     .background(Panel2)
                     // обводка — только в теме со стеклом: в матовой слои разделяет фон
-                    .glassOutline(GoldDim, RoundedCornerShape(14.dp))
+                    .glassOutline(GoldDim, cardShape(14.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text("\uD83D\uDD12 $title", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
@@ -154,14 +154,14 @@ private fun MainScaffold(vm: GameViewModel, state: GameState) {
                     .align(Alignment.TopCenter)
                     .systemBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(cardShape(14.dp))
                     .background(Brush.linearGradient(listOf(CoinText, Panel2)))
-                    .glassOutline(Gold, RoundedCornerShape(14.dp))
+                    .glassOutline(Gold, cardShape(14.dp))
                     .padding(horizontal = 14.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(Gold),
+                    Modifier.size(30.dp).clip(btnShape(9.dp)).background(Gold),
                     contentAlignment = Alignment.Center
                 ) { IconSlot(announce.icon, tint = CoinText, fontSize = 15.sp, badge = false) }
                 Spacer(Modifier.width(10.dp))
@@ -192,7 +192,7 @@ internal fun BottomBar(state: GameState, selected: String, onSelect: (String) ->
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(tileShape(12.dp))
                     .background(if (pills && active) pillFill else Color.Transparent)
                     .clickable { onSelect(g.id) }
                     .padding(vertical = 6.dp),

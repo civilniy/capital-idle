@@ -43,15 +43,18 @@ fun EducationScreen(vm: GameViewModel) {
         Spacer(Modifier.height(12.dp))
 
         Education.branches.forEachIndexed { bi, branch ->
-            Text(branch.title, color = branchColors.getOrElse(bi) { Gold },
-                fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            branch.courses.forEach { c ->
-                CourseCard(state, c, cur,
-                    onStudy = { vm.startStudy(c.id) })
+            GroupCard {
+                Text(branch.title, color = branchColors.getOrElse(bi) { Gold },
+                    fontSize = 11.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(
+                        start = dpOf(0.dp, Modern.cardPadH), top = dpOf(0.dp, 8.dp)))
                 Spacer(Modifier.height(6.dp))
+                branch.courses.forEachIndexed { i, c ->
+                    CourseCard(state, c, cur, onStudy = { vm.startStudy(c.id) })
+                    RowSeparator(6.dp, last = i == branch.courses.lastIndex)
+                }
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(dpOf(10.dp, Modern.cardGap)))
         }
         Spacer(Modifier.height(16.dp))
     }
@@ -69,19 +72,18 @@ internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () 
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(cardShape(14.dp))
             .background(
                 when {
                     isDone -> StudyFill            // изучено — акцент раздела учёбы
                     current -> GlassAccent         // идёт учёба — золотистый акцент
-                    else -> GlassFill
+                    else -> rowFill(GlassFill)
                 }
             )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(12.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.GRADUATION, if (isDone) Learned else if (locked) Mute else Study,
-            size = 24.dp, gap = 8.dp)
+        LeadingIcon(AppIcon.GRADUATION, if (isDone) Learned else if (locked) Mute else Study)
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(c.title, color = if (locked) Mute else TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(
@@ -91,10 +93,11 @@ internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () 
             if (current) {
                 Spacer(Modifier.height(6.dp))
                 val progress = (state.studyProgress / c.durationHours).coerceIn(0.0, 1.0).toFloat()
-                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
+                Box(Modifier.fillMaxWidth().height(dpOf(5.dp, Modern.barHeight))
+                    .clip(barShape(99.dp)).background(GlassInner)) {
                     Box(
                         Modifier.fillMaxWidth(progress).fillMaxHeight()
-                            .clip(RoundedCornerShape(99.dp)).background(Study)
+                            .clip(barShape(99.dp)).background(Study)
                     )
                 }
             }
@@ -114,7 +117,7 @@ internal fun CourseCard(state: GameState, c: Course, cur: Currency, onStudy: () 
                     Spacer(Modifier.height(4.dp))
                     Box(
                         Modifier
-                            .clip(RoundedCornerShape(9.dp))
+                            .clip(btnShape(9.dp))
                             .background(if (canStart) Gold else GlassBtnOff)
                             .clickable(enabled = canStart, onClick = onStudy)
                             .padding(horizontal = 12.dp, vertical = 7.dp)

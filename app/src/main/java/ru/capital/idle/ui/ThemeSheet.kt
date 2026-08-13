@@ -18,7 +18,7 @@ import ru.capital.idle.ui.theme.*
 @Composable
 internal fun SettingsButton(onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(11.dp)).clickable(onClick = onClick).padding(6.dp),
+        Modifier.clip(btnShape(11.dp)).clickable(onClick = onClick).padding(6.dp),
         contentAlignment = Alignment.Center
     ) {
         IconSlot("⚙", tint = Gold, fontSize = 18.sp, icon = AppIcon.GEAR)
@@ -51,7 +51,7 @@ internal fun ThemeSheet(current: String, onPick: (String) -> Unit, onDismiss: ()
             AppTheme.entries.forEach { theme ->
                 val picked = theme.id == current
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    Modifier.fillMaxWidth().clip(tileShape(12.dp))
                         .background(if (picked) GlassAccent else Panel2)
                         .clickable { onPick(theme.id) }
                         .padding(horizontal = 13.dp, vertical = 12.dp),
