@@ -267,3 +267,34 @@ val MattePalette = Palette(
     legacyColors = false,
     colorNumbers = false
 )
+
+/** Ключи тем: они же хранятся в сохранении. */
+object ThemeIds {
+    const val GLASS = "glass"
+    const val MATTE = "matte"
+}
+
+/**
+ * Тема как выбор игрока: ключ, название и пояснение.
+ * Названия различают темы по смыслу, а не по номеру.
+ */
+enum class AppTheme(
+    val id: String,
+    val title: String,
+    val note: String,
+    val palette: Palette
+) {
+    GLASS(ThemeIds.GLASS, "Стекло", "Полупрозрачные слои, мягкие пятна на фоне, эмодзи", GlassPalette),
+    MATTE(ThemeIds.MATTE, "Матовая", "Плотные слои без рамок, разведённые цвета, векторные иконки", MattePalette);
+
+    companion object {
+        /** Тема по ключу. Неизвестный ключ (в том числе из старого сохранения) — «Стекло». */
+        fun byId(id: String): AppTheme = entries.firstOrNull { it.id == id } ?: GLASS
+    }
+}
+
+/**
+ * Действующая палитра. Значение по умолчанию — старая тема, поэтому любой кусок интерфейса,
+ * снятый без обёртки (скриншот-тесты, превью), рисуется ровно как раньше.
+ */
+val LocalPalette = staticCompositionLocalOf { GlassPalette }
