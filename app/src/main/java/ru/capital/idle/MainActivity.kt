@@ -183,8 +183,6 @@ internal fun BottomBar(state: GameState, selected: String, onSelect: (String) ->
             .navigationBarsPadding()
             .padding(vertical = 5.dp)
     ) {
-        val pillFill = LocalPalette.current.moneyFill
-        val pills = !LocalPalette.current.outlines   // \u043F\u043E\u0434\u043B\u043E\u0436\u043A\u0430-\u043F\u0438\u043B\u044E\u043B\u044F \u2014 \u0432 \u043C\u0430\u0442\u043E\u0432\u043E\u0439 \u0442\u0435\u043C\u0435
         Onboarding.navGroups.forEach { g ->
             val un = Onboarding.unlocked(state, g.id)
             val isNew = un && g.id !in state.seenTabs
@@ -192,23 +190,20 @@ internal fun BottomBar(state: GameState, selected: String, onSelect: (String) ->
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(tileShape(12.dp))
-                    .background(if (pills && active) pillFill else Color.Transparent)
                     .clickable { onSelect(g.id) }
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconSlot(
+                    NavIcon(
                         emoji = if (un) g.icon else "\uD83D\uDD12",
-                        tint = if (active) Gold else Mute,
-                        fontSize = 16.sp,
+                        active = active,
                         modifier = Modifier.alpha(if (un) 1f else 0.45f)
                     )
                     Text(
                         g.title,
                         color = when {
-                            selected == g.id -> Gold
+                            active -> Gold
                             un -> Mute
                             else -> Mute.copy(alpha = 0.45f)
                         },

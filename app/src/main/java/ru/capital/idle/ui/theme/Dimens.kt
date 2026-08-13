@@ -30,19 +30,25 @@ import androidx.compose.ui.unit.dp
 object Modern {
     /** Карточки и группы строк. */
     val cardRadius = 22.dp
-    /** Плитки и баннеры. */
-    val tileRadius = 19.dp
+    /** Плитки. */
+    val tileRadius = 18.dp
+    /** Баннеры. */
+    val bannerRadius = 20.dp
     /** Кнопки. */
-    val buttonRadius = 15.dp
+    val buttonRadius = 13.dp
+    /** Ряд подразделов. */
+    val subtabRadius = 16.dp
+    /** Выделенная строка списка. */
+    val selectedRadius = 14.dp
     /** Мелкие плашки внутри строк (бейджи, шаги). */
-    val chipRadius = 12.dp
+    val chipRadius = 9.dp
 
     /** Горизонтальный отступ внутри карточки. */
-    val cardPadH = 15.dp
+    val cardPadH = 16.dp
     /** Вертикальный отступ внутри карточки. */
-    val cardPadV = 15.dp
+    val cardPadV = 14.dp
     /** Зазор между карточками. */
-    val cardGap = 11.dp
+    val cardGap = 12.dp
     /** Отступ строки группы сверху и снизу от разделителя. */
     val rowPadV = 13.dp
 
@@ -70,10 +76,20 @@ fun dpOf(previous: Dp, modern: Dp): Dp = if (modernLook) modern else previous
 @ReadOnlyComposable
 fun cardShape(previous: Dp) = RoundedCornerShape(dpOf(previous, Modern.cardRadius))
 
-/** Скругление плитки или баннера. */
+/** Скругление плитки. */
 @Composable
 @ReadOnlyComposable
 fun tileShape(previous: Dp) = RoundedCornerShape(dpOf(previous, Modern.tileRadius))
+
+/** Скругление баннера. */
+@Composable
+@ReadOnlyComposable
+fun bannerShape(previous: Dp) = RoundedCornerShape(dpOf(previous, Modern.bannerRadius))
+
+/** Скругление выделенной строки списка. */
+@Composable
+@ReadOnlyComposable
+fun selectedShape(previous: Dp) = RoundedCornerShape(dpOf(previous, Modern.selectedRadius))
 
 /** Скругление кнопки. */
 @Composable
@@ -115,7 +131,7 @@ fun GroupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.()
             modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(Modern.cardRadius))
                 .background(LocalPalette.current.cardFill)
-                .padding(vertical = 6.dp),
+                .padding(vertical = 4.dp),
             content = content
         )
     } else {

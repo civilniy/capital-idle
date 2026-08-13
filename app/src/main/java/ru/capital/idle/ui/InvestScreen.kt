@@ -112,7 +112,7 @@ fun InvestScreen(vm: GameViewModel) {
             val (title, sub) = Exchange.newsTitle(event)
             val left = (event.hoursLeft).coerceAtLeast(0)
             Row(
-                Modifier.fillMaxWidth().clip(cardShape(16.dp))
+                Modifier.fillMaxWidth().clip(bannerShape(16.dp))
                     .background(if (event.good) EventGoodFill else EventBadFill)
                     .padding(13.dp),
                 verticalAlignment = Alignment.Top

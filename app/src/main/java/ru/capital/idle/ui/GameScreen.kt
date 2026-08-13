@@ -313,7 +313,7 @@ internal fun AdBoostBanner(
     // клик по всему баннеру — только когда буста нет (вариант Б)
     val rowMod = Modifier
         .fillMaxWidth()
-        .clip(cardShape(14.dp))
+        .clip(bannerShape(14.dp))
         .background(bg)
         .then(if (!active) Modifier.clickable(onClick = onWatch) else Modifier)
         .padding(12.dp)
@@ -321,7 +321,7 @@ internal fun AdBoostBanner(
     Row(rowMod, verticalAlignment = Alignment.CenterVertically) {
         // иконка: play (нет буста) или молния (активен)
         Box(Modifier.size(dpOf(26.dp, Modern.iconCircle)), contentAlignment = Alignment.Center) {
-            if (modernLook) AppIconBadge(if (active) AppIcon.BOLT else AppIcon.ARROW_UP, accent, Modern.iconCircle)
+            if (modernLook) AppIconBadge(if (active) AppIcon.BOLT else AppIcon.UP, accent, Modern.iconCircle)
             else if (active) BoltIcon(accent) else PlayIcon(accent)
         }
         Spacer(Modifier.width(11.dp))
@@ -431,9 +431,9 @@ internal fun MarketBar(state: GameState) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(tileShape(12.dp))
-            // подложка тонируется цветом фазы рынка; в старой теме она серая, как была
-            .background(legacy(GlassFill, color.copy(alpha = 0.12f)))
+            .clip(bannerShape(12.dp))
+            // поверхность нейтральная в обеих темах: цвет даёт круг иконки рядом
+            .background(GlassFill)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -560,7 +560,7 @@ internal fun JobCard(state: GameState, job: Job, cur: Currency, onClick: () -> U
             .padding(horizontal = dpOf(14.dp, Modern.cardPadH), vertical = dpOf(11.dp, Modern.rowPadV)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LeadingIcon(AppIcon.BRIEFCASE, if (current) GreenAccent else Mute)
+        LeadingIcon(AppIcon.CASE, if (current) GreenAccent else Mute)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(job.title, color = if (ok) TextMain else Mute, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -667,13 +667,13 @@ private fun CategoryScreen(state: GameState, index: Int, cur: Currency, vm: Game
             val grossHere = list.sumOf { GameMath.enterpriseGrossPerDay(state, ind, it) }
             val netHere = grossHere - salaryHere
             SummaryCell("${hoursHere}ч", "ВАШИ ЧАСЫ", TextMain, Modifier.weight(0.9f),
-                icon = AppIcon.CLOCK)
+                icon = AppIcon.CLOCK, iconTint = Study)
             SummaryCell(GameMath.formatMoney(salaryHere, cur), "ЗАРПЛАТЫ /ДЕНЬ", RedAccent,
-                Modifier.weight(0.9f), icon = AppIcon.PERSON)
+                Modifier.weight(0.9f), icon = AppIcon.USER, iconTint = RedAccent)
             SummaryCell(
                 (if (netHere >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(netHere), cur),
                 "ЧИСТЫЙ /ДЕНЬ", if (netHere >= 0) Business else RedAccent, Modifier.weight(1.7f),
-                icon = AppIcon.CHART)
+                icon = AppIcon.CHART, iconTint = Business)
         }
         Spacer(Modifier.height(12.dp))
 
@@ -801,9 +801,9 @@ internal fun PressureSlot(pressure: Double, reputation: Double) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(tileShape(12.dp))
+            .clip(bannerShape(12.dp))
             .background(ExpenseFill)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = dpOf(12.dp, Modern.cardPadH), vertical = dpOf(9.dp, 13.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -913,19 +913,19 @@ internal fun SummaryCellsRow(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         SummaryCell("$status", "СТАТУС", TextMain, Modifier.weight(0.9f),
-            icon = AppIcon.PERSON, onClick = { onNavigate("profile") })
+            icon = AppIcon.USER, iconTint = Rest, onClick = { onNavigate("profile") })
         SummaryCell("$reputation", "РЕПУТАЦИЯ", Status, Modifier.weight(0.9f),
-            icon = AppIcon.STAR, onClick = { onNavigate("network") })
+            icon = AppIcon.STAR, iconTint = Status, onClick = { onNavigate("network") })
         // капитал остаётся янтарным в обеих темах — это исключение из правила «цвет не в числах»
         SummaryCell(worthText, "КАПИТАЛ", Heading, Modifier.weight(1.7f),
-            icon = AppIcon.COIN, onClick = { onNavigate("rank") })
+            icon = AppIcon.COIN, iconTint = Gold, onClick = { onNavigate("rank") })
     }
 }
 
 @Composable
 private fun SummaryCell(
     value: String, label: String, color: Color, modifier: Modifier,
-    icon: AppIcon? = null, onClick: (() -> Unit)? = null
+    icon: AppIcon? = null, iconTint: Color = color, onClick: (() -> Unit)? = null
 ) {
     Column((if (onClick != null) modifier.clip(tileShape(12.dp)).clickable(onClick = onClick)
             else modifier.clip(tileShape(12.dp)))
@@ -933,7 +933,7 @@ private fun SummaryCell(
         horizontalAlignment = Alignment.CenterHorizontally) {
         // иконка стоит в строке числа, а не над ним: плитка не должна подрасти
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) LeadingIcon(icon, color, size = Modern.tileIconCircle, gap = 6.dp)
+            if (icon != null) LeadingIcon(icon, iconTint, size = Modern.tileIconCircle, gap = 6.dp)
             Text(value, color = color, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                 fontSize = 14.sp, maxLines = 1)
         }
@@ -1372,7 +1372,9 @@ internal fun CardFace(
                 ambientColor = glow, spotColor = glow) else Modifier)
             .clip(RoundedCornerShape(18.dp))
             .background(Brush.linearGradient(gradient))
-            .then(if (kant != null) Modifier.border(1.dp, kant, RoundedCornerShape(18.dp)) else Modifier)
+            // в новой теме у карты канта нет — только мягкая тень
+             .then(if (kant != null && !modernLook)
+                 Modifier.border(1.dp, kant, RoundedCornerShape(18.dp)) else Modifier)
             .drawBehind { drawCardPattern(tier.pattern, Color(tier.patternColor)) }
             .then(modifier)
     ) {
