@@ -88,9 +88,12 @@ fun IconSlot(
 ) {
     val vector = LocalPalette.current.vectorIcons && icon != null
     Box(modifier) {
-        // мерило: занимает ровно столько же, сколько занимало эмодзи
+        // Мерило: занимает ровно столько же, сколько занимало эмодзи.
+        // Никаких maxLines/softWrap — здесь должен остаться ровно тот Text, что стоял раньше,
+        // иначе при крупном системном шрифте старая тема начинает рисоваться иначе
+        // (поймано перезаписью эталонов: девять картинок торгов и коллекции поехали).
         Text(
-            emoji, fontSize = fontSize, maxLines = 1, softWrap = false,
+            emoji, fontSize = fontSize,
             modifier = if (vector) Modifier.alpha(0f).clearAndSetSemantics { } else Modifier
         )
         if (vector) {
