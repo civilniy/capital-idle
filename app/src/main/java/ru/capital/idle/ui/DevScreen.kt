@@ -27,7 +27,7 @@ fun DevScreen(vm: GameViewModel, onLocked: (String) -> Unit, startInner: String 
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             Column(Modifier.padding(horizontal = 14.dp)) {
                 Spacer(Modifier.height(8.dp))
-                Text("РАЗВИТИЕ", color = Gold, fontWeight = FontWeight.ExtraBold,
+                Text("РАЗВИТИЕ", color = Heading, fontWeight = FontWeight.ExtraBold,
                     fontSize = 18.sp, letterSpacing = 2.sp)
                 Spacer(Modifier.height(10.dp))
                 Row(

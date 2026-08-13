@@ -51,7 +51,7 @@ fun NetworkScreen(vm: GameViewModel) {
             Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(99.dp)).background(GlassInner)) {
                 Box(
                     Modifier.fillMaxWidth((state.reputation / 100.0).toFloat().coerceIn(0f, 1f))
-                        .fillMaxHeight().clip(RoundedCornerShape(99.dp)).background(Color(0xFFA98BD8))
+                        .fillMaxHeight().clip(RoundedCornerShape(99.dp)).background(Rest)
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -64,38 +64,54 @@ fun NetworkScreen(vm: GameViewModel) {
         Spacer(Modifier.height(14.dp))
 
         Network.all.forEach { item ->
-            val owned = item.id in state.netOwned
-            val can = !owned && state.money >= item.cost
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (owned) GlassAccent else GlassFill)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(item.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text(item.info, color = Mute, fontSize = 10.sp)
-                }
-                if (owned) {
-                    Text("активно", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                } else {
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(11.dp))
-                            .background(if (can) Gold else GlassBtnOff)
-                            .clickable(enabled = can) { vm.buyNetItem(item.id) }
-                            .padding(horizontal = 14.dp, vertical = 9.dp)
-                    ) {
-                        Text(GameMath.formatMoney(item.cost, cur),
-                            color = if (can) CoinText else GlassBtnOffText,
-                            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                    }
-                }
-            }
+            NetworkItemCard(
+                title = item.title, info = item.info,
+                owned = item.id in state.netOwned,
+                canBuy = item.id !in state.netOwned && state.money >= item.cost,
+                costText = GameMath.formatMoney(item.cost, cur),
+                onBuy = { vm.buyNetItem(item.id) }
+            )
             Spacer(Modifier.height(8.dp))
         }
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+/**
+ * Строка окружения. Вынесена из экрана без изменений разметки — чтобы её можно было
+ * снять скриншотом в обеих темах, не собирая вокруг `GameViewModel` (см. CLAUDE.md).
+ */
+@Composable
+internal fun NetworkItemCard(
+    title: String, info: String, owned: Boolean, canBuy: Boolean,
+    costText: String, onBuy: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (owned) GlassAccent else GlassFill)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(info, color = Mute, fontSize = 10.sp)
+        }
+        if (owned) {
+            Text("активно", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        } else {
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (canBuy) Gold else GlassBtnOff)
+                    .clickable(enabled = canBuy, onClick = onBuy)
+                    .padding(horizontal = 14.dp, vertical = 9.dp)
+            ) {
+                Text(costText,
+                    color = if (canBuy) CoinText else GlassBtnOffText,
+                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+            }
+        }
     }
 }

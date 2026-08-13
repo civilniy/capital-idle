@@ -144,7 +144,7 @@ internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: 
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(if (won) GlassAccent else GlassFill)
             .then(
-                if (won) Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (won) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
                 else Modifier
             )
             .padding(horizontal = 12.dp, vertical = 11.dp),
@@ -215,7 +215,7 @@ private fun AuctionIdleCard(nextInH: Double, hasLotsLeft: Boolean) {
             .background(if (hasLotsLeft) GlassFill else GlassAccent)
             .then(
                 if (hasLotsLeft) Modifier
-                else Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                else Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
             )
             .padding(horizontal = 12.dp, vertical = 13.dp)
     ) {
@@ -246,7 +246,7 @@ private fun AuctionLockedCard(view: AuctionView) {
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🔒", fontSize = 18.sp, modifier = Modifier.width(28.dp))
+            IconSlot("🔒", tint = Mute, fontSize = 18.sp, modifier = Modifier.width(28.dp))
             Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
                 Text(item.title, color = Mute, fontWeight = FontWeight.Bold,
                     fontSize = 13.sp, maxLines = 1)
@@ -286,8 +286,7 @@ private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) ->
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(if (view.playerLeads) GlassAccent else GlassFill)
             .then(
-                if (view.playerLeads)
-                    Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (view.playerLeads) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
                 else Modifier
             )
             .padding(horizontal = 12.dp, vertical = 12.dp)
@@ -434,7 +433,7 @@ private fun SetCard(row: SetProgress) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(if (done) GlassAccent else GlassFill)
             .then(
-                if (done) Modifier.border(1.dp, Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                if (done) Modifier.glassOutline(Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
                 else Modifier
             )
             .padding(horizontal = 12.dp, vertical = 11.dp),
@@ -516,7 +515,7 @@ internal fun CollectionSummary(day: Int, owned: Int, value: Double, profit: Doub
             CollectStat(
                 if (profit >= 0) "ПРИБЫЛЬ" else "УБЫТОК",
                 (if (profit >= 0) "+" else "-") + GameMath.formatMoney(kotlin.math.abs(profit), cur),
-                if (profit >= 0) GreenAccent else RedAccent,
+                bigNumber(if (profit >= 0) GreenAccent else RedAccent),
                 Modifier.weight(1f)
             )
         }

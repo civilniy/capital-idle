@@ -21,7 +21,7 @@ import ru.capital.idle.core.game.RankModel
 import ru.capital.idle.core.game.RankingData
 import ru.capital.idle.ui.theme.*
 
-private data class RankRowData(
+internal data class RankRowData(
     val rank: Long,
     val name: String,
     val worthUsd: Double,
@@ -94,7 +94,7 @@ fun RankingScreen(vm: GameViewModel) {
                         if (money >= firstWorth) "№1 в мире"
                         else if (inTop) "$playerListRank"
                         else "${GameMath.formatFull(playerRank)}",
-                        color = Gold, fontFamily = FontFamily.Monospace,
+                        color = Heading, fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.ExtraBold, fontSize = 22.sp
                     )
                     Text(
@@ -118,7 +118,7 @@ fun RankingScreen(vm: GameViewModel) {
 }
 
 @Composable
-private fun RankRow(row: RankRowData, cur: Currency) {
+internal fun RankRow(row: RankRowData, cur: Currency) {
     val rankColor = when {
         row.isPlayer -> Gold
         row.rank == 1L -> Gold
@@ -162,7 +162,8 @@ private fun RankRow(row: RankRowData, cur: Currency) {
                     fontFamily = FontFamily.Monospace, fontSize = 9.sp
                 )
             }
-            Text(GameMath.formatMoney(row.worthUsd, cur), color = if (row.isPlayer) Gold else GreenAccent,
+            Text(GameMath.formatMoney(row.worthUsd, cur),
+                color = if (row.isPlayer) Heading else bigNumber(GreenAccent),
                 fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         }
     }

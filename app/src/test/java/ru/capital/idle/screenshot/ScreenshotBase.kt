@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.captureRoboImage
+import ru.capital.idle.ui.theme.AppTheme
 import ru.capital.idle.ui.theme.Bg
+import ru.capital.idle.ui.theme.LocalPalette
 
 /**
  * Общая обвязка скриншот-тестов вёрстки.
@@ -74,12 +76,14 @@ object Screenshots {
 fun ComposeContentTestRule.captureOnBackground(
     name: String,
     fontScale: Float = 1f,
+    theme: AppTheme = AppTheme.GLASS,
     content: @Composable () -> Unit
 ) {
     setContent {
         val base = LocalDensity.current
         CompositionLocalProvider(
-            LocalDensity provides Density(density = base.density, fontScale = fontScale)
+            LocalDensity provides Density(density = base.density, fontScale = fontScale),
+            LocalPalette provides theme.palette
         ) {
             // тот же отступ по краям, что и на экранах игры — иначе ширина не совпадёт с реальной
             Box(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 14.dp, vertical = 10.dp)) {

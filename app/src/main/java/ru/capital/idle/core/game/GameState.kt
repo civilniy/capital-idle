@@ -106,6 +106,10 @@ data class GameState(
     val seenTabs: Set<String> = setOf("main"),   // посещённые вкладки (точка «новое»)
     val announced: Set<String> = emptySet(),     // показанные анонсы открытий
     val currencyCode: String = "USD",
+    // оформление интерфейса. Ключ темы лежит строкой, а не перечислением, потому что
+    // core/game не знает про ui: неизвестный ключ (и старое сохранение, где поля нет)
+    // означает тему по умолчанию — см. AppTheme.byId
+    val themeId: String = "glass",
     val playerName: String = "",
     val onboarded: Boolean = false,
     val lastSeenMillis: Long = 0L

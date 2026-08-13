@@ -11,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
@@ -25,16 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.capital.idle.core.game.*
 import ru.capital.idle.ui.theme.*
 
-// палитра стекла (тёмная имитация: лёгкие полупрозрачные слои)
-private val GlassFill = Color(0x10FFFFFF)         // тёмное стекло, едва светлее фона
-private val GlassInner = Color(0x0AFFFFFF)
-private val GlassTop = Color(0x0CFFFFFF)
-private val BtnFill = Color(0x14FFFFFF)
-private val BtnOff = Color(0x06FFFFFF)
-private val BtnOffText = Color(0xFF54565E)
-private val SellFill = Color(0x2ED9694F)
-private val SellText = Color(0xFFECA08C)
-private val DivBlue = Color(0xFF6A9BD8)
+// Экран пользуется общими слотами темы из ui/theme. Раньше здесь лежала своя копия тех же
+// значений — при переключении темы она осталась бы прежней, поэтому копия убрана.
 
 @Composable
 fun InvestScreen(vm: GameViewModel) {
@@ -53,27 +44,8 @@ fun InvestScreen(vm: GameViewModel) {
     val passiveDay = GameMath.invPerDay(state)
     val tierBonus = CardTier.entries.getOrElse(state.activatedCardTier) { CardTier.CLASSIC }.passiveBonus
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF14151A))) {
-        // мягкие цветные пятна — едва заметные, для лёгкой глубины (тёмный фон)
-        Box(Modifier.fillMaxSize().background(
-            Brush.radialGradient(
-                colors = listOf(Color(0x0DE8B54A), Color(0x00E8B54A)),
-                center = androidx.compose.ui.geometry.Offset(140f, 200f), radius = 700f
-            )
-        ))
-        Box(Modifier.fillMaxSize().background(
-            Brush.radialGradient(
-                colors = listOf(Color(0x0F6A9BD8), Color(0x006A9BD8)),
-                center = androidx.compose.ui.geometry.Offset(950f, 700f), radius = 800f
-            )
-        ))
-        Box(Modifier.fillMaxSize().background(
-            Brush.radialGradient(
-                colors = listOf(Color(0x0A5FBF7A), Color(0x005FBF7A)),
-                center = androidx.compose.ui.geometry.Offset(300f, 1700f), radius = 850f
-            )
-        ))
-
+    // тот же фон, что и на остальных экранах: раньше он был вписан здесь копией
+    GlassBackground {
         Column(
             Modifier
                 .fillMaxSize()
@@ -82,7 +54,7 @@ fun InvestScreen(vm: GameViewModel) {
                 .padding(horizontal = 14.dp)
         ) {
         Spacer(Modifier.height(8.dp))
-        Text("ИНВЕСТИЦИИ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = 2.sp)
+        Text("ИНВЕСТИЦИИ", color = Heading, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(12.dp))
         HintCard(state = state, hintId = "inv", onDismiss = { vm.markHintSeen(it) })
 
@@ -141,11 +113,14 @@ fun InvestScreen(vm: GameViewModel) {
             val left = (event.hoursLeft).coerceAtLeast(0)
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .background(if (event.good) Color(0x2615251C) else Color(0x262A1A18))
+                    .background(if (event.good) EventGoodFill else EventBadFill)
                     .padding(13.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                Text(if (event.good) "\uD83D\uDCC8" else "\uD83D\uDCC9", fontSize = 18.sp)
+                IconSlot(
+                    emoji = if (event.good) "\uD83D\uDCC8" else "\uD83D\uDCC9",
+                    tint = if (event.good) GreenAccent else RedAccent, fontSize = 18.sp
+                )
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text(title, color = if (event.good) GreenAccent else RedAccent,
@@ -237,7 +212,7 @@ internal fun AutoInvestCard(
                 val picked = a == target
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(if (picked) Color(0x2EE8B54A) else BtnFill)
+                        .background(if (picked) AccentStrong else GlassBtn)
                         .clickable { onPick(a) }
                         .padding(horizontal = 11.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -280,7 +255,7 @@ internal fun AutoInvestCard(
                 // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
                 Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
                 Spacer(Modifier.height(2.dp))
-                Text(GameMath.formatMoney(amount, cur), color = GreenAccent,
+                Text(GameMath.formatMoney(amount, cur), color = bigNumber(GreenAccent),
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
                     fontSize = 13.sp, maxLines = 1, softWrap = false)
             }
@@ -292,7 +267,7 @@ internal fun AutoInvestCard(
 @Composable
 private fun StepBtn(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(BtnFill)
+        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(GlassBtn)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -301,7 +276,7 @@ private fun StepBtn(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PassiveCard(
+internal fun PassiveCard(
     state: GameState, a: Asset, cur: Currency,
     onInvest: (Double) -> Unit, onSell: () -> Unit, onToggleCap: () -> Unit
 ) {
@@ -369,7 +344,7 @@ private fun PassiveCard(
 
 @Composable
 private fun CapToggle(on: Boolean) {
-    val track = if (on) GreenAccent.copy(alpha = 0.55f) else Color(0x24FFFFFF)
+    val track = if (on) GreenAccent.copy(alpha = 0.55f) else ToggleOff
     Box(
         Modifier.width(36.dp).height(20.dp).clip(RoundedCornerShape(10.dp)).background(track),
         contentAlignment = if (on) Alignment.CenterEnd else Alignment.CenterStart
@@ -381,7 +356,7 @@ private fun CapToggle(on: Boolean) {
 // ===================== биржа =====================
 
 @Composable
-private fun StockCard(
+internal fun StockCard(
     state: GameState, index: Int, stock: Stock, cur: Currency,
     history: List<Double>, eventDir: Int,
     onBuy: (Double) -> Unit, onSell: () -> Unit
@@ -399,7 +374,7 @@ private fun StockCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stock.title, color = if (unlocked) TextMain else Mute,
                         fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
-                    if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(divPct)}", DivBlue)
+                    if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(divPct)}", Study)
                     if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
                     if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
                 }
@@ -430,6 +405,8 @@ private fun StockCard(
         if (history.size >= 2) {
             Spacer(Modifier.height(9.dp))
             val up = history.last() >= history.first()
+            // цвет линии берётся до Canvas: внутри лямбды рисования читать цвета темы нельзя
+            val lineColor = if (up) GreenAccent else RedAccent
             Canvas(Modifier.fillMaxWidth().height(36.dp)) {
                 val mn = history.min()
                 val mx = history.max()
@@ -440,7 +417,7 @@ private fun StockCard(
                     val y = size.height - 4f - ((v - mn) / rg * (size.height - 8f)).toFloat()
                     if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
-                drawPath(path, if (up) GreenAccent else RedAccent,
+                drawPath(path, lineColor,
                     style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round))
             }
         }
@@ -483,13 +460,13 @@ private enum class BtnState { NEUTRAL, SELL }
 @Composable
 private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val bg = when {
-        !enabled -> BtnOff
-        kind == BtnState.SELL -> SellFill
-        else -> BtnFill
+        !enabled -> GlassBtnOff
+        kind == BtnState.SELL -> GlassSell
+        else -> GlassBtn
     }
     val fg = when {
-        !enabled -> BtnOffText
-        kind == BtnState.SELL -> SellText
+        !enabled -> GlassBtnOffText
+        kind == BtnState.SELL -> GlassSellText
         else -> TextMain
     }
     Box(
@@ -524,9 +501,10 @@ private fun fmtPct(p: Double): String {
     return s.replace('.', ',') + "%"
 }
 
-/** Цвет плашки риска: стабильно — серый, низкий — зелёный, средний — золотистый. */
+/** Цвет плашки риска: стабильно — серый, низкий — цвет дохода, средний — предупреждение. */
+@Composable
 private fun riskColor(risk: String): Color = when (risk) {
     "низкий риск" -> GreenAccent
-    "средний риск" -> Gold
+    "средний риск" -> Warn
     else -> Mute   // стабильно
 }

@@ -117,6 +117,7 @@ data class GameEntity(
     val seenTabsCsv: String,
     val announcedCsv: String,
     val currencyCode: String,
+    val themeId: String,
     val playerName: String,
     val onboarded: Boolean,
     val lastSeenMillis: Long
@@ -325,7 +326,8 @@ fun GameState.toEntity() = GameEntity(
     hintsSeenCsv = hintsSeen.sCsv(),
     seenTabsCsv = seenTabs.sCsv(),
     announcedCsv = announced.sCsv(),
-    currencyCode = currencyCode, playerName = playerName, onboarded = onboarded,
+    currencyCode = currencyCode, themeId = themeId,
+    playerName = playerName, onboarded = onboarded,
     lastSeenMillis = lastSeenMillis
 )
 
@@ -381,6 +383,7 @@ fun GameEntity.toState() = GameState(
     // код валюты приводим к существующему: в старом сейве может лежать удалённый EUR или CNY,
     // и без этого он молча дожил бы до следующей записи файла
     currencyCode = Currency.fromCode(currencyCode).code,
+    themeId = themeId,
     playerName = playerName, onboarded = onboarded,
     lastSeenMillis = lastSeenMillis
 ).let { st ->

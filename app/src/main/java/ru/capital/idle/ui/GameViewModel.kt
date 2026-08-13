@@ -735,6 +735,12 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(currencyCode = Currency.next(it.currencyCode).code) }
     }
 
+    /** Выбрать оформление. Ключ темы — из `AppTheme`, неизвестный означает тему по умолчанию. */
+    fun setTheme(id: String) {
+        _state.update { it.copy(themeId = id) }
+        persistSoon()
+    }
+
     fun finishOnboarding(name: String) {
         _state.update {
             it.copy(

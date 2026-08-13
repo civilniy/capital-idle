@@ -97,7 +97,7 @@ fun GoalsScreen(vm: GameViewModel) {
 }
 
 @Composable
-private fun MilestoneRow(name: String, value: String, reward: Long, done: Boolean, current: Boolean) {
+internal fun MilestoneRow(name: String, value: String, reward: Long, done: Boolean, current: Boolean) {
     // текущая веха — золотистый акцент, остальные — стекло
     val bg = if (current) GlassAccent else GlassFill
     Row(
@@ -110,11 +110,11 @@ private fun MilestoneRow(name: String, value: String, reward: Long, done: Boolea
     ) {
         Box(
             Modifier.size(22.dp).clip(RoundedCornerShape(7.dp))
-                .background(if (done) GreenAccent else if (current) Gold else GlassInner),
+                .background(if (done) Business else if (current) Gold else GlassInner),
             contentAlignment = Alignment.Center
         ) {
             Text(if (done) "\u2713" else if (current) "\u25CF" else "\u25CB",
-                color = if (done) Color(0xFF14151A) else if (current) CoinText else Mute,
+                color = if (done) BgBase else if (current) CoinText else Mute,
                 fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
         }
         Spacer(Modifier.width(12.dp))

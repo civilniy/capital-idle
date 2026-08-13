@@ -30,7 +30,7 @@ fun WorldScreen(vm: GameViewModel, onLocked: (String) -> Unit, startInner: Strin
         Column(Modifier.fillMaxSize().systemBarsPadding()) {
             Column(Modifier.padding(horizontal = 14.dp)) {
                 Spacer(Modifier.height(8.dp))
-                Text("МИР", color = Gold, fontWeight = FontWeight.ExtraBold,
+                Text("МИР", color = Heading, fontWeight = FontWeight.ExtraBold,
                     fontSize = 18.sp, letterSpacing = 2.sp)
                 Spacer(Modifier.height(10.dp))
                 // стеклянный переключатель вкладок

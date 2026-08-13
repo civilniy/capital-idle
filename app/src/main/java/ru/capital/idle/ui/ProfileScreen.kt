@@ -32,6 +32,7 @@ fun ProfileScreen(vm: GameViewModel) {
     val cur = Currency.fromCode(state.currencyCode)
     var inner by remember { mutableStateOf(0) }   // 0 имущество · 1 отдых · 3 история · 4 коллекция
     var showRename by remember { mutableStateOf(false) }   // диалог смены имени
+    var showThemes by remember { mutableStateOf(false) }    // лист выбора оформления
 
     val inDebt = state.debt > 0.0
     val upkeep = Lifestyle.dailyUpkeep(state)
@@ -48,7 +49,11 @@ fun ProfileScreen(vm: GameViewModel) {
             .padding(horizontal = 14.dp)
     ) {
         Spacer(Modifier.height(8.dp))
-        Text("ПРОФИЛЬ", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, letterSpacing = 2.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("ПРОФИЛЬ", color = Heading, fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp, letterSpacing = 2.sp, modifier = Modifier.weight(1f))
+            SettingsButton { showThemes = true }
+        }
         Spacer(Modifier.height(12.dp))
         HintCard(state = state, hintId = "prof", onDismiss = { vm.markHintSeen(it) })
 
@@ -57,7 +62,7 @@ fun ProfileScreen(vm: GameViewModel) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(if (inDebt) Color(0x26D9694F) else GlassAccent)
+                .background(if (inDebt) ExpenseFill else GlassAccent)
                 .padding(15.dp)
         ) {
             Row(
@@ -114,7 +119,7 @@ fun ProfileScreen(vm: GameViewModel) {
             Spacer(Modifier.height(10.dp))
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .background(Color(0x26D9694F))
+                    .background(ExpenseFill)
                     .padding(13.dp)
             ) {
                 Text("\u26A0 Вы живёте не по средствам", color = RedAccent,
@@ -171,6 +176,14 @@ fun ProfileScreen(vm: GameViewModel) {
     }
     }
 
+    if (showThemes) {
+        ThemeSheet(
+            current = state.themeId,
+            onPick = { vm.setTheme(it); showThemes = false },
+            onDismiss = { showThemes = false }
+        )
+    }
+
     if (showRename) {
         PlayerNameDialog(
             initial = state.playerName,
@@ -188,7 +201,7 @@ private fun PlayerNameDialog(
     var text by remember { mutableStateOf(initial) }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color(0xFF1D1F25))
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel)
                 .padding(18.dp)
         ) {
             Text("КАК ВАС ЗОВУТ", color = TextMain, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
@@ -218,7 +231,7 @@ private fun PlayerNameDialog(
                         .clickable(enabled = canSave) { onConfirm(text) }.padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Сохранить", color = if (canSave) Color(0xFF2A2410) else Mute,
+                    Text("Сохранить", color = if (canSave) CoinText else Mute,
                         fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                 }
             }
@@ -240,12 +253,12 @@ private fun MoneyCell(value: String, label: String, color: Color,
 /** Текст, ужимающийся по ширине в одну строку. */
 
 @Composable
-private fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
+internal fun ShowcaseSlot(item: Lifestyle.Item, modifier: Modifier) {
     Column(
         modifier.clip(RoundedCornerShape(12.dp)).background(GlassInner).padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(item.emoji, fontSize = 24.sp)
+        IconSlot(item.emoji, tint = Gold, fontSize = 24.sp)
         Spacer(Modifier.height(4.dp))
         Text(item.title, color = Mute, fontSize = 9.sp, textAlign = TextAlign.Center, lineHeight = 11.sp, maxLines = 2)
     }
@@ -317,7 +330,7 @@ internal fun MoneyCellsRow(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MoneyCell(moneyStr, if (inDebt) "ДОЛГ" else "НА СЧЕТУ",
-                if (inDebt) RedAccent else TextMain, sharedSize, Modifier.weight(1f))
+                bigNumber(if (inDebt) RedAccent else TextMain), sharedSize, Modifier.weight(1f))
             MoneyCell(upkeepStr, "СОДЕРЖАНИЕ /ДЕНЬ", RedAccent, sharedSize, Modifier.weight(1f))
             MoneyCell(netStr, "ЧИСТЫЙ ДОХОД /ДЕНЬ",
                 if (netPositive) GreenAccent else RedAccent, sharedSize, Modifier.weight(1f))
@@ -336,12 +349,13 @@ internal fun LifeItemCard(
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(item.emoji, fontSize = 22.sp, modifier = Modifier.width(34.dp))
+        IconSlot(item.emoji, tint = if (owned) Gold else Mute, fontSize = 22.sp,
+            modifier = Modifier.width(34.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(item.title, color = if (owned || canBuy) TextMain else Mute,
                 fontWeight = FontWeight.Bold, fontSize = 14.sp)
             if (item.status > 0)
-                Text("+${item.status} статуса", color = GreenAccent, fontSize = 10.sp)
+                Text("+${item.status} статуса", color = Status, fontSize = 10.sp)
             if (item.upkeep > 0)
                 Text("содержание ${GameMath.formatMoney(item.upkeep, cur)}/день",
                     color = RedAccent, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
@@ -367,18 +381,19 @@ internal fun LifeItemCard(
 }
 
 @Composable
-private fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Boolean, cur: Currency, onBuy: () -> Unit) {
+internal fun ExperienceCard(exp: Lifestyle.Experience, done: Boolean, canBuy: Boolean, cur: Currency, onBuy: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(if (done) GlassAccent else GlassFill).padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(exp.emoji, fontSize = 22.sp, modifier = Modifier.width(34.dp))
+        IconSlot(exp.emoji, tint = if (done) Rest else Mute, fontSize = 22.sp,
+            modifier = Modifier.width(34.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(exp.title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Text("+${exp.status} статуса · разовая трата", color = Mute, fontSize = 10.sp)
         }
-        if (done) Text("\u2713", color = GreenAccent, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+        if (done) Text("\u2713", color = Status, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
         else Box(
             Modifier.clip(RoundedCornerShape(9.dp)).background(if (canBuy) Gold else GlassBtnOff)
                 .clickable(enabled = canBuy, onClick = onBuy).padding(horizontal = 12.dp, vertical = 8.dp)
