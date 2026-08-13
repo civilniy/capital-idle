@@ -2,9 +2,15 @@ package ru.capital.idle.ui.theme
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
@@ -82,9 +88,12 @@ fun IconSlot(
 ) {
     val vector = LocalPalette.current.vectorIcons && icon != null
     Box(modifier) {
-        // мерило: занимает ровно столько же, сколько занимало эмодзи
+        // Мерило: занимает ровно столько же, сколько занимало эмодзи.
+        // Никаких maxLines/softWrap — здесь должен остаться ровно тот Text, что стоял раньше,
+        // иначе при крупном системном шрифте старая тема начинает рисоваться иначе
+        // (поймано перезаписью эталонов: девять картинок торгов и коллекции поехали).
         Text(
-            emoji, fontSize = fontSize, maxLines = 1, softWrap = false,
+            emoji, fontSize = fontSize,
             modifier = if (vector) Modifier.alpha(0f).clearAndSetSemantics { } else Modifier
         )
         if (vector) {
@@ -95,6 +104,27 @@ fun IconSlot(
                 else drawIconSymbol(icon!!, tint, d * 0.86f, at + Offset(d * 0.07f, d * 0.07f))
             }
         }
+    }
+}
+
+/**
+ * Ведущая иконка строки — там, где раньше значка не было вовсе.
+ *
+ * В старой теме не рисует НИЧЕГО: на этих местах у неё пусто, и добавлять ей значки нельзя.
+ *
+ * По высоте иконка НУЛЕВАЯ: измеряется в ноль и рисуется поверх, центрируясь по строке
+ * (родитель выравнивает нулевой по высоте элемент по центру). Иначе строка подросла бы
+ * ровно там, где содержимого меньше, чем иконка, — а вёрстка при переключении темы
+ * меняться не должна. Ширину иконка занимает по-настоящему: текст рядом становится уже.
+ */
+@Composable
+fun LeadingIcon(icon: AppIcon, tint: Color, size: Dp = 26.dp, gap: Dp = 8.dp) {
+    if (!LocalPalette.current.vectorIcons) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.height(0.dp).wrapContentHeight(unbounded = true)) {
+            AppIconBadge(icon, tint, size)
+        }
+        Spacer(Modifier.width(gap))
     }
 }
 
@@ -330,7 +360,40 @@ object AppIcons {
         put("⌚", AppIcon.CLOCK)             // ⌚
         put("👔", AppIcon.PERSON)      // 👔
         put("💎", AppIcon.GEM)         // 💎
-        put("🖼", AppIcon.GEM)         // 🖼 картина в ряду аксессуаров
+        // коллекция и впечатления: искусство — звезда, древности — здание, драгоценности — самоцвет
+        put("🖼", AppIcon.STAR)
+        put("🎨", AppIcon.STAR)
+        put("🖌", AppIcon.STAR)
+        put("🎻", AppIcon.STAR)
+        put("📜", AppIcon.STAR)
+        put("🏺", AppIcon.BANK)
+        put("🗿", AppIcon.BANK)
+        put("🏛", AppIcon.BANK)
+        put("👑", AppIcon.GEM)
+        put("🌑", AppIcon.GEM)
+        put("🦖", AppIcon.GEM)
+        put("🏖", AppIcon.STAR)
+        put("🎰", AppIcon.STAR)
+        put("🎭", AppIcon.STAR)
+        put("🦁", AppIcon.STAR)
+        put("🚀", AppIcon.ARROW_UP)
+    }
+
+    /** Иконка отрасли — по её идентификатору. */
+    fun forIndustry(id: String): AppIcon = when (id) {
+        "trade" -> AppIcon.SHOP
+        "food" -> AppIcon.CAFE
+        "serv" -> AppIcon.PERSON
+        "prod" -> AppIcon.FACTORY
+        "log" -> AppIcon.TRUCK
+        else -> AppIcon.BOLT          // it
+    }
+
+    /** Иконка инструмента накоплений — по порядковому номеру. */
+    fun forAsset(ordinal: Int): AppIcon = when (ordinal) {
+        0 -> AppIcon.BANK             // депозит
+        1 -> AppIcon.COIN             // облигации
+        else -> AppIcon.HOME          // недвижимость
     }
 
     /** Иконка для эмодзи или `null`, если замены нет и эмодзи остаётся как есть. */

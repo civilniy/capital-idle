@@ -94,6 +94,7 @@ internal fun NetworkItemCard(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        LeadingIcon(AppIcon.PERSON, if (owned) Gold else Mute, size = 26.dp, gap = 8.dp)
         Column(Modifier.weight(1f)) {
             Text(title, color = TextMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(info, color = Mute, fontSize = 10.sp)

@@ -150,7 +150,8 @@ internal fun AuctionResultCard(ended: Auctions.Ended, cur: Currency, onDismiss: 
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(item?.emoji.orEmpty(), fontSize = 20.sp, modifier = Modifier.width(28.dp))
+        IconSlot(item?.emoji.orEmpty(), tint = if (won) Gold else Mute, fontSize = 20.sp,
+            modifier = Modifier.width(28.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(
                 if (won) "Лот ваш" else "Лот ушёл",
@@ -292,7 +293,7 @@ private fun AuctionLiveCard(view: AuctionView, cur: Currency, onBid: (Double) ->
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(item.emoji, fontSize = 22.sp, modifier = Modifier.width(30.dp))
+            IconSlot(item.emoji, tint = Gold, fontSize = 22.sp, modifier = Modifier.width(30.dp))
             Column(Modifier.weight(1f).padding(horizontal = 4.dp)) {
                 Text(item.title, color = TextMain, fontWeight = FontWeight.Bold,
                     fontSize = 13.sp, maxLines = 1)
@@ -439,7 +440,8 @@ private fun SetCard(row: SetProgress) {
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(row.set.emoji, fontSize = 20.sp, modifier = Modifier.width(30.dp))
+        IconSlot(row.set.emoji, tint = if (done) Gold else Mute, fontSize = 20.sp,
+            modifier = Modifier.width(30.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             // счётчик стоит не рядом с названием, а в строке полоски: при крупном системном
             // шрифте «✓ Имена в истории» и «5 / 5» в одной строке уже не помещаются
@@ -464,7 +466,8 @@ private fun SetCard(row: SetProgress) {
         }
         Spacer(Modifier.width(4.dp))
         Column(
-            Modifier.clip(RoundedCornerShape(9.dp)).background(if (done) Gold else GlassInner)
+            Modifier.clip(RoundedCornerShape(9.dp))
+                .background(if (done) legacy(Gold, Status) else GlassInner)
                 .padding(horizontal = 9.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -553,7 +556,8 @@ internal fun CollectibleCard(
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(item.emoji, fontSize = 22.sp, modifier = Modifier.width(34.dp))
+        IconSlot(item.emoji, tint = if (owned) Gold else Mute, fontSize = 22.sp,
+            modifier = Modifier.width(34.dp))
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(item.title, color = if (owned || canBuy) TextMain else Mute,
                 fontWeight = FontWeight.Bold, fontSize = 13.sp)

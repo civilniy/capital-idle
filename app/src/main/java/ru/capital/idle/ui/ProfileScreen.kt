@@ -75,7 +75,8 @@ fun ProfileScreen(vm: GameViewModel) {
             }
             Text(
                 Lifestyle.titles[state.lastTitleIdx.coerceIn(Lifestyle.titles.indices)].name.uppercase(java.util.Locale.ROOT),
-                color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
+                color = legacy(Gold, Status),
+                fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 1.sp
             )
 
             // шкала статуса
@@ -86,7 +87,8 @@ fun ProfileScreen(vm: GameViewModel) {
                 val frac = (status / 800f).coerceIn(0f, 1f)
                 Box(
                     Modifier.fillMaxWidth(frac).fillMaxHeight().clip(RoundedCornerShape(99.dp))
-                        .background(Brush.horizontalGradient(listOf(GoldDim, Gold)))
+                        .background(Brush.horizontalGradient(
+                            listOf(legacy(GoldDim, Status.copy(alpha = 0.5f)), legacy(Gold, Status))))
                 )
             }
             Spacer(Modifier.height(4.dp))
@@ -441,7 +443,8 @@ internal fun ChronicleSection(state: GameState, expanded: Boolean, onToggle: () 
             Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassAccent)
                 .padding(13.dp)
         ) {
-            Text("Жизнь ${life.num} · ${life.title}", color = Gold, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+            Text("Жизнь ${life.num} · ${life.title}", color = legacy(Gold, Status),
+                fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
             Spacer(Modifier.height(3.dp))
             Text("${life.days} дней · ${GameMath.format(life.earned)} $ · ${life.home} · ${life.car}",
                 color = Mute, fontSize = 11.sp, lineHeight = 16.sp)

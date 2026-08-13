@@ -124,7 +124,7 @@ fun GlassTab(
         modifier
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (on) GlassBtn else Color.Transparent)
+            .background(if (on) legacy(GlassBtn, MoneyFill) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center

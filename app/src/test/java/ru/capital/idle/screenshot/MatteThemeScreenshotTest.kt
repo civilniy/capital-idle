@@ -342,6 +342,22 @@ class MatteThemeScreenshotTest {
             ThemeSheet(current = ThemeIds.GLASS, onPick = {}, onDismiss = {})
         }
 
+    /**
+     * Та же сводка в старой теме — для сверки, влезает ли предельный капитал.
+     *
+     * Иконка в плитке отнимает ширину у числа, а деньги до миллиарда показываются целиком
+     * (правило полноты чисел, CLAUDE.md). Снимок нужен, чтобы отличить «обрезала иконка»
+     * от «не влезало и раньше».
+     */
+    @Test
+    fun `сводка с предельным капиталом в старой теме`() =
+        compose.captureOnBackground("glass_summary_max_large_font",
+            fontScale = Screenshots.LARGE_FONT, theme = AppTheme.GLASS) {
+            Column(Modifier.fillMaxWidth()) {
+                SummaryCellsRow(status = 312, reputation = 44, worthText = "$ 999 999 999")
+            }
+        }
+
     /** Весь набор иконок разом: если какая-то нарисована пустой, это видно сразу. */
     @Test
     fun `набор иконок`() = shot("matte_icons") {
