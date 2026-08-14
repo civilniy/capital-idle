@@ -243,24 +243,46 @@ internal fun AutoInvestCard(
             color = Mute, fontSize = 10.sp, lineHeight = 13.sp)
 
         Spacer(Modifier.height(11.dp))
+        // Место под итог держится постоянным.
+        //
+        // Автовклад срабатывает раз в игровой день: деньги уходят с карты, баланс падает
+        // до резерва, вместо суммы на мгновение встаёт предупреждение — и тут же обратно.
+        // Игровой день длится 24 реальные секунды, поэтому без резерва места весь список
+        // ниже дёргался бы постоянно. Меряются обе раскладки и каждая возможная причина,
+        // высота берётся по самой высокой.
+        val rulers = ArrayList<@Composable () -> Unit>()
+        rulers += { AutoInvestOutgoing(amount, cur) }
+        AutoInvest.REASONS.forEach { reason -> rulers += { AutoInvestBlocked(reason) } }
         Column(
             Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(GlassInner)
                 .padding(horizontal = 11.dp, vertical = 9.dp)
         ) {
-            if (blocked != null) {
-                Text("не сработает: $blocked", color = RedAccent,
-                    fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp)
-            } else {
-                // сумма отдельной строкой: до миллиарда деньги показываются целиком
-                // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
-                Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
-                Spacer(Modifier.height(2.dp))
-                Text(GameMath.formatMoney(amount, cur), color = bigNumber(GreenAccent),
-                    fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp, maxLines = 1, softWrap = false)
+            SteadyHeight(rulers = rulers, modifier = Modifier.fillMaxWidth()) {
+                if (blocked != null) AutoInvestBlocked(blocked) else AutoInvestOutgoing(amount, cur)
             }
         }
     }
+}
+
+/** Итог автовклада: сколько уйдёт при ближайшем срабатывании. */
+@Composable
+private fun AutoInvestOutgoing(amount: Double, cur: Currency) {
+    Column {
+        // сумма отдельной строкой: до миллиарда деньги показываются целиком
+        // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
+        Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
+        Spacer(Modifier.height(2.dp))
+        Text(GameMath.formatMoney(amount, cur), color = bigNumber(GreenAccent),
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+            fontSize = 13.sp, maxLines = 1, softWrap = false)
+    }
+}
+
+/** Почему автовклад не сработает. Причины — закрытый список `AutoInvest.REASONS`. */
+@Composable
+private fun AutoInvestBlocked(reason: String) {
+    Text("не сработает: $reason", color = RedAccent,
+        fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp)
 }
 
 /** Квадратная кнопка шага резерва. */
@@ -370,18 +392,18 @@ internal fun StockCard(
     val qty = state.stockQty.getOrElse(index) { 0.0 }
     val avg = state.stockAvg.getOrElse(index) { 0.0 }
     val hasMoney = state.money >= price
-    val divPct = stock.divPerDay * 100.0
 
     Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute)
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stock.title, color = if (unlocked) TextMain else Mute,
-                        fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
-                    if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(divPct)}", Study)
-                    if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
-                    if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
+                // Плашка события приходит и уходит сама, по ходу торгов. Вместе с названием
+                // и дивидендами она при крупном шрифте в строку не помещается, и строка
+                // вырастала бы на глазах — поэтому место держится по самой полной раскладке.
+                val rulers = ArrayList<@Composable () -> Unit>()
+                listOf(-1, 0, 1).forEach { dir -> rulers += { StockTitleRow(stock, unlocked, dir) } }
+                SteadyHeight(rulers = rulers, modifier = Modifier.fillMaxWidth()) {
+                    StockTitleRow(stock, unlocked, eventDir)
                 }
                 Text("${stock.ticker} · ${stock.info}", color = Mute, fontSize = 9.5.sp)
             }
@@ -455,6 +477,23 @@ internal fun StockCard(
             ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(-1.0) }
             ActionBtn("Продать", BtnState.SELL, qty > 0, Modifier.weight(1f)) { onSell() }
         }
+    }
+}
+
+/**
+ * Строка названия бумаги: название, дивиденды и плашка события.
+ *
+ * Вынесена отдельно, чтобы ею же мерить раскладки без события и с событием — тексты и порядок
+ * прежние, `eventDir` тот же, что у карточки: 1 — хайп, -1 — обвал, 0 — спокойно.
+ */
+@Composable
+private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(stock.title, color = if (unlocked) TextMain else Mute,
+            fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+        if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(stock.divPerDay * 100.0)}", Study)
+        if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
+        if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
     }
 }
 
