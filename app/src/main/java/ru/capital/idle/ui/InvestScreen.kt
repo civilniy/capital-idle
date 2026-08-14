@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -203,23 +204,19 @@ internal fun AutoInvestCard(
         Spacer(Modifier.height(12.dp))
         Text("КУДА", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(6.dp))
-        // строками, а не чипами в ряд: «Недвижимость» при крупном шрифте в узкий чип
-        // не помещается, а обрезать название нельзя
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            unlocked.forEach { a ->
-                val picked = a == target
-                Row(
-                    Modifier.fillMaxWidth().clip(tileShape(12.dp))
-                        .background(if (picked) AccentStrong else GlassBtn)
-                        .clickable { onPick(a) }
-                        .padding(horizontal = 11.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(a.title, color = if (picked) Gold else Mute,
-                        fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    if (picked) Text("✓", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
+        // Ряд кнопок — тот же, что «50% · На все · Вывести» в карточках накоплений ниже:
+        // та же форма, тот же зазор, та же высота. В кнопке только название инструмента —
+        // подписи и значки в треть ширины не помещаются. Тремя строками, как было раньше,
+        // выбор занимал втрое больше места.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Asset.entries.forEach { a ->
+                PickBtn(
+                    label = a.title,
+                    picked = a == target,
+                    // закрытый образованием инструмент виден, но приглушён и не нажимается
+                    enabled = a in unlocked,
+                    modifier = Modifier.weight(1f)
+                ) { onPick(a) }
             }
         }
 
@@ -471,6 +468,48 @@ private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
         if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(stock.divPerDay * 100.0)}", Study)
         if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
         if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
+    }
+}
+
+/**
+ * Кнопка выбора инструмента для автовклада.
+ *
+ * Форма, отступы и кегль — как у [ActionBtn]: игрок узнаёт знакомый элемент, а не встречает
+ * ещё один вид кнопки. Отличается только выделение выбранного.
+ *
+ * Выделение зависит от темы. «Стекло» подсвечивает выбранный янтарной заливкой с янтарной
+ * подписью — как и было. В новой теме поверхности янтарём не красятся: выбранный стоит
+ * на светло-сером вложенном фоне с белой подписью, ровно как активный подраздел
+ * в переключателях, а невыбранные сливаются с карточкой.
+ */
+@Composable
+private fun PickBtn(
+    label: String,
+    picked: Boolean,
+    enabled: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    val bg = when {
+        picked -> legacy(AccentStrong, GlassInner)
+        !enabled -> legacy(GlassBtnOff, GlassFill)
+        else -> legacy(GlassBtn, GlassFill)
+    }
+    val fg = when {
+        picked -> legacy(Gold, TextMain)
+        !enabled -> legacy(GlassBtnOffText, Mute.copy(alpha = 0.55f))
+        else -> Mute
+    }
+    Box(
+        modifier
+            .clip(tileShape(13.dp))
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = 13.sp,
+            textAlign = TextAlign.Center)
     }
 }
 

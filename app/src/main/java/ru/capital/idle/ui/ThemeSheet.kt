@@ -58,13 +58,15 @@ internal fun ThemeSheet(current: String, onPick: (String) -> Unit, onDismiss: ()
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(theme.title, color = if (picked) Gold else TextMain,
+                        // выбранная тема: в «Стекле» янтарная подпись, в новой — белая,
+                        // потому что выделение там держится на светлой поверхности, а не на цвете
+                        Text(theme.title, color = if (picked) legacy(Gold, TextMain) else TextMain,
                             fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(Modifier.height(2.dp))
                         Text(theme.note, color = Mute, fontSize = 10.5.sp, lineHeight = 14.sp)
                     }
                     Spacer(Modifier.width(10.dp))
-                    if (picked) Text("✓", color = Gold,
+                    if (picked) Text("✓", color = legacy(Gold, TextMain),
                         fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                 }
                 Spacer(Modifier.height(8.dp))
