@@ -1,8 +1,11 @@
 package ru.capital.idle.screenshot
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -15,6 +18,7 @@ import ru.capital.idle.core.game.AutoInvest
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.ui.AutoInvestCard
+import ru.capital.idle.ui.PassiveCard
 import ru.capital.idle.ui.theme.AppTheme
 
 /**
@@ -214,6 +218,45 @@ class AutoInvestScreenshotTest {
     @Test
     fun `недвижимость ещё не открыта в новой теме при крупном шрифте`() =
         pick("matte_autoinvest_pick_locked_large_font", Asset.BONDS, locked = true, fs = Screenshots.LARGE_FONT, theme = AppTheme.MATTE)
+
+    // ===================== преемственность =====================
+
+    /**
+     * Блок автовклада и соседняя карточка накоплений на одном снимке.
+     *
+     * Смотреть надо именно на пару: заголовки карточек, ряды кнопок, вложенные панели
+     * должны читаться как одно оформление, а не как два разных.
+     */
+    private fun pair(name: String, fs: Float, theme: AppTheme) {
+        val s = saver(edu = setOf("school", "acc", "uni"))
+            .copy(autoInvestAsset = Asset.BONDS.ordinal, investValues = listOf(1_000_000.0, 0.0, 0.0))
+        compose.captureOnBackground(name, fontScale = fs, theme = theme) {
+            Column(Modifier.fillMaxWidth()) {
+                AutoInvestCard(
+                    on = true, target = AutoInvest.target(s), unlocked = AutoInvest.available(s),
+                    reserve = s.autoInvestReserve, amount = AutoInvest.amount(s), cur = Currency.USD
+                )
+                Spacer(Modifier.height(16.dp))
+                PassiveCard(s, Asset.DEPOSIT, Currency.USD,
+                    onInvest = {}, onSell = {}, onToggleCap = {})
+            }
+        }
+    }
+
+    @Test
+    fun `автовклад и накопления рядом`() = pair("invest_cards", 1f, AppTheme.GLASS)
+
+    @Test
+    fun `автовклад и накопления рядом при крупном шрифте`() =
+        pair("invest_cards_large_font", Screenshots.LARGE_FONT, AppTheme.GLASS)
+
+    @Test
+    fun `автовклад и накопления рядом в новой теме`() =
+        pair("matte_invest_cards", 1f, AppTheme.MATTE)
+
+    @Test
+    fun `автовклад и накопления рядом в новой теме при крупном шрифте`() =
+        pair("matte_invest_cards_large_font", Screenshots.LARGE_FONT, AppTheme.MATTE)
 
     /** Инструменты ещё не открыты. */
     @Test

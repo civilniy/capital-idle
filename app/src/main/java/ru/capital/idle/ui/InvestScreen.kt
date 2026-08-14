@@ -187,8 +187,9 @@ internal fun AutoInvestCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("АВТОВКЛАД", color = if (on) Gold else Mute,
-                    fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, letterSpacing = 2.sp)
+                // заголовок карточки — такой же, как у «Депозита» ниже: карточки одного уровня
+                Text("Автовклад", color = if (on) TextMain else Mute,
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Spacer(Modifier.height(3.dp))
                 Text("раз в игровой день переносит деньги с карты во вклад",
                     color = Mute, fontSize = 11.sp, lineHeight = 14.sp)
@@ -209,24 +210,24 @@ internal fun AutoInvestCard(
         Spacer(Modifier.height(12.dp))
         Text("КУДА", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(6.dp))
-        // Ряд кнопок — тот же, что «50% · На все · Вывести» в карточках накоплений ниже:
-        // та же форма, тот же зазор, та же высота. В кнопке только название инструмента —
-        // подписи и значки в треть ширины не помещаются. Тремя строками, как было раньше,
-        // выбор занимал втрое больше места.
+        // Ряд кнопок — тот же компонент, что «50% · На все · Вывести» в карточках накоплений
+        // ниже: форма, высота, отступы и зазор берутся оттуда, не повторяются здесь.
+        // Каждая кнопка занимает треть строки. Тремя строками, как было раньше, выбор
+        // занимал втрое больше места.
         BoxWithConstraints {
             // Кегль подписи — общий на все три кнопки и подбирается под самую длинную.
             // «Недвижимость» при увеличенном шрифте в треть ширины не влезает и рвётся
             // посреди слова; уменьшенный кегль читается, разорванное слово — нет.
-            val labelSp = fittedLabelSp((maxWidth - PICK_GAP * 2) / 3 - PICK_LABEL_PAD)
-            Row(horizontalArrangement = Arrangement.spacedBy(PICK_GAP)) {
+            val labelSp = fittedLabelSp((maxWidth - BTN_GAP * 2) / 3 - BTN_LABEL_PAD)
+            Row(horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
                 Asset.entries.forEach { a ->
-                    PickBtn(
+                    ActionBtn(
                         label = a.title,
-                        labelSp = labelSp,
-                        picked = a == target,
+                        kind = if (a == target) BtnState.PICKED else BtnState.PICK,
                         // закрытый образованием инструмент виден, но приглушён и не нажимается
                         enabled = a in unlocked,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        labelSp = labelSp
                     ) { onPick(a) }
                 }
             }
@@ -331,7 +332,7 @@ internal fun PassiveCard(
             color = if (hasValue) GreenAccent else Mute, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
 
         Spacer(Modifier.height(11.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             ActionBtn("50%", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onInvest(0.5) }
             ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onInvest(-1.0) }
             ActionBtn("Вывести", BtnState.SELL, hasValue, Modifier.weight(1f)) { onSell() }
@@ -458,7 +459,7 @@ internal fun StockCard(
         }
 
         Spacer(Modifier.height(11.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(BTN_GAP)) {
             ActionBtn("50%", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(0.5) }
             ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(-1.0) }
             ActionBtn("Продать", BtnState.SELL, qty > 0, Modifier.weight(1f)) { onSell() }
@@ -483,15 +484,15 @@ private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
     }
 }
 
-/** Зазор между кнопками выбора — тот же, что между кнопками накоплений. */
-private val PICK_GAP = 8.dp
+/** Зазор между кнопками в ряду — общий для всех рядов на экране. */
+private val BTN_GAP = 8.dp
 
-/** Кегль подписи кнопки: как у кнопок накоплений, и нижняя граница, ниже которой не жмём. */
-private const val PICK_LABEL_SP = 13f
-private const val PICK_LABEL_MIN_SP = 9f
+/** Кегль подписи на кнопках экрана и нижняя граница, до которой его можно ужать. */
+private const val BTN_LABEL_SP = 12f
+private const val BTN_LABEL_MIN_SP = 9f
 
 /** Поля внутри кнопки: подпись не должна упираться в скруглённый край. */
-private val PICK_LABEL_PAD = 12.dp
+private val BTN_LABEL_PAD = 12.dp
 
 /** Названия инструментов — постоянный список, служит меркой ширины. */
 private val PICK_LABELS: List<String> = Asset.entries.map { it.title }
@@ -499,9 +500,10 @@ private val PICK_LABELS: List<String> = Asset.entries.map { it.title }
 /**
  * Кегль подписи, при котором самое длинное название помещается в кнопку такой ширины.
  *
- * Кегль общий на весь ряд: разный размер у соседних кнопок читался бы как ошибка.
- * Так же подбирается кегль баланса на карте — по той же причине, что число нельзя
- * ни обрезать, ни перенести.
+ * Обычно это [BTN_LABEL_SP] — тот же кегль, что и на остальных кнопках экрана. Ужимается
+ * он только когда иначе не влезает: при системном шрифте 1.5 «Недвижимость» в треть строки
+ * не помещается и рвётся посреди слова. Кегль общий на весь ряд: разный размер у соседних
+ * кнопок читался бы как ошибка. Так же подбирается кегль баланса на карте.
  */
 @Composable
 private fun fittedLabelSp(width: Dp): TextUnit {
@@ -509,8 +511,8 @@ private fun fittedLabelSp(width: Dp): TextUnit {
     val density = LocalDensity.current
     val px = with(density) { width.roundToPx() }
     return remember(px, density.fontScale) {
-        var sp = PICK_LABEL_SP
-        while (sp > PICK_LABEL_MIN_SP && PICK_LABELS.any {
+        var sp = BTN_LABEL_SP
+        while (sp > BTN_LABEL_MIN_SP && PICK_LABELS.any {
                 measurer.measure(
                     it,
                     TextStyle(fontWeight = FontWeight.Bold, fontSize = sp.sp),
@@ -522,65 +524,49 @@ private fun fittedLabelSp(width: Dp): TextUnit {
     }
 }
 
+// ===================== общие кнопки =====================
+
 /**
- * Кнопка выбора инструмента для автовклада.
+ * Что за кнопка: действие, продажа, выбранный пункт, невыбранный пункт.
  *
- * Форма, отступы и кегль — как у [ActionBtn]: игрок узнаёт знакомый элемент, а не встречает
- * ещё один вид кнопки. Отличается только выделение выбранного.
+ * [PICKED] и [PICK] — это выбор инструмента в автовкладе. Фон есть у обеих, как и у всех
+ * кнопок экрана: выбор читается по светлоте подложки и весу подписи, а не по наличию фона.
+ * Недоступность везде показывается только приглушённой подписью — фон остаётся.
+ */
+private enum class BtnState { NEUTRAL, SELL, PICKED, PICK }
+
+/**
+ * Кнопка в ряду — одна на весь экран: и «50% · На все · Вывести», и «50% · На все · Продать»,
+ * и выбор инструмента в автовкладе. Форма, высота, отступы и кегль подписи живут только здесь.
  *
- * Выделение зависит от темы. «Стекло» подсвечивает выбранный янтарной заливкой с янтарной
- * подписью — как и было. В новой теме поверхности янтарём не красятся: выбранный стоит
- * на светло-сером вложенном фоне с белой подписью, ровно как активный подраздел
- * в переключателях, а невыбранные сливаются с карточкой.
+ * @param labelSp кегль подписи; по умолчанию общий для экрана, ряд выбора инструмента
+ *   передаёт сюда ужатый, когда длинное название иначе не помещается
  */
 @Composable
-private fun PickBtn(
+private fun ActionBtn(
     label: String,
-    labelSp: TextUnit,
-    picked: Boolean,
+    kind: BtnState,
     enabled: Boolean,
     modifier: Modifier,
+    labelSp: TextUnit = BTN_LABEL_SP.sp,
     onClick: () -> Unit
 ) {
     val bg = when {
-        picked -> legacy(AccentStrong, GlassInner)
-        !enabled -> legacy(GlassBtnOff, GlassFill)
-        else -> legacy(GlassBtn, GlassFill)
-    }
-    val fg = when {
-        picked -> legacy(Gold, TextMain)
-        !enabled -> legacy(GlassBtnOffText, Mute.copy(alpha = 0.55f))
-        else -> Mute
-    }
-    Box(
-        modifier
-            .clip(tileShape(13.dp))
-            .background(bg)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = labelSp,
-            maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
-    }
-}
-
-// ===================== общие кнопки =====================
-
-private enum class BtnState { NEUTRAL, SELL }
-
-@Composable
-private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val bg = when {
+        // выбранный — на ступень светлее обычной кнопки; в старой теме это её прежняя
+        // янтарная подсветка, значение приходит из палитры темы
+        kind == BtnState.PICKED -> AccentStrong
         !enabled -> GlassBtnOff
         kind == BtnState.SELL -> GlassSell
         else -> GlassBtn
     }
     val fg = when {
+        kind == BtnState.PICKED -> legacy(Gold, TextMain)
         !enabled -> GlassBtnOffText
         kind == BtnState.SELL -> GlassSellText
+        kind == BtnState.PICK -> legacy(Mute, TextSecondary)
         else -> TextMain
     }
+    val weight = if (kind == BtnState.PICK) FontWeight.Normal else FontWeight.Bold
     Box(
         modifier
             .clip(tileShape(13.dp))
@@ -589,7 +575,9 @@ private fun ActionBtn(label: String, kind: BtnState, enabled: Boolean, modifier:
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        // перенос запрещён структурно: подпись ужимается кеглем, а не рвётся посреди слова
+        Text(label, color = fg, fontWeight = weight, fontSize = labelSp,
+            maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
     }
 }
 
