@@ -104,6 +104,30 @@ class AutoInvestScreenshotTest {
     fun `автовклад когда на карте меньше резерва`() =
         shot("autoinvest_below_reserve", saver(reserve = 1e9, money = 1_000.0))
 
+    /**
+     * Две стороны одного игрового дня: деньги набежали — и деньги только что списались.
+     *
+     * Различаются только балансом, поэтому снимки сравнимы напрямую: место под итог обязано
+     * занимать одну и ту же высоту, иначе список ниже подпрыгивает каждые 24 секунды.
+     * Точное равенство высоты проверяется числом в `AutoInvestHeightTest`.
+     */
+    @Test
+    fun `день, когда деньги набежали`() = shot("autoinvest_day_full", saver(money = 30_000.0))
+
+    @Test
+    fun `день, когда деньги только что списались`() =
+        shot("autoinvest_day_drained", saver(money = 10_000.0))
+
+    @Test
+    fun `день, когда деньги набежали, при крупном шрифте`() =
+        shot("autoinvest_day_full_large_font", saver(money = 30_000.0),
+            fontScale = Screenshots.LARGE_FONT)
+
+    @Test
+    fun `день, когда деньги только что списались, при крупном шрифте`() =
+        shot("autoinvest_day_drained_large_font", saver(money = 10_000.0),
+            fontScale = Screenshots.LARGE_FONT)
+
     /** Инструменты ещё не открыты. */
     @Test
     fun `автовклад без открытых инструментов`() =
