@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -99,8 +99,17 @@ class InvestButtonsTest {
         }
     }
 
+    /**
+     * Границы элемента с такой подписью — самого верхнего на экране.
+     *
+     * «Депозит» на снимке дважды: кнопка выбора в автовкладе и заголовок карточки накоплений
+     * под ней. Нужна кнопка, а она выше.
+     */
     private fun boundsOf(text: String, unmerged: Boolean = false): Rect =
-        compose.onNodeWithText(text, useUnmergedTree = unmerged).fetchSemanticsNode().boundsInRoot
+        compose.onAllNodesWithText(text, useUnmergedTree = unmerged)
+            .fetchSemanticsNodes()
+            .map { it.boundsInRoot }
+            .minByOrNull { it.top }!!
 
     /** Кнопки выбора инструмента слева направо. */
     private fun pickButtons(): List<Rect> = Asset.entries.map { boundsOf(it.title) }
