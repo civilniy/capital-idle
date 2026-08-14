@@ -1,5 +1,6 @@
 package ru.capital.idle.screenshot
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -21,8 +22,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import java.io.File
-import javax.imageio.ImageIO
 import ru.capital.idle.core.game.Asset
 import ru.capital.idle.core.game.AutoInvest
 import ru.capital.idle.core.game.Currency
@@ -100,12 +99,12 @@ class AmberFillTest {
             filePath = path,
             roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record)
         )
-        val img = ImageIO.read(File(path))
+        val img = BitmapFactory.decodeFile(path)
         var longest = 0
         for (y in 0 until img.height) {
             var run = 0
             for (x in 0 until img.width) {
-                if (img.getRGB(x, y) and 0xFFFFFF == amberRgb) {
+                if ((img.getPixel(x, y) and 0xFFFFFF) == amberRgb) {
                     run++
                     if (run > longest) longest = run
                 } else run = 0
