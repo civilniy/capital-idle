@@ -11,13 +11,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -203,22 +209,25 @@ internal fun AutoInvestCard(
         Spacer(Modifier.height(12.dp))
         Text("КУДА", color = Mute, fontSize = 10.sp, letterSpacing = 2.sp)
         Spacer(Modifier.height(6.dp))
-        // строками, а не чипами в ряд: «Недвижимость» при крупном шрифте в узкий чип
-        // не помещается, а обрезать название нельзя
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            unlocked.forEach { a ->
-                val picked = a == target
-                Row(
-                    Modifier.fillMaxWidth().clip(tileShape(12.dp))
-                        .background(if (picked) AccentStrong else GlassBtn)
-                        .clickable { onPick(a) }
-                        .padding(horizontal = 11.dp, vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(a.title, color = if (picked) Gold else Mute,
-                        fontWeight = if (picked) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 12.sp, modifier = Modifier.weight(1f))
-                    if (picked) Text("✓", color = Gold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        // Ряд кнопок — тот же, что «50% · На все · Вывести» в карточках накоплений ниже:
+        // та же форма, тот же зазор, та же высота. В кнопке только название инструмента —
+        // подписи и значки в треть ширины не помещаются. Тремя строками, как было раньше,
+        // выбор занимал втрое больше места.
+        BoxWithConstraints {
+            // Кегль подписи — общий на все три кнопки и подбирается под самую длинную.
+            // «Недвижимость» при увеличенном шрифте в треть ширины не влезает и рвётся
+            // посреди слова; уменьшенный кегль читается, разорванное слово — нет.
+            val labelSp = fittedLabelSp((maxWidth - PICK_GAP * 2) / 3 - PICK_LABEL_PAD)
+            Row(horizontalArrangement = Arrangement.spacedBy(PICK_GAP)) {
+                Asset.entries.forEach { a ->
+                    PickBtn(
+                        label = a.title,
+                        labelSp = labelSp,
+                        picked = a == target,
+                        // закрытый образованием инструмент виден, но приглушён и не нажимается
+                        enabled = a in unlocked,
+                        modifier = Modifier.weight(1f)
+                    ) { onPick(a) }
                 }
             }
         }
@@ -471,6 +480,88 @@ private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
         if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(stock.divPerDay * 100.0)}", Study)
         if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
         if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
+    }
+}
+
+/** Зазор между кнопками выбора — тот же, что между кнопками накоплений. */
+private val PICK_GAP = 8.dp
+
+/** Кегль подписи кнопки: как у кнопок накоплений, и нижняя граница, ниже которой не жмём. */
+private const val PICK_LABEL_SP = 13f
+private const val PICK_LABEL_MIN_SP = 9f
+
+/** Поля внутри кнопки: подпись не должна упираться в скруглённый край. */
+private val PICK_LABEL_PAD = 12.dp
+
+/** Названия инструментов — постоянный список, служит меркой ширины. */
+private val PICK_LABELS: List<String> = Asset.entries.map { it.title }
+
+/**
+ * Кегль подписи, при котором самое длинное название помещается в кнопку такой ширины.
+ *
+ * Кегль общий на весь ряд: разный размер у соседних кнопок читался бы как ошибка.
+ * Так же подбирается кегль баланса на карте — по той же причине, что число нельзя
+ * ни обрезать, ни перенести.
+ */
+@Composable
+private fun fittedLabelSp(width: Dp): TextUnit {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val px = with(density) { width.roundToPx() }
+    return remember(px, density.fontScale) {
+        var sp = PICK_LABEL_SP
+        while (sp > PICK_LABEL_MIN_SP && PICK_LABELS.any {
+                measurer.measure(
+                    it,
+                    TextStyle(fontWeight = FontWeight.Bold, fontSize = sp.sp),
+                    maxLines = 1
+                ).size.width > px
+            }
+        ) sp -= 0.5f
+        sp.sp
+    }
+}
+
+/**
+ * Кнопка выбора инструмента для автовклада.
+ *
+ * Форма, отступы и кегль — как у [ActionBtn]: игрок узнаёт знакомый элемент, а не встречает
+ * ещё один вид кнопки. Отличается только выделение выбранного.
+ *
+ * Выделение зависит от темы. «Стекло» подсвечивает выбранный янтарной заливкой с янтарной
+ * подписью — как и было. В новой теме поверхности янтарём не красятся: выбранный стоит
+ * на светло-сером вложенном фоне с белой подписью, ровно как активный подраздел
+ * в переключателях, а невыбранные сливаются с карточкой.
+ */
+@Composable
+private fun PickBtn(
+    label: String,
+    labelSp: TextUnit,
+    picked: Boolean,
+    enabled: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    val bg = when {
+        picked -> legacy(AccentStrong, GlassInner)
+        !enabled -> legacy(GlassBtnOff, GlassFill)
+        else -> legacy(GlassBtn, GlassFill)
+    }
+    val fg = when {
+        picked -> legacy(Gold, TextMain)
+        !enabled -> legacy(GlassBtnOffText, Mute.copy(alpha = 0.55f))
+        else -> Mute
+    }
+    Box(
+        modifier
+            .clip(tileShape(13.dp))
+            .background(bg)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = labelSp,
+            maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
     }
 }
 

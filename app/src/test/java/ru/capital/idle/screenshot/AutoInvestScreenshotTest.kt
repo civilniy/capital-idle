@@ -15,6 +15,7 @@ import ru.capital.idle.core.game.AutoInvest
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.ui.AutoInvestCard
+import ru.capital.idle.ui.theme.AppTheme
 
 /**
  * Карточка автовклада на экране «Инвест».
@@ -45,8 +46,11 @@ class AutoInvestScreenshotTest {
         autoInvestOn = on, autoInvestReserve = reserve
     )
 
-    private fun shot(name: String, s: GameState, cur: Currency = Currency.USD, fontScale: Float = 1f) {
-        compose.captureOnBackground(name, fontScale = fontScale) {
+    private fun shot(
+        name: String, s: GameState, cur: Currency = Currency.USD, fontScale: Float = 1f,
+        theme: AppTheme = AppTheme.GLASS
+    ) {
+        compose.captureOnBackground(name, fontScale = fontScale, theme = theme) {
             Column(Modifier.fillMaxWidth()) {
                 AutoInvestCard(
                     on = s.autoInvestOn,
@@ -127,6 +131,89 @@ class AutoInvestScreenshotTest {
     fun `день, когда деньги только что списались, при крупном шрифте`() =
         shot("autoinvest_day_drained_large_font", saver(money = 10_000.0),
             fontScale = Screenshots.LARGE_FONT)
+
+    // ===================== выбор инструмента =====================
+
+    /**
+     * Ряд из трёх кнопок: выбран каждый из инструментов и случай, когда «Недвижимость»
+     * ещё не открыта образованием — кнопка на месте, но приглушена.
+     *
+     * Снято в обеих темах: выделение у них разное. «Стекло» подсвечивает выбранный янтарём,
+     * как и раньше; новая тема — светло-серой поверхностью с белой подписью, потому что
+     * янтарём в ней поверхности не красятся. Крупный шрифт здесь важнее обычного:
+     * «Недвижимость» — самое длинное название в самой узкой кнопке.
+     */
+    private fun pick(name: String, asset: Asset, locked: Boolean, fs: Float, theme: AppTheme) =
+        shot(
+            name,
+            saver(edu = if (locked) setOf("school", "acc") else setOf("school", "acc", "uni"))
+                .copy(autoInvestAsset = asset.ordinal),
+            fontScale = fs, theme = theme
+        )
+
+    @Test
+    fun `выбран депозит`() =
+        pick("autoinvest_pick_deposit", Asset.DEPOSIT, locked = false, fs = 1f, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбраны облигации`() =
+        pick("autoinvest_pick_bonds", Asset.BONDS, locked = false, fs = 1f, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбрана недвижимость`() =
+        pick("autoinvest_pick_realty", Asset.REALTY, locked = false, fs = 1f, theme = AppTheme.GLASS)
+
+    @Test
+    fun `недвижимость ещё не открыта`() =
+        pick("autoinvest_pick_locked", Asset.BONDS, locked = true, fs = 1f, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбран депозит при крупном шрифте`() =
+        pick("autoinvest_pick_deposit_large_font", Asset.DEPOSIT, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбраны облигации при крупном шрифте`() =
+        pick("autoinvest_pick_bonds_large_font", Asset.BONDS, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбрана недвижимость при крупном шрифте`() =
+        pick("autoinvest_pick_realty_large_font", Asset.REALTY, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.GLASS)
+
+    @Test
+    fun `недвижимость ещё не открыта при крупном шрифте`() =
+        pick("autoinvest_pick_locked_large_font", Asset.BONDS, locked = true, fs = Screenshots.LARGE_FONT, theme = AppTheme.GLASS)
+
+    @Test
+    fun `выбран депозит в новой теме`() =
+        pick("matte_autoinvest_pick_deposit", Asset.DEPOSIT, locked = false, fs = 1f, theme = AppTheme.MATTE)
+
+    @Test
+    fun `выбраны облигации в новой теме`() =
+        pick("matte_autoinvest_pick_bonds", Asset.BONDS, locked = false, fs = 1f, theme = AppTheme.MATTE)
+
+    @Test
+    fun `выбрана недвижимость в новой теме`() =
+        pick("matte_autoinvest_pick_realty", Asset.REALTY, locked = false, fs = 1f, theme = AppTheme.MATTE)
+
+    @Test
+    fun `недвижимость ещё не открыта в новой теме`() =
+        pick("matte_autoinvest_pick_locked", Asset.BONDS, locked = true, fs = 1f, theme = AppTheme.MATTE)
+
+    @Test
+    fun `выбран депозит в новой теме при крупном шрифте`() =
+        pick("matte_autoinvest_pick_deposit_large_font", Asset.DEPOSIT, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.MATTE)
+
+    @Test
+    fun `выбраны облигации в новой теме при крупном шрифте`() =
+        pick("matte_autoinvest_pick_bonds_large_font", Asset.BONDS, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.MATTE)
+
+    @Test
+    fun `выбрана недвижимость в новой теме при крупном шрифте`() =
+        pick("matte_autoinvest_pick_realty_large_font", Asset.REALTY, locked = false, fs = Screenshots.LARGE_FONT, theme = AppTheme.MATTE)
+
+    @Test
+    fun `недвижимость ещё не открыта в новой теме при крупном шрифте`() =
+        pick("matte_autoinvest_pick_locked_large_font", Asset.BONDS, locked = true, fs = Screenshots.LARGE_FONT, theme = AppTheme.MATTE)
 
     /** Инструменты ещё не открыты. */
     @Test
