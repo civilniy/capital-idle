@@ -208,14 +208,19 @@ internal fun AutoInvestCard(
         // та же форма, тот же зазор, та же высота. В кнопке только название инструмента —
         // подписи и значки в треть ширины не помещаются. Тремя строками, как было раньше,
         // выбор занимал втрое больше места.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // высота ряда — по самой высокой кнопке: «Недвижимость» при крупном шрифте встаёт
+        // в две строки, и без этого соседние кнопки остались бы ниже её
+        Row(
+            Modifier.height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Asset.entries.forEach { a ->
                 PickBtn(
                     label = a.title,
                     picked = a == target,
                     // закрытый образованием инструмент виден, но приглушён и не нажимается
                     enabled = a in unlocked,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 ) { onPick(a) }
             }
         }

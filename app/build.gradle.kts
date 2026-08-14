@@ -61,7 +61,15 @@ tasks.withType<Test>().configureEach {
     if (!screenshotRun) exclude("ru/capital/idle/screenshot/**")
     // сводка симуляции печатается тестом и должна быть видна прямо в логе CI,
     // а не только в выгруженном отчёте
-    testLogging { showStandardStreams = true }
+    testLogging {
+        showStandardStreams = true
+        // и текст падения целиком: отчёт с раннера наружу не вытащить, а «AssertionError
+        // at Foo.kt:122» без сообщения не говорит ничего
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 dependencies {

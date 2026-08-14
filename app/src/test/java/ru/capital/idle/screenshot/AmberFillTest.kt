@@ -8,18 +8,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.takahirom.roborazzi.RoborazziOptions
+import com.github.takahirom.roborazzi.RoborazziTaskType
+import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.File
+import javax.imageio.ImageIO
 import ru.capital.idle.core.game.Asset
 import ru.capital.idle.core.game.AutoInvest
 import ru.capital.idle.core.game.Currency
@@ -84,14 +87,25 @@ class AmberFillTest {
         autoInvestOn = true, autoInvestReserve = 10_000.0
     )
 
-    /** Самый длинный сплошной отрезок янтаря в одной строке пикселей. */
-    private fun longestAmberRun(): Int {
-        val map = compose.onRoot().captureToImage().toPixelMap()
+    /**
+     * Самый длинный сплошной отрезок янтаря в одной строке пикселей.
+     *
+     * Снимок пишется во временный файл и читается обратно: так же, как это делают
+     * скриншот-тесты. Эталоном он не становится и в репозиторий не попадает.
+     */
+    private fun longestAmberRun(name: String): Int {
+        val path = "build/tmp/amber-fill/$name.png"
+        // снимок пишется всегда, какой бы задачей ни шёл прогон: это рабочий файл, а не эталон
+        compose.onRoot().captureRoboImage(
+            filePath = path,
+            roborazziOptions = RoborazziOptions(taskType = RoborazziTaskType.Record)
+        )
+        val img = ImageIO.read(File(path))
         var longest = 0
-        for (y in 0 until map.height) {
+        for (y in 0 until img.height) {
             var run = 0
-            for (x in 0 until map.width) {
-                if (map[x, y] == AMBER) {
+            for (x in 0 until img.width) {
+                if (img.getRGB(x, y) and 0xFFFFFF == amberRgb) {
                     run++
                     if (run > longest) longest = run
                 } else run = 0
@@ -99,6 +113,9 @@ class AmberFillTest {
         }
         return longest
     }
+
+    /** Янтарь новой темы числом, как его пишет PNG. */
+    private val amberRgb: Int = (AMBER.value shr 32).toInt() and 0xFFFFFF
 
     private fun matte(content: @Composable () -> Unit) {
         compose.setContent {
@@ -109,7 +126,7 @@ class AmberFillTest {
         compose.waitForIdle()
     }
 
-    private fun fillRunDp(): Float = longestAmberRun() / compose.density.density
+    private fun fillRunDp(name: String): Float = longestAmberRun(name) / compose.density.density
 
     // ===================== выделение =====================
 
@@ -121,7 +138,7 @@ class AmberFillTest {
                 reserve = rich.autoInvestReserve, amount = AutoInvest.amount(rich), cur = Currency.USD
             )
         }
-        assertNoAmberFill("выбор инструмента")
+        assertNoAmberFill("выбор инструмента", "picker")
     }
 
     @Test
@@ -129,7 +146,7 @@ class AmberFillTest {
         matte {
             JobCard(rich, Jobs.all.first { it.id == "seller" }, Currency.USD, onClick = {}, onQuit = {})
         }
-        assertNoAmberFill("текущая вакансия")
+        assertNoAmberFill("текущая вакансия", "job")
     }
 
     @Test
@@ -140,7 +157,7 @@ class AmberFillTest {
                 cur = Currency.USD, onBuy = {}, onSell = {}
             )
         }
-        assertNoAmberFill("купленное жильё")
+        assertNoAmberFill("купленное жильё", "home")
     }
 
     @Test
@@ -151,17 +168,17 @@ class AmberFillTest {
                 GlassTab("Окружение", on = false, locked = false, modifier = Modifier.weight(1f)) {}
             }
         }
-        assertNoAmberFill("активная вкладка подраздела")
+        assertNoAmberFill("активная вкладка подраздела", "tab")
     }
 
     @Test
     fun `выбранная тема в оформлении не залита янтарём`() {
         matte { ThemeSheet(current = AppTheme.MATTE.id, onPick = {}, onDismiss = {}) }
-        assertNoAmberFill("выбранная тема")
+        assertNoAmberFill("выбранная тема", "theme")
     }
 
-    private fun assertNoAmberFill(where: String) {
-        val run = fillRunDp()
+    private fun assertNoAmberFill(where: String, name: String) {
+        val run = fillRunDp(name)
         assertTrue(
             "$where: янтарная заливка шириной ${run}dp — выделение красится цветом, а не поверхностью",
             run < SELECTION_FILL_DP
@@ -184,7 +201,7 @@ class AmberFillTest {
             }
         }
         compose.waitForIdle()
-        val run = fillRunDp()
+        val run = fillRunDp("nav")
         assertTrue(
             "пилюля активной вкладки перестала быть янтарной: самый длинный отрезок ${run}dp",
             run in (NAV_PILL_DP - 4f)..(NAV_PILL_DP + 4f)
