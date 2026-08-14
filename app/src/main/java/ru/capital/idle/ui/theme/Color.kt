@@ -23,6 +23,7 @@ val Panel: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.pa
 val Panel2: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.panel2
 val LineColor: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.line
 val TextMain: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.textMain
+val TextSecondary: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.textSecondary
 val Mute: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.mute
 val CoinText: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.onMoney
 
