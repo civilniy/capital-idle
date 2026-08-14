@@ -85,7 +85,6 @@ fun InvestScreen(vm: GameViewModel) {
             unlocked = AutoInvest.available(state),
             reserve = state.autoInvestReserve,
             amount = AutoInvest.amount(state),
-            blocked = AutoInvest.blockedReason(state),
             cur = cur,
             onToggle = { vm.toggleAutoInvest() },
             onPick = { vm.setAutoInvestAsset(it) },
@@ -170,7 +169,6 @@ internal fun AutoInvestCard(
     unlocked: List<Asset>,
     reserve: Double,
     amount: Double,
-    blocked: String?,
     cur: Currency,
     onToggle: () -> Unit = {},
     onPick: (Asset) -> Unit = {},
@@ -243,46 +241,25 @@ internal fun AutoInvestCard(
             color = Mute, fontSize = 10.sp, lineHeight = 13.sp)
 
         Spacer(Modifier.height(11.dp))
-        // Место под итог держится постоянным.
+        // Итог — всегда одна и та же карточка, без сменных состояний.
         //
-        // Автовклад срабатывает раз в игровой день: деньги уходят с карты, баланс падает
-        // до резерва, вместо суммы на мгновение встаёт предупреждение — и тут же обратно.
-        // Игровой день длится 24 реальные секунды, поэтому без резерва места весь список
-        // ниже дёргался бы постоянно. Меряются обе раскладки и каждая возможная причина,
-        // высота берётся по самой высокой.
-        val rulers = ArrayList<@Composable () -> Unit>()
-        rulers += { AutoInvestOutgoing(amount, cur) }
-        AutoInvest.REASONS.forEach { reason -> rulers += { AutoInvestBlocked(reason) } }
+        // Раньше на её месте появлялось предупреждение «не сработает: …». Показывалось оно
+        // ровно в тот миг, когда автовклад списал деньги и на карте остался один резерв, —
+        // то есть на долю секунды раз в игровой день. Прочитать его было нельзя, а мельтешило
+        // оно постоянно. Ноль в сумме говорит то же самое и стоит на месте.
         Column(
             Modifier.fillMaxWidth().clip(tileShape(12.dp)).background(GlassInner)
                 .padding(horizontal = 11.dp, vertical = 9.dp)
         ) {
-            SteadyHeight(rulers = rulers, modifier = Modifier.fillMaxWidth()) {
-                if (blocked != null) AutoInvestBlocked(blocked) else AutoInvestOutgoing(amount, cur)
-            }
+            // сумма отдельной строкой: до миллиарда деньги показываются целиком
+            // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
+            Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
+            Spacer(Modifier.height(2.dp))
+            Text(GameMath.formatMoney(amount, cur), color = bigNumber(GreenAccent),
+                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                fontSize = 13.sp, maxLines = 1, softWrap = false)
         }
     }
-}
-
-/** Итог автовклада: сколько уйдёт при ближайшем срабатывании. */
-@Composable
-private fun AutoInvestOutgoing(amount: Double, cur: Currency) {
-    Column {
-        // сумма отдельной строкой: до миллиарда деньги показываются целиком
-        // (правило полноты чисел, CLAUDE.md), и в одну строку с подписью они не влезают
-        Text("следующим днём уйдёт", color = Mute, fontSize = 11.sp)
-        Spacer(Modifier.height(2.dp))
-        Text(GameMath.formatMoney(amount, cur), color = bigNumber(GreenAccent),
-            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
-            fontSize = 13.sp, maxLines = 1, softWrap = false)
-    }
-}
-
-/** Почему автовклад не сработает. Причины — закрытый список `AutoInvest.REASONS`. */
-@Composable
-private fun AutoInvestBlocked(reason: String) {
-    Text("не сработает: $reason", color = RedAccent,
-        fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp)
 }
 
 /** Квадратная кнопка шага резерва. */

@@ -94,7 +94,7 @@ class ThemeStructureParityTest {
             AutoInvestCard(
                 on = true, target = AutoInvest.target(state), unlocked = AutoInvest.available(state),
                 reserve = state.autoInvestReserve, amount = AutoInvest.amount(state),
-                blocked = AutoInvest.blockedReason(state), cur = cur
+                cur = cur
             )
         },
         { PassiveCard(state, Asset.entries[0], cur, {}, {}, {}) },
