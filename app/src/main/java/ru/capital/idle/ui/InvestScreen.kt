@@ -11,14 +11,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -208,20 +213,22 @@ internal fun AutoInvestCard(
         // та же форма, тот же зазор, та же высота. В кнопке только название инструмента —
         // подписи и значки в треть ширины не помещаются. Тремя строками, как было раньше,
         // выбор занимал втрое больше места.
-        // высота ряда — по самой высокой кнопке: «Недвижимость» при крупном шрифте встаёт
-        // в две строки, и без этого соседние кнопки остались бы ниже её
-        Row(
-            Modifier.height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Asset.entries.forEach { a ->
-                PickBtn(
-                    label = a.title,
-                    picked = a == target,
-                    // закрытый образованием инструмент виден, но приглушён и не нажимается
-                    enabled = a in unlocked,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                ) { onPick(a) }
+        BoxWithConstraints {
+            // Кегль подписи — общий на все три кнопки и подбирается под самую длинную.
+            // «Недвижимость» при увеличенном шрифте в треть ширины не влезает и рвётся
+            // посреди слова; уменьшенный кегль читается, разорванное слово — нет.
+            val labelSp = fittedLabelSp((maxWidth - PICK_GAP * 2) / 3)
+            Row(horizontalArrangement = Arrangement.spacedBy(PICK_GAP)) {
+                Asset.entries.forEach { a ->
+                    PickBtn(
+                        label = a.title,
+                        labelSp = labelSp,
+                        picked = a == target,
+                        // закрытый образованием инструмент виден, но приглушён и не нажимается
+                        enabled = a in unlocked,
+                        modifier = Modifier.weight(1f)
+                    ) { onPick(a) }
+                }
             }
         }
 
@@ -476,6 +483,42 @@ private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
     }
 }
 
+/** Зазор между кнопками выбора — тот же, что между кнопками накоплений. */
+private val PICK_GAP = 8.dp
+
+/** Кегль подписи кнопки: как у кнопок накоплений, и нижняя граница, ниже которой не жмём. */
+private const val PICK_LABEL_SP = 13f
+private const val PICK_LABEL_MIN_SP = 10f
+
+/** Названия инструментов — постоянный список, служит меркой ширины. */
+private val PICK_LABELS: List<String> = Asset.entries.map { it.title }
+
+/**
+ * Кегль подписи, при котором самое длинное название помещается в кнопку такой ширины.
+ *
+ * Кегль общий на весь ряд: разный размер у соседних кнопок читался бы как ошибка.
+ * Так же подбирается кегль баланса на карте — по той же причине, что число нельзя
+ * ни обрезать, ни перенести.
+ */
+@Composable
+private fun fittedLabelSp(width: Dp): TextUnit {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val px = with(density) { width.roundToPx() }
+    return remember(px, density.fontScale) {
+        var sp = PICK_LABEL_SP
+        while (sp > PICK_LABEL_MIN_SP && PICK_LABELS.any {
+                measurer.measure(
+                    it,
+                    TextStyle(fontWeight = FontWeight.Bold, fontSize = sp.sp),
+                    maxLines = 1
+                ).size.width > px
+            }
+        ) sp -= 0.5f
+        sp.sp
+    }
+}
+
 /**
  * Кнопка выбора инструмента для автовклада.
  *
@@ -490,6 +533,7 @@ private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
 @Composable
 private fun PickBtn(
     label: String,
+    labelSp: TextUnit,
     picked: Boolean,
     enabled: Boolean,
     modifier: Modifier,
@@ -513,8 +557,8 @@ private fun PickBtn(
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = 13.sp,
-            textAlign = TextAlign.Center)
+        Text(label, color = fg, fontWeight = FontWeight.Bold, fontSize = labelSp,
+            maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
     }
 }
 
