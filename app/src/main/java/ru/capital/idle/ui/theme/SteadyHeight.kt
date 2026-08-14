@@ -2,6 +2,7 @@ package ru.capital.idle.ui.theme
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -28,12 +29,16 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
  * под него хуже разового сдвига — так уже решили в PR #15.
  *
  * @param rulers раскладки, которые здесь могут оказаться; каждая только измеряется
+ * @param verticalAlignment где стоит содержимое в отложенном месте. Сверху — когда лишняя
+ *   строка была бы переносом текущей (так у названия бумаги и у итога автовклада).
+ *   По центру — когда место стоит в ряду и должно совпадать с соседями по строке.
  * @param content то, что показывается сейчас
  */
 @Composable
 fun SteadyHeight(
     rulers: List<@Composable () -> Unit>,
     modifier: Modifier = Modifier,
+    verticalAlignment: Alignment.Vertical = Alignment.Top,
     content: @Composable () -> Unit
 ) {
     // мерки меряются в тех же constraints, что и содержимое (propagateMinConstraints),
@@ -47,8 +52,9 @@ fun SteadyHeight(
         val height = measured.flatten().maxOfOrNull { it.height } ?: 0
         val width = (shown.maxOfOrNull { it.width } ?: 0)
             .coerceIn(constraints.minWidth, constraints.maxWidth)
-        layout(width, height.coerceIn(constraints.minHeight, constraints.maxHeight)) {
-            shown.forEach { it.place(0, 0) }
+        val boxHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(width, boxHeight) {
+            shown.forEach { it.place(0, verticalAlignment.align(it.height, boxHeight)) }
         }
     }
 }

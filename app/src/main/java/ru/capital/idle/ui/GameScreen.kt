@@ -449,7 +449,11 @@ internal fun MarketBar(state: GameState) {
         // Поэтому место держится по самой высокой подписи из всех фаз.
         val rulers = ArrayList<@Composable () -> Unit>()
         MarketPhase.entries.forEach { p -> rulers += { MarketLabel(p) } }
-        SteadyHeight(rulers = rulers, modifier = Modifier.weight(1f)) { MarketLabel(phase) }
+        SteadyHeight(
+            rulers = rulers, modifier = Modifier.weight(1f),
+            // место стоит в одном ряду с иконкой и множителем: подпись держится их середины
+            verticalAlignment = Alignment.CenterVertically
+        ) { MarketLabel(phase) }
         Text("×${GameMath.decimal(mult, 2)}",
             color = if (mult >= 1.0) Business else RedAccent,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
