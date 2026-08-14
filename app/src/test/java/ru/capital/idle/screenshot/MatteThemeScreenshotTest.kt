@@ -202,7 +202,7 @@ class MatteThemeScreenshotTest {
         AutoInvestCard(
             on = true, target = AutoInvest.target(rich), unlocked = AutoInvest.available(rich),
             reserve = rich.autoInvestReserve, amount = AutoInvest.amount(rich),
-            blocked = AutoInvest.blockedReason(rich), cur = cur
+            cur = cur
         )
         gap()
         PassiveCard(rich, Asset.entries[0], cur, {}, {}, {})

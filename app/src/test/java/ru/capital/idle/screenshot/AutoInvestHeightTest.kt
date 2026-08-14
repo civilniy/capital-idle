@@ -30,6 +30,7 @@ import ru.capital.idle.core.game.Asset
 import ru.capital.idle.core.game.AutoInvest
 import ru.capital.idle.core.game.Currency
 import ru.capital.idle.core.game.Exchange
+import ru.capital.idle.core.game.GameMath
 import ru.capital.idle.core.game.GameState
 import ru.capital.idle.ui.AutoInvestCard
 import ru.capital.idle.ui.PassiveCard
@@ -41,9 +42,14 @@ import ru.capital.idle.ui.theme.Bg
  *
  * Замер по видео с устройства: между кадрами менялось больше половины строк экрана. Причина —
  * две взаимозаменяемые области в блоке автовклада: карточка «следующим днём уйдёт» и
- * предупреждение «не сработает: …». Высота у них разная, а меняются они сами по себе:
+ * предупреждение «не сработает: …». Высота у них была разная, а менялись они сами по себе:
  * в момент списания баланс падает до резерва, через мгновение деньги набегают снова.
  * Игровой день — 24 реальные секунды, так что дёргалось постоянно.
+ *
+ * Предупреждение убрано совсем — теперь в такие моменты в карточке стоит ноль
+ * (см. `AutoInvestSummaryTest`), — но проверка остаётся: она держит саму высоту содержимого,
+ * а не конкретную раскладку. Строка суммы не имеет переноса, поэтому длина числа на высоту
+ * влиять не должна ни при каком балансе.
  *
  * Здесь берутся все состояния этой области и проверяется, что суммарная высота содержимого
  * совпадает ТОЧНО. Ниже автовклада на экране стоят вклады и акции — они и уезжали, поэтому
@@ -97,7 +103,6 @@ class AutoInvestHeightTest {
                         unlocked = AutoInvest.available(s),
                         reserve = s.autoInvestReserve,
                         amount = AutoInvest.amount(s),
-                        blocked = AutoInvest.blockedReason(s),
                         cur = cur
                     )
                     Spacer(Modifier.height(16.dp))
@@ -149,33 +154,25 @@ class AutoInvestHeightTest {
     }
 
     /**
-     * Проверка не вхолостую: состояния действительно показывают разное. Иначе тест выше
+     * Проверка не вхолостую: состояния действительно показывают разные числа. Иначе тест выше
      * сравнивал бы одинаковое с одинаковым и подпрыгивания не поймал бы.
      */
     @Test
-    fun `состояния показывают разные надписи`() {
+    fun `состояния показывают разные суммы перевода`() {
         compose.setContent { ScreenBody() }
         listOf(1f, Screenshots.LARGE_FONT).forEach { fs ->
             fontScale.floatValue = fs
-
-            shown.value = states[0].second
-            compose.waitForIdle()
-            assertTrue(
-                "при полной карте показывается сумма (шрифт $fs)",
-                compose.onAllNodesWithText("следующим днём уйдёт").fetchSemanticsNodes().size == 1
-            )
-
-            shown.value = states[1].second
-            compose.waitForIdle()
-            assertTrue(
-                "сразу после списания — предупреждение (шрифт $fs)",
-                compose.onAllNodesWithText("не сработает: ${AutoInvest.REASON_BELOW_RESERVE}")
-                    .fetchSemanticsNodes().size == 1
-            )
-            assertTrue(
-                "и никакой суммы рядом (шрифт $fs)",
-                compose.onAllNodesWithText("следующим днём уйдёт").fetchSemanticsNodes().isEmpty()
-            )
+            val sums = states.map { (name, s) ->
+                shown.value = s
+                compose.waitForIdle()
+                // карточка итога стоит в любом состоянии — меняется только число в ней
+                assertTrue(
+                    "карточка итога пропала ($name, шрифт $fs)",
+                    compose.onAllNodesWithText("следующим днём уйдёт").fetchSemanticsNodes().size == 1
+                )
+                GameMath.formatMoney(AutoInvest.amount(s), currency.value)
+            }
+            assertTrue("суммы обязаны различаться (шрифт $fs): $sums", sums.distinct().size > 1)
         }
     }
 }

@@ -51,25 +51,19 @@ object AutoInvest {
         return (s.money - s.autoInvestReserve).coerceAtLeast(0.0)
     }
 
-    const val REASON_DEBT = "сначала гасим долг"
-    const val REASON_NO_ASSETS = "нет открытых инструментов"
-    const val REASON_BELOW_RESERVE = "на карте не больше резерва"
-
     /**
-     * Все причины, по которым автовклад может не сработать, — закрытый список.
+     * Почему автовклад не сработает прямо сейчас (или `null`, если сработает).
      *
-     * Список нужен вёрстке: место под итог держится постоянной высоты, а для этого карточка
-     * измеряет каждую возможную причину (см. `AutoInvestCard`). Список и [blockedReason]
-     * обязаны ходить парой — это пришито тестом.
+     * На экране причина больше не показывается: она возникала ровно в момент списания
+     * и пропадала через мгновение — прочитать её было нельзя. Игроку об этом говорит ноль
+     * в строке «следующим днём уйдёт». Здесь причина осталась как описание состояния:
+     * ею проверяется, что [amount] равен нулю именно по той причине, по какой должен.
      */
-    val REASONS: List<String> = listOf(REASON_DEBT, REASON_NO_ASSETS, REASON_BELOW_RESERVE)
-
-    /** Почему автовклад не сработает прямо сейчас (или `null`, если сработает). */
     fun blockedReason(s: GameState): String? = when {
         !s.autoInvestOn -> null
-        s.debt > 0.0 -> REASON_DEBT
-        target(s) == null -> REASON_NO_ASSETS
-        s.money <= s.autoInvestReserve -> REASON_BELOW_RESERVE
+        s.debt > 0.0 -> "сначала гасим долг"
+        target(s) == null -> "нет открытых инструментов"
+        s.money <= s.autoInvestReserve -> "на карте не больше резерва"
         else -> null
     }
 
