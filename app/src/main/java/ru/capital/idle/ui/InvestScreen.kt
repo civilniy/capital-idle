@@ -217,7 +217,7 @@ internal fun AutoInvestCard(
             // Кегль подписи — общий на все три кнопки и подбирается под самую длинную.
             // «Недвижимость» при увеличенном шрифте в треть ширины не влезает и рвётся
             // посреди слова; уменьшенный кегль читается, разорванное слово — нет.
-            val labelSp = fittedLabelSp((maxWidth - PICK_GAP * 2) / 3)
+            val labelSp = fittedLabelSp((maxWidth - PICK_GAP * 2) / 3 - PICK_LABEL_PAD)
             Row(horizontalArrangement = Arrangement.spacedBy(PICK_GAP)) {
                 Asset.entries.forEach { a ->
                     PickBtn(
@@ -488,7 +488,10 @@ private val PICK_GAP = 8.dp
 
 /** Кегль подписи кнопки: как у кнопок накоплений, и нижняя граница, ниже которой не жмём. */
 private const val PICK_LABEL_SP = 13f
-private const val PICK_LABEL_MIN_SP = 10f
+private const val PICK_LABEL_MIN_SP = 9f
+
+/** Поля внутри кнопки: подпись не должна упираться в скруглённый край. */
+private val PICK_LABEL_PAD = 12.dp
 
 /** Названия инструментов — постоянный список, служит меркой ширины. */
 private val PICK_LABELS: List<String> = Asset.entries.map { it.title }
