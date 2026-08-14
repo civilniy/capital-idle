@@ -12,7 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -575,6 +577,15 @@ private fun ActionBtn(
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Мерка высоты строки. Кегль подписи в ряду выбора ужимается, когда длинное название
+        // иначе не влезает, — и кнопка вслед за ним становилась ниже соседнего ряда.
+        // Невидимая строка обычного кегля задаёт высоту раз и навсегда, так что все кнопки
+        // экрана одной высоты независимо от того, что в них написано.
+        Text(
+            "0", fontWeight = FontWeight.Bold, fontSize = BTN_LABEL_SP.sp,
+            maxLines = 1, softWrap = false,
+            modifier = Modifier.alpha(0f).clearAndSetSemantics { }
+        )
         // перенос запрещён структурно: подпись ужимается кеглем, а не рвётся посреди слова
         Text(label, color = fg, fontWeight = weight, fontSize = labelSp,
             maxLines = 1, softWrap = false, textAlign = TextAlign.Center)
