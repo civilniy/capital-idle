@@ -27,7 +27,7 @@ import ru.capital.idle.core.game.GameState
 import ru.capital.idle.core.game.Jobs
 import ru.capital.idle.core.game.Lifestyle
 import ru.capital.idle.ui.AutoInvestCard
-import ru.capital.idle.ui.BottomBar
+import ru.capital.idle.BottomBar
 import ru.capital.idle.ui.JobCard
 import ru.capital.idle.ui.LifeItemCard
 import ru.capital.idle.ui.ThemeSheet
