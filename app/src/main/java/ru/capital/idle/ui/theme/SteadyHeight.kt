@@ -1,8 +1,10 @@
 package ru.capital.idle.ui.theme
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.clearAndSetSemantics
 
 /**
  * Место, высота которого не зависит от того, что в нём сейчас показано.
@@ -14,8 +16,10 @@ import androidx.compose.ui.layout.Layout
  * возвращается обратно. Игровой день — 24 реальные секунды, так что экран дёргается постоянно.
  *
  * Здесь измеряются все возможные раскладки, высота берётся по самой высокой, а рисуется
- * только текущая. Мерки ([rulers]) в разметку не попадают: они измеряются, но не размещаются,
- * поэтому ни на экране, ни в дереве доступности их нет.
+ * только текущая. Мерки ([rulers]) измеряются, но не размещаются, поэтому на экране их нет.
+ * Из дерева доступности они убраны отдельно: неразмещённый узел из него не выпадает сам,
+ * и без этого экранный диктор читал бы каждую мерку — «следующим днём уйдёт» и все причины
+ * разом. Это же ловил бы и поиск по тексту в тестах.
  *
  * Ширину задаёт видимое содержимое — мерки её не растягивают.
  *
@@ -32,7 +36,12 @@ fun SteadyHeight(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Layout(contents = listOf(content) + rulers, modifier = modifier) { groups, constraints ->
+    // мерки меряются в тех же constraints, что и содержимое (propagateMinConstraints),
+    // иначе перенос строки в мерке случился бы не там же, где в настоящей раскладке
+    val silent: List<@Composable () -> Unit> = rulers.map { ruler ->
+        { Box(Modifier.clearAndSetSemantics {}, propagateMinConstraints = true) { ruler() } }
+    }
+    Layout(contents = listOf(content) + silent, modifier = modifier) { groups, constraints ->
         val measured = groups.map { group -> group.map { it.measure(constraints) } }
         val shown = measured.first()
         val height = measured.flatten().maxOfOrNull { it.height } ?: 0

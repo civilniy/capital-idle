@@ -392,18 +392,18 @@ internal fun StockCard(
     val qty = state.stockQty.getOrElse(index) { 0.0 }
     val avg = state.stockAvg.getOrElse(index) { 0.0 }
     val hasMoney = state.money >= price
-    val divPct = stock.divPerDay * 100.0
 
     Column(Modifier.fillMaxWidth().clip(cardShape(18.dp)).background(GlassFill).padding(15.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             LeadingIcon(AppIcon.CHART, if (unlocked) Study else Mute)
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stock.title, color = if (unlocked) TextMain else Mute,
-                        fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
-                    if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(divPct)}", Study)
-                    if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
-                    if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
+                // Плашка события приходит и уходит сама, по ходу торгов. Вместе с названием
+                // и дивидендами она при крупном шрифте в строку не помещается, и строка
+                // вырастала бы на глазах — поэтому место держится по самой полной раскладке.
+                val rulers = ArrayList<@Composable () -> Unit>()
+                listOf(-1, 0, 1).forEach { dir -> rulers += { StockTitleRow(stock, unlocked, dir) } }
+                SteadyHeight(rulers = rulers, modifier = Modifier.fillMaxWidth()) {
+                    StockTitleRow(stock, unlocked, eventDir)
                 }
                 Text("${stock.ticker} · ${stock.info}", color = Mute, fontSize = 9.5.sp)
             }
@@ -477,6 +477,23 @@ internal fun StockCard(
             ActionBtn("На все", BtnState.NEUTRAL, hasMoney, Modifier.weight(1f)) { onBuy(-1.0) }
             ActionBtn("Продать", BtnState.SELL, qty > 0, Modifier.weight(1f)) { onSell() }
         }
+    }
+}
+
+/**
+ * Строка названия бумаги: название, дивиденды и плашка события.
+ *
+ * Вынесена отдельно, чтобы ею же мерить раскладки без события и с событием — тексты и порядок
+ * прежние, `eventDir` тот же, что у карточки: 1 — хайп, -1 — обвал, 0 — спокойно.
+ */
+@Composable
+private fun StockTitleRow(stock: Stock, unlocked: Boolean, eventDir: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(stock.title, color = if (unlocked) TextMain else Mute,
+            fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+        if (stock.divPerDay > 0.0) Tag("дивиденды ${fmtPct(stock.divPerDay * 100.0)}", Study)
+        if (eventDir == 1) Tag("\u25B2 хайп", GreenAccent)
+        if (eventDir == -1) Tag("\u25BC обвал", RedAccent)
     }
 }
 

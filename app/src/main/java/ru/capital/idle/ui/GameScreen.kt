@@ -443,15 +443,27 @@ internal fun MarketBar(state: GameState) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(color))
         }
         Spacer(Modifier.width(dpOf(8.dp, 12.dp)))
-        Text(
-            "Рынок: ${phase.title}" + if (phase.sale < 1.0) " · бизнесы дешевле" else "",
-            color = TextMain, fontWeight = FontWeight.Bold, fontSize = 12.sp,
-            modifier = Modifier.weight(1f)
-        )
+        // Фазы сменяются по игровому времени, сами по себе. Подписи у них разной длины
+        // («Восстановление», у дешёвых фаз ещё и хвост про цены), и при крупном шрифте одна
+        // встаёт в две строки, а другая в одну — плашка меняла бы высоту без спроса.
+        // Поэтому место держится по самой высокой подписи из всех фаз.
+        val rulers = ArrayList<@Composable () -> Unit>()
+        MarketPhase.entries.forEach { p -> rulers += { MarketLabel(p) } }
+        SteadyHeight(rulers = rulers, modifier = Modifier.weight(1f)) { MarketLabel(phase) }
         Text("×${GameMath.decimal(mult, 2)}",
             color = if (mult >= 1.0) Business else RedAccent,
             fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
+}
+
+/** Подпись плашки рынка. Текст прежний — вынесен, чтобы им же мерить остальные фазы. */
+@Composable
+private fun MarketLabel(phase: MarketPhase) {
+    Text(
+        "Рынок: ${phase.title}" + if (phase.sale < 1.0) " · бизнесы дешевле" else "",
+        color = TextMain, fontWeight = FontWeight.Bold, fontSize = 12.sp,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
